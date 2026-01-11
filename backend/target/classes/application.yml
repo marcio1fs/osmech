@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/oficina_db
+    username: postgres
+    password: 3782
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+cors:
+  allowed-origins: "*"
+  allowed-methods: "GET,POST,PUT,DELETE"
+  allowed-headers: "Authorization,Content-Type"
+
+# Configurações para integração com OpenAI
+openai:
+  api:
+    key: "sua-chave-aqui"
+    url: "https://api.openai.com/v1/completions"
+
