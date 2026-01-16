@@ -46,6 +46,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+        // SECURITY WARNING: Restrict origins in production!
+        // Example: configuration.setAllowedOrigins(Arrays.asList("https://yourdomain.com"));
         configuration.setAllowedOriginPatterns(Arrays.asList("*")); // For development; restrict in production
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));

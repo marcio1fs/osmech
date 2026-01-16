@@ -31,19 +31,30 @@ public class OrdemServicoService {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
-        // Create or find cliente
-        Cliente cliente = new Cliente();
-        cliente.setNome(request.getNomeCliente());
-        cliente.setTelefone(request.getTelefone());
-        cliente.setUsuario(usuario);
-        cliente = clienteRepository.save(cliente);
+        // Find or create cliente
+        Cliente cliente = clienteRepository.findByUsuarioId(usuarioId).stream()
+                .filter(c -> c.getNome().equals(request.getNomeCliente()) && 
+                            c.getTelefone().equals(request.getTelefone()))
+                .findFirst()
+                .orElseGet(() -> {
+                    Cliente novoCliente = new Cliente();
+                    novoCliente.setNome(request.getNomeCliente());
+                    novoCliente.setTelefone(request.getTelefone());
+                    novoCliente.setUsuario(usuario);
+                    return clienteRepository.save(novoCliente);
+                });
 
-        // Create or find veiculo
-        Veiculo veiculo = new Veiculo();
-        veiculo.setPlaca(request.getPlaca().toUpperCase());
-        veiculo.setModelo(request.getModelo());
-        veiculo.setCliente(cliente);
-        veiculo = veiculoRepository.save(veiculo);
+        // Find or create veiculo
+        Veiculo veiculo = veiculoRepository.findByClienteId(cliente.getId()).stream()
+                .filter(v -> v.getPlaca().equalsIgnoreCase(request.getPlaca()))
+                .findFirst()
+                .orElseGet(() -> {
+                    Veiculo novoVeiculo = new Veiculo();
+                    novoVeiculo.setPlaca(request.getPlaca().toUpperCase());
+                    novoVeiculo.setModelo(request.getModelo());
+                    novoVeiculo.setCliente(cliente);
+                    return veiculoRepository.save(novoVeiculo);
+                });
 
         // Create ordem servico
         OrdemServico os = new OrdemServico();
