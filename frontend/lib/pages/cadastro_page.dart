@@ -1,28 +1,33 @@
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({Key? key}) : super(key: key);
+class CadastroPage extends StatefulWidget {
+  const CadastroPage({Key? key}) : super(key: key);
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  State<CadastroPage> createState() => _CadastroPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _CadastroPageState extends State<CadastroPage> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nomeOficinaController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
+    _nomeOficinaController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> _login() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -32,7 +37,8 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      await AuthService.login(
+      await AuthService.register(
+        _nomeOficinaController.text.trim(),
         _emailController.text.trim(),
         _passwordController.text,
       );
@@ -61,6 +67,9 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Cadastro'),
+      ),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -77,20 +86,39 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'OSMECH',
-                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                  'Criar Conta',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
                       ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Gestão de Oficinas Mecânicas',
+                  'Cadastre sua oficina no OSMECH',
                   style: Theme.of(context).textTheme.bodyLarge,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 48),
+                const SizedBox(height: 32),
+                TextFormField(
+                  controller: _nomeOficinaController,
+                  decoration: const InputDecoration(
+                    labelText: 'Nome da Oficina',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.business),
+                  ),
+                  textCapitalization: TextCapitalization.words,
+                  textInputAction: TextInputAction.next,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, insira o nome da oficina';
+                    }
+                    if (value.length < 3) {
+                      return 'O nome deve ter pelo menos 3 caracteres';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 16),
                 TextFormField(
                   controller: _emailController,
                   decoration: const InputDecoration(
@@ -129,8 +157,7 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ),
                   obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _login(),
+                  textInputAction: TextInputAction.next,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Por favor, insira sua senha';
@@ -141,9 +168,42 @@ class _LoginPageState extends State<LoginPage> {
                     return null;
                   },
                 ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  decoration: InputDecoration(
+                    labelText: 'Confirmar Senha',
+                    border: const OutlineInputBorder(),
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscureConfirmPassword
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                  ),
+                  obscureText: _obscureConfirmPassword,
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _register(),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, confirme sua senha';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'As senhas não coincidem';
+                    }
+                    return null;
+                  },
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _login,
+                  onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                   ),
@@ -153,16 +213,16 @@ class _LoginPageState extends State<LoginPage> {
                           width: 20,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Entrar', style: TextStyle(fontSize: 16)),
+                      : const Text('Cadastrar', style: TextStyle(fontSize: 16)),
                 ),
                 const SizedBox(height: 16),
                 TextButton(
                   onPressed: _isLoading
                       ? null
                       : () {
-                          Navigator.pushNamed(context, '/cadastro');
+                          Navigator.pop(context);
                         },
-                  child: const Text('Não tem uma conta? Cadastre-se'),
+                  child: const Text('Já tem uma conta? Faça login'),
                 ),
               ],
             ),

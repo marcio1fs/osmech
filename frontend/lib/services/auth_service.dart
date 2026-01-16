@@ -1,59 +1,83 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/usuario.dart';
 
 class AuthService {
-    static String? getRoleFromToken(String? token) {
-      if (token == null) return null;
-      try {
-        final parts = token.split('.');
-        if (parts.length != 3) return null;
-        final payload = utf8.decode(base64Url.decode(base64Url.normalize(parts[1])));
-        final payloadMap = jsonDecode(payload);
-        return payloadMap['role'] as String?;
-      } catch (_) {
-        return null;
-      }
-    }
   static const String _baseUrl = 'http://localhost:8080/api/auth';
+  static const _storage = FlutterSecureStorage();
 
-  static Future<void> login(String username, String password) async {
+  static Future<AuthResponse> login(String email, String senha) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/login'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
+      body: jsonEncode({'email': email, 'senha': senha}),
     );
+    
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('jwt_token', data['token']);
+      final authResponse = AuthResponse.fromJson(data);
+      
+      await _storage.write(key: 'jwt_token', value: authResponse.token);
+      await _storage.write(key: 'usuario_id', value: authResponse.usuarioId.toString());
+      await _storage.write(key: 'nome_oficina', value: authResponse.nomeOficina);
+      await _storage.write(key: 'email', value: authResponse.email);
+      
+      return authResponse;
     } else {
-      throw Exception('Login inválido');
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Login inválido');
     }
   }
 
-  static Future<void> register(String username, String password) async {
+  static Future<AuthResponse> register(String nomeOficina, String email, String senha) async {
     final response = await http.post(
       Uri.parse('$_baseUrl/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'username': username, 'password': password}),
+      body: jsonEncode({
+        'nomeOficina': nomeOficina,
+        'email': email,
+        'senha': senha,
+      }),
     );
+    
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('jwt_token', data['token']);
+      final authResponse = AuthResponse.fromJson(data);
+      
+      await _storage.write(key: 'jwt_token', value: authResponse.token);
+      await _storage.write(key: 'usuario_id', value: authResponse.usuarioId.toString());
+      await _storage.write(key: 'nome_oficina', value: authResponse.nomeOficina);
+      await _storage.write(key: 'email', value: authResponse.email);
+      
+      return authResponse;
     } else {
-      throw Exception('Cadastro inválido');
+      final error = jsonDecode(response.body);
+      throw Exception(error['message'] ?? 'Cadastro inválido');
     }
   }
 
   static Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('jwt_token');
+    return await _storage.read(key: 'jwt_token');
+  }
+
+  static Future<int?> getUsuarioId() async {
+    final id = await _storage.read(key: 'usuario_id');
+    return id != null ? int.tryParse(id) : null;
+  }
+
+  static Future<String?> getNomeOficina() async {
+    return await _storage.read(key: 'nome_oficina');
+  }
+
+  static Future<String?> getEmail() async {
+    return await _storage.read(key: 'email');
   }
 
   static Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('jwt_token');
+    await _storage.delete(key: 'jwt_token');
+    await _storage.delete(key: 'usuario_id');
+    await _storage.delete(key: 'nome_oficina');
+    await _storage.delete(key: 'email');
   }
 }

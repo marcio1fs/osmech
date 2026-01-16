@@ -3,16 +3,28 @@ server:
 
 spring:
   datasource:
+    # SECURITY WARNING: Use environment variables in production!
+    # Example: url: ${DATABASE_URL}
     url: jdbc:postgresql://localhost:5432/oficina_db
     username: postgres
     password: 3782
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+jwt:
+  # SECURITY WARNING: Change this secret in production!
+  # Use a strong, randomly generated secret and store it securely (e.g., environment variables)
+  secret: "osmech-secret-key-change-in-production-min-256-bits-long-for-hs256"
+  expiration: 86400000  # 24 hours in milliseconds
 
 cors:
   allowed-origins: "*"
