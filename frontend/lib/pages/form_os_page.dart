@@ -85,7 +85,7 @@ class _FormOsPageState extends State<FormOsPage> {
         status: _selectedStatus.value,
       );
 
-      if (_ordemToEdit != null) {
+      if (_ordemToEdit != null && _ordemToEdit!.id != null) {
         await OrdemServicoService.updateOrdem(_ordemToEdit!.id!, ordem);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(

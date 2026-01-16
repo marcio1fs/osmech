@@ -74,7 +74,7 @@ class _OrdensServicoPageState extends State<OrdensServicoPage> {
       ),
     );
 
-    if (confirm == true) {
+    if (confirm == true && ordem.id != null) {
       try {
         await OrdemServicoService.deleteOrdem(ordem.id!);
         if (mounted) {
