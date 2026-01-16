@@ -1,86 +1,72 @@
-
 package com.osmech.os;
-import com.osmech.integration.TwilioWhatsAppService;
 
-import com.osmech.user.User;
-import com.osmech.user.UserRepository;
+import com.osmech.os.dto.OrdemServicoRequest;
+import com.osmech.os.dto.OrdemServicoResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/os")
-@CrossOrigin
+@CrossOrigin(origins = "*")
 public class OrdemServicoController {
-        @Autowired
-        private TwilioWhatsAppService twilioWhatsAppService;
-    @Autowired
-    private OrdemServicoRepository ordemServicoRepository;
-    @Autowired
-    private UserRepository userRepository;
 
-    @GetMapping
-    public List<OrdemServicoDTO> getAll() {
-        return ordemServicoRepository.findAll().stream().map(this::toDTO).toList();
-    }
+    @Autowired
+    private OrdemServicoService ordemServicoService;
 
-    private OrdemServicoDTO toDTO(OrdemServico os) {
-        OrdemServicoDTO dto = new OrdemServicoDTO();
-        dto.setDescricao(os.getDescricao());
-        dto.setStatus(os.getStatus());
-        dto.setUsuarioId(os.getUsuario() != null ? os.getUsuario().getId() : null);
-        dto.setTelefone(os.getTelefone());
-        return dto;
+    private Long getUsuarioId(HttpServletRequest request) {
+        Object usuarioId = request.getAttribute("usuarioId");
+        if (usuarioId == null) {
+            throw new RuntimeException("Usuário não autenticado");
+        }
+        return (Long) usuarioId;
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@RequestBody OrdemServicoDTO dto) {
-        User usuario = userRepository.findById(dto.getUsuarioId()).orElse(null);
-        if (usuario == null) {
-            return ResponseEntity.badRequest().body("Usuário não encontrado");
-        }
-        OrdemServico os = new OrdemServico();
-        os.setDescricao(dto.getDescricao());
-        os.setStatus(dto.getStatus());
-        os.setUsuario(usuario);
-        os.setTelefone(dto.getTelefone());
-        OrdemServico saved = ordemServicoRepository.save(os);
-        // Disparar WhatsApp ao criar OS usando template
-        try {
-            twilioWhatsAppService.sendWhatsAppTemplate(
-                saved.getTelefone(),
-                "os_created",
-                saved.getDescricao(),
-                saved.getStatus()
-            );
-        } catch (Exception e) {
-            System.err.println("Erro ao enviar WhatsApp: " + e.getMessage());
-        }
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<OrdemServicoResponse> criar(
+            @Valid @RequestBody OrdemServicoRequest request,
+            HttpServletRequest httpRequest) {
+        Long usuarioId = getUsuarioId(httpRequest);
+        OrdemServicoResponse response = ordemServicoService.criarOS(request, usuarioId);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping
+    public ResponseEntity<List<OrdemServicoResponse>> listar(HttpServletRequest httpRequest) {
+        Long usuarioId = getUsuarioId(httpRequest);
+        List<OrdemServicoResponse> ordens = ordemServicoService.listarOS(usuarioId);
+        return ResponseEntity.ok(ordens);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<OrdemServicoResponse> buscar(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+        Long usuarioId = getUsuarioId(httpRequest);
+        OrdemServicoResponse response = ordemServicoService.buscarPorId(id, usuarioId);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> update(@PathVariable Long id, @RequestBody OrdemServicoDTO dto) {
-        OrdemServico os = ordemServicoRepository.findById(id).orElse(null);
-        if (os == null) {
-            return ResponseEntity.notFound().build();
-        }
-        os.setDescricao(dto.getDescricao());
-        os.setStatus(dto.getStatus());
-        os.setTelefone(dto.getTelefone());
-        OrdemServico saved = ordemServicoRepository.save(os);
-        // Disparar WhatsApp ao atualizar status usando template
-        try {
-            twilioWhatsAppService.sendWhatsAppTemplate(
-                saved.getTelefone(),
-                "os_updated",
-                saved.getDescricao(),
-                saved.getStatus()
-            );
-        } catch (Exception e) {
-            System.err.println("Erro ao enviar WhatsApp: " + e.getMessage());
-        }
-        return ResponseEntity.ok(saved);
+    public ResponseEntity<OrdemServicoResponse> atualizar(
+            @PathVariable Long id,
+            @Valid @RequestBody OrdemServicoRequest request,
+            HttpServletRequest httpRequest) {
+        Long usuarioId = getUsuarioId(httpRequest);
+        OrdemServicoResponse response = ordemServicoService.atualizarOS(id, request, usuarioId);
+        return ResponseEntity.ok(response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletar(
+            @PathVariable Long id,
+            HttpServletRequest httpRequest) {
+        Long usuarioId = getUsuarioId(httpRequest);
+        ordemServicoService.deletarOS(id, usuarioId);
+        return ResponseEntity.noContent().build();
     }
 }

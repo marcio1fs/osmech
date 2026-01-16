@@ -1,37 +1,71 @@
 package com.osmech.os;
 
 import jakarta.persistence.*;
-import com.osmech.user.User;
+import com.osmech.user.Usuario;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "ordens_servico")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrdemServico {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String descricao;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Cliente cliente;
 
-    @Column(nullable = true)
-    private String telefone;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "veiculo_id", nullable = false)
+    private Veiculo veiculo;
 
-    @Column(nullable = false)
-    private String status;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User usuario;
+    @Column(name = "descricao_problema", nullable = false, columnDefinition = "TEXT")
+    private String descricaoProblema;
 
-    // Getters e Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public String getDescricao() { return descricao; }
-    public void setDescricao(String descricao) { this.descricao = descricao; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    public User getUsuario() { return usuario; }
-    public void setUsuario(User usuario) { this.usuario = usuario; }
-    public String getTelefone() { return telefone; }
-    public void setTelefone(String telefone) { this.telefone = telefone; }
+    @Column(name = "servicos_realizados", columnDefinition = "TEXT")
+    private String servicosRealizados;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal valor;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StatusOS status = StatusOS.ABERTA;
+
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (status == null) {
+            status = StatusOS.ABERTA;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    public enum StatusOS {
+        ABERTA,
+        EM_ANDAMENTO,
+        CONCLUIDA
+    }
 }
