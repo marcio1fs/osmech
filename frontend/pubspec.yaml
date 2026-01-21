@@ -1,0 +1,43 @@
+name: osmech_app
+description: Sistema de Gestão de Ordens de Serviço para Oficinas Mecânicas
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP Client
+  http: ^1.1.0
+  
+  # State Management
+  provider: ^6.1.1
+  
+  # Storage Local
+  shared_preferences: ^2.2.2
+  
+  # Validação de formulários
+  flutter_form_builder: ^9.1.1
+  form_builder_validators: ^9.1.0
+  
+  # UI Components
+  cupertino_icons: ^1.0.6
+  
+  # Utils
+  intl: ^0.18.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # Assets
+  # assets:
+  #   - images/
+  #   - icons/
