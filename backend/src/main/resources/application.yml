@@ -1,0 +1,51 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: osmech-backend
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/oficina_db
+    username: postgres
+    password: 3782
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+# Configuração JWT
+app:
+  jwt:
+    secret: osmech-secret-key-change-in-production-min-256-bits-long-enough-here
+    expiration-ms: 86400000  # 24 horas
+
+# Configuração futura WhatsApp (Twilio / Meta)
+whatsapp:
+  enabled: false
+  provider: twilio  # twilio | meta
+  twilio:
+    account-sid: ""
+    auth-token: ""
+    from-number: ""
+  meta:
+    phone-number-id: ""
+    access-token: ""
+
+# Configuração futura IA (OpenAI)
+ai:
+  enabled: false
+  provider: openai
+  openai:
+    api-key: ""
+    model: gpt-4o-mini

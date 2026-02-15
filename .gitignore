@@ -1,0 +1,36 @@
+# === Subrepositório duplicado ===
+OSMech/
+
+# === Backend (Java/Maven) ===
+backend/target/
+backend/.mvn/
+backend/*.iml
+backend/.idea/
+
+# === Frontend (Flutter/Dart) ===
+frontend/.dart_tool/
+frontend/.packages
+frontend/build/
+frontend/.flutter-plugins
+frontend/.flutter-plugins-dependencies
+frontend/.idea/
+frontend/*.iml
+frontend/android/
+frontend/ios/
+frontend/linux/
+frontend/macos/
+frontend/windows/
+frontend/test/
+frontend/.gitignore
+frontend/analysis_options.yaml
+
+# === IDE ===
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+
+# === OS ===
+.DS_Store
+Thumbs.db
