@@ -4,6 +4,7 @@ import com.osmech.os.entity.OrdemServico;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -26,4 +27,7 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long
 
     /** Conta OS por status de um usuário */
     long countByUsuarioIdAndStatus(Long usuarioId, String status);
+
+    /** Conta OS de um usuário criadas em um período (para limite mensal do plano) */
+    long countByUsuarioIdAndCriadoEmBetween(Long usuarioId, LocalDateTime inicio, LocalDateTime fim);
 }

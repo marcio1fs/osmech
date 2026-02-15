@@ -134,4 +134,12 @@ class AuthService extends ChangeNotifier {
     await prefs.remove('plano');
     notifyListeners();
   }
+
+  /// Atualiza o nome do usuário no estado e SharedPreferences.
+  Future<void> updateNome(String nome) async {
+    _nome = nome;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('nome', nome);
+    notifyListeners();
+  }
 }

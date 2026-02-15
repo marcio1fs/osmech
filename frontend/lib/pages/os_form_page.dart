@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/os_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Formulário de criação/edição de OS — design moderno.
 class OsFormPage extends StatefulWidget {
@@ -15,7 +16,7 @@ class OsFormPage extends StatefulWidget {
   State<OsFormPage> createState() => _OsFormPageState();
 }
 
-class _OsFormPageState extends State<OsFormPage> {
+class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _clienteNome;
   late final TextEditingController _clienteTelefone;
@@ -32,6 +33,48 @@ class _OsFormPageState extends State<OsFormPage> {
   bool _loading = false;
 
   bool get _isEditing => widget.osData != null;
+
+  /// Mapa de transições de status válidas (espelho do backend StatusOS).
+  static const Map<String, List<String>> _transicoesValidas = {
+    'ABERTA': [
+      'ABERTA',
+      'EM_ANDAMENTO',
+      'AGUARDANDO_PECA',
+      'AGUARDANDO_APROVACAO',
+      'CANCELADA'
+    ],
+    'EM_ANDAMENTO': [
+      'EM_ANDAMENTO',
+      'AGUARDANDO_PECA',
+      'AGUARDANDO_APROVACAO',
+      'CONCLUIDA',
+      'CANCELADA'
+    ],
+    'AGUARDANDO_PECA': ['AGUARDANDO_PECA', 'EM_ANDAMENTO', 'CANCELADA'],
+    'AGUARDANDO_APROVACAO': [
+      'AGUARDANDO_APROVACAO',
+      'EM_ANDAMENTO',
+      'CANCELADA'
+    ],
+    'CONCLUIDA': ['CONCLUIDA'],
+    'CANCELADA': ['CANCELADA', 'ABERTA'],
+  };
+
+  /// Labels amigáveis para os status.
+  static const Map<String, String> _statusLabels = {
+    'ABERTA': 'Aberta',
+    'EM_ANDAMENTO': 'Em Andamento',
+    'AGUARDANDO_PECA': 'Aguardando Peça',
+    'AGUARDANDO_APROVACAO': 'Ag. Aprovação',
+    'CONCLUIDA': 'Concluída',
+    'CANCELADA': 'Cancelada',
+  };
+
+  /// Retorna apenas os status permitidos para a transição atual.
+  List<String> get _statusPermitidos {
+    if (!_isEditing) return ['ABERTA'];
+    return _transicoesValidas[_status] ?? ['ABERTA'];
+  }
 
   @override
   void initState() {
@@ -83,9 +126,12 @@ class _OsFormPageState extends State<OsFormPage> {
         'diagnostico': _diagnostico.text.trim(),
         'pecas': _pecas.text.trim(),
         'valor': double.tryParse(_valor.text.trim()) ?? 0,
-        'status': _status,
         'whatsappConsentimento': _notificarWhatsApp,
       };
+      // Enviar status apenas na edição (backend define ABERTA na criação)
+      if (_isEditing) {
+        data['status'] = _status;
+      }
       if (_isEditing) {
         await osService.atualizar(widget.osData!['id'], data);
       } else {
@@ -99,12 +145,14 @@ class _OsFormPageState extends State<OsFormPage> {
         }
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text('Erro ao salvar: $e'),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text('Erro ao salvar: $e'),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     }
     setState(() => _loading = false);
@@ -304,28 +352,16 @@ class _OsFormPageState extends State<OsFormPage> {
                                     DropdownButtonFormField<String>(
                                       value: _status,
                                       decoration: const InputDecoration(),
-                                      items: const [
-                                        DropdownMenuItem(
-                                            value: 'ABERTA',
-                                            child: Text('Aberta')),
-                                        DropdownMenuItem(
-                                            value: 'EM_ANDAMENTO',
-                                            child: Text('Em Andamento')),
-                                        DropdownMenuItem(
-                                            value: 'AGUARDANDO_PECA',
-                                            child: Text('Aguardando Peça')),
-                                        DropdownMenuItem(
-                                            value: 'AGUARDANDO_APROVACAO',
-                                            child: Text('Ag. Aprovação')),
-                                        DropdownMenuItem(
-                                            value: 'CONCLUIDA',
-                                            child: Text('Concluída')),
-                                        DropdownMenuItem(
-                                            value: 'CANCELADA',
-                                            child: Text('Cancelada')),
-                                      ],
-                                      onChanged: (v) => setState(
-                                          () => _status = v ?? 'ABERTA'),
+                                      items: _statusPermitidos
+                                          .map((s) => DropdownMenuItem(
+                                              value: s,
+                                              child:
+                                                  Text(_statusLabels[s] ?? s)))
+                                          .toList(),
+                                      onChanged: _isEditing
+                                          ? (v) => setState(
+                                              () => _status = v ?? _status)
+                                          : null,
                                     ),
                                   ],
                                 ),

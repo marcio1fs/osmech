@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Tela de Fluxo de Caixa com visualização diária.
 class FluxoCaixaPage extends StatefulWidget {
@@ -13,7 +14,7 @@ class FluxoCaixaPage extends StatefulWidget {
   State<FluxoCaixaPage> createState() => _FluxoCaixaPageState();
 }
 
-class _FluxoCaixaPageState extends State<FluxoCaixaPage> {
+class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
   List<Map<String, dynamic>> _fluxo = [];
   bool _loading = true;
   String? _error;
@@ -58,10 +59,12 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar fluxo de caixa';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar fluxo de caixa';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -237,7 +240,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> {
                                             Icon(Icons.bar_chart_rounded,
                                                 size: 48,
                                                 color: AppColors.textMuted
-                                                    .withOpacity(0.5)),
+                                                    .withValues(alpha: 0.5)),
                                             const SizedBox(height: 8),
                                             Text(
                                                 'Nenhum dado no período selecionado',
@@ -273,7 +276,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> {
         4: FlexColumnWidth(2),
       },
       border: TableBorder(
-        horizontalInside: BorderSide(color: AppColors.border.withOpacity(0.5)),
+        horizontalInside: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       children: [
         // Header
@@ -371,7 +374,7 @@ class _SummaryCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(icon, color: color, size: 20),

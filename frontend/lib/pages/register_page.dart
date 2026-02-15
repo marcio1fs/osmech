@@ -95,7 +95,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Icon(
@@ -120,7 +120,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             fontSize: 16,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             height: 1.5,
                           ),
                         ),
@@ -403,7 +403,7 @@ class _FeatureChip extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: Colors.white70, size: 20),
@@ -412,7 +412,7 @@ class _FeatureChip extends StatelessWidget {
         Text(
           text,
           style: GoogleFonts.inter(
-            color: Colors.white.withOpacity(0.8),
+            color: Colors.white.withValues(alpha: 0.8),
             fontSize: 14,
             fontWeight: FontWeight.w500,
           ),

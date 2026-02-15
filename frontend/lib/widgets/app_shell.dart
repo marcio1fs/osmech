@@ -33,6 +33,7 @@ class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   bool _sidebarExpanded = true;
   int? _editStockItemId;
+  int? _movimentacaoItemId;
 
   final List<_NavItem> _navItems = const [
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
@@ -119,13 +120,21 @@ class _AppShellState extends State<AppShell> {
           }),
         );
       case 12:
+        final movItemId = _movimentacaoItemId;
         return StockMovementPage(
-          onSaved: () => setState(() => _selectedIndex = 10),
+          preSelectedItemId: movItemId,
+          onSaved: () => setState(() {
+            _movimentacaoItemId = null;
+            _selectedIndex = 10;
+          }),
         );
       case 13:
         return StockAlertsPage(
           onEntradaEstoque: (id) {
-            setState(() => _selectedIndex = 12);
+            setState(() {
+              _movimentacaoItemId = id;
+              _selectedIndex = 12;
+            });
           },
         );
       case 14:
@@ -260,7 +269,7 @@ class _AppShellState extends State<AppShell> {
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
                                     color:
-                                        AppColors.sidebarText.withOpacity(0.5),
+                                        AppColors.sidebarText.withValues(alpha: 0.5),
                                     letterSpacing: 1.5,
                                   ),
                                 ),
@@ -318,7 +327,7 @@ class _AppShellState extends State<AppShell> {
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: AppColors.accent.withOpacity(0.2),
+                          backgroundColor: AppColors.accent.withValues(alpha: 0.2),
                           child: Text(
                             (auth.nome ?? 'U')[0].toUpperCase(),
                             style: GoogleFonts.inter(
@@ -382,9 +391,15 @@ class _AppShellState extends State<AppShell> {
       body: _getPage(_selectedIndex),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex > 4 ? 0 : _selectedIndex,
-        onDestinationSelected: (i) => setState(() => _selectedIndex = i),
+        onDestinationSelected: (i) {
+          if (i == 4) {
+            _showMobileDrawer(auth);
+          } else {
+            setState(() => _selectedIndex = i);
+          }
+        },
         backgroundColor: AppColors.surface,
-        indicatorColor: AppColors.accent.withOpacity(0.12),
+        indicatorColor: AppColors.accent.withValues(alpha: 0.12),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
@@ -407,12 +422,152 @@ class _AppShellState extends State<AppShell> {
             label: 'Pagamentos',
           ),
           NavigationDestination(
-            icon: Icon(Icons.more_horiz),
-            selectedIcon: Icon(Icons.more_horiz),
+            icon: Icon(Icons.menu_rounded),
+            selectedIcon: Icon(Icons.menu_rounded),
             label: 'Mais',
           ),
         ],
       ),
+    );
+  }
+
+  /// Exibe bottom sheet com todas as seções de navegação no mobile.
+  void _showMobileDrawer(AuthService auth) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      isScrollControlled: true,
+      builder: (ctx) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (_, scrollController) {
+            return Column(
+              children: [
+                // Handle bar
+                Container(
+                  margin: const EdgeInsets.only(top: 12, bottom: 8),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.textMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 18,
+                        backgroundColor:
+                            AppColors.accent.withValues(alpha: 0.15),
+                        child: Text(
+                          (auth.nome ?? 'U')[0].toUpperCase(),
+                          style: GoogleFonts.inter(
+                            color: AppColors.accent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(auth.nome ?? 'Usuário',
+                                style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary)),
+                            Text(auth.plano ?? 'FREE',
+                                style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    color: AppColors.textSecondary)),
+                          ],
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          auth.logout();
+                        },
+                        icon: const Icon(Icons.logout_rounded,
+                            size: 16, color: AppColors.error),
+                        label: Text('Sair',
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: AppColors.error)),
+                      ),
+                    ],
+                  ),
+                ),
+                const Divider(height: 1),
+                Expanded(
+                  child: ListView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    children: [
+                      // Itens a partir do index 4 (Assinatura)
+                      for (int i = 4; i < _navItems.length; i++) ...[
+                        if (_navItems[i].section != null)
+                          Padding(
+                            padding: const EdgeInsets.only(
+                                left: 20, top: 16, bottom: 4),
+                            child: Text(
+                              _navItems[i].section!,
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textMuted,
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                          ),
+                        ListTile(
+                          leading: Icon(_navItems[i].icon,
+                              size: 20,
+                              color: _selectedIndex == i
+                                  ? AppColors.accent
+                                  : AppColors.textSecondary),
+                          title: Text(
+                            _navItems[i].label,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: _selectedIndex == i
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: _selectedIndex == i
+                                  ? AppColors.accent
+                                  : AppColors.textPrimary,
+                            ),
+                          ),
+                          selected: _selectedIndex == i,
+                          selectedTileColor:
+                              AppColors.accent.withValues(alpha: 0.08),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          contentPadding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            setState(() => _selectedIndex = i);
+                          },
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -464,7 +619,7 @@ class _SidebarItemState extends State<_SidebarItem> {
             ),
             decoration: BoxDecoration(
               color: widget.selected
-                  ? AppColors.accent.withOpacity(0.15)
+                  ? AppColors.accent.withValues(alpha: 0.15)
                   : _hovered
                       ? AppColors.sidebarHover
                       : Colors.transparent,

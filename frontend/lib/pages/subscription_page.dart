@@ -217,7 +217,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                       decoration: BoxDecoration(
                                         color:
                                             _statusColor(_assinatura?['status'])
-                                                .withOpacity(0.1),
+                                                .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                       child: Icon(Icons.card_membership_rounded,
@@ -240,7 +240,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                       decoration: BoxDecoration(
                                         color:
                                             _statusColor(_assinatura?['status'])
-                                                .withOpacity(0.1),
+                                                .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
@@ -314,11 +314,11 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: AppColors.warning.withOpacity(0.08),
+                                    color: AppColors.warning.withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                         color:
-                                            AppColors.warning.withOpacity(0.3)),
+                                            AppColors.warning.withValues(alpha: 0.3)),
                                   ),
                                   child: Row(
                                     children: [

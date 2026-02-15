@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Formulário de cadastro e edição de peça/item de estoque.
 class StockFormPage extends StatefulWidget {
@@ -18,7 +19,7 @@ class StockFormPage extends StatefulWidget {
   State<StockFormPage> createState() => _StockFormPageState();
 }
 
-class _StockFormPageState extends State<StockFormPage> {
+class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
   final _formKey = GlobalKey<FormState>();
   final _codigoCtrl = TextEditingController();
   final _nomeCtrl = TextEditingController();
@@ -90,14 +91,16 @@ class _StockFormPageState extends State<StockFormPage> {
         _loadingItem = false;
       });
     } catch (e) {
-      setState(() => _loadingItem = false);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Erro ao carregar item', style: GoogleFonts.inter()),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        setState(() => _loadingItem = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Erro ao carregar item', style: GoogleFonts.inter()),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     }
   }
@@ -144,13 +147,15 @@ class _StockFormPageState extends State<StockFormPage> {
         widget.onSaved?.call();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', ''),
-                  style: GoogleFonts.inter()),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(e.toString().replaceAll('Exception: ', ''),
+                    style: GoogleFonts.inter()),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _saving = false);

@@ -83,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
                           width: 80,
                           height: 80,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.15),
+                            color: Colors.white.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: const Icon(
@@ -108,7 +108,7 @@ class _LoginPageState extends State<LoginPage> {
                           textAlign: TextAlign.center,
                           style: GoogleFonts.inter(
                             fontSize: 16,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white.withValues(alpha: 0.7),
                             height: 1.5,
                           ),
                         ),
@@ -355,7 +355,7 @@ class _LoginPageState extends State<LoginPage> {
                     width: 40,
                     height: 40,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: Colors.white.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Icon(f['icon'] as IconData,
@@ -365,7 +365,7 @@ class _LoginPageState extends State<LoginPage> {
                   Text(
                     f['text'] as String,
                     style: GoogleFonts.inter(
-                      color: Colors.white.withOpacity(0.8),
+                      color: Colors.white.withValues(alpha: 0.8),
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                     ),

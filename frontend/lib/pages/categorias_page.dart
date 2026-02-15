@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Tela de gerenciamento de categorias financeiras.
 class CategoriasPage extends StatefulWidget {
@@ -13,7 +14,7 @@ class CategoriasPage extends StatefulWidget {
   State<CategoriasPage> createState() => _CategoriasPageState();
 }
 
-class _CategoriasPageState extends State<CategoriasPage> {
+class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
   List<Map<String, dynamic>> _categorias = [];
   bool _loading = true;
   String? _error;
@@ -38,10 +39,12 @@ class _CategoriasPageState extends State<CategoriasPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar categorias';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar categorias';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -78,14 +81,16 @@ class _CategoriasPageState extends State<CategoriasPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Erro: ${e.toString().replaceAll('Exception: ', '')}',
-                  style: GoogleFonts.inter()),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Erro: ${e.toString().replaceAll('Exception: ', '')}',
+                    style: GoogleFonts.inter()),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     }
   }
@@ -131,7 +136,7 @@ class _CategoriasPageState extends State<CategoriasPage> {
                     child: ChoiceChip(
                       label: const Text('Entrada'),
                       selected: tipo == 'ENTRADA',
-                      selectedColor: AppColors.success.withOpacity(0.2),
+                      selectedColor: AppColors.success.withValues(alpha: 0.2),
                       onSelected: (_) => setDialogState(() => tipo = 'ENTRADA'),
                     ),
                   ),
@@ -140,7 +145,7 @@ class _CategoriasPageState extends State<CategoriasPage> {
                     child: ChoiceChip(
                       label: const Text('Saída'),
                       selected: tipo == 'SAIDA',
-                      selectedColor: AppColors.error.withOpacity(0.2),
+                      selectedColor: AppColors.error.withValues(alpha: 0.2),
                       onSelected: (_) => setDialogState(() => tipo = 'SAIDA'),
                     ),
                   ),
@@ -173,14 +178,16 @@ class _CategoriasPageState extends State<CategoriasPage> {
                     );
                   }
                 } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                          content: Text(
-                              'Erro: ${e.toString().replaceAll('Exception: ', '')}',
-                              style: GoogleFonts.inter()),
-                          backgroundColor: AppColors.error),
-                    );
+                  if (!handleAuthError(e)) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text(
+                                'Erro: ${e.toString().replaceAll('Exception: ', '')}',
+                                style: GoogleFonts.inter()),
+                            backgroundColor: AppColors.error),
+                      );
+                    }
                   }
                 }
               },
@@ -330,7 +337,7 @@ class _CategoriasPageState extends State<CategoriasPage> {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.08),
+                  color: color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(icon, color: color, size: 18),
@@ -345,7 +352,7 @@ class _CategoriasPageState extends State<CategoriasPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.08),
+                  color: color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text('${items.length}',
@@ -400,7 +407,7 @@ class _CategoriaItem extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.06),
+              color: color.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(Icons.label_rounded, color: color, size: 16),

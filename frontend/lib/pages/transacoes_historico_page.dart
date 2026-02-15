@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Tela de histórico de transações financeiras com filtros e estorno.
 class TransacoesHistoricoPage extends StatefulWidget {
@@ -14,7 +15,8 @@ class TransacoesHistoricoPage extends StatefulWidget {
       _TransacoesHistoricoPageState();
 }
 
-class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage> {
+class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
+    with AuthErrorMixin {
   List<Map<String, dynamic>> _transacoes = [];
   bool _loading = true;
   String? _error;
@@ -59,10 +61,12 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar transações';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar transações';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -101,14 +105,16 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  'Erro: ${e.toString().replaceAll('Exception: ', '')}',
-                  style: GoogleFonts.inter()),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(
+                    'Erro: ${e.toString().replaceAll('Exception: ', '')}',
+                    style: GoogleFonts.inter()),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     }
   }
@@ -281,7 +287,7 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage> {
                                 Icon(Icons.receipt_long_rounded,
                                     size: 64,
                                     color:
-                                        AppColors.textMuted.withOpacity(0.4)),
+                                        AppColors.textMuted.withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),
                                 Text('Nenhuma transação encontrada',
                                     style: GoogleFonts.inter(
@@ -351,7 +357,7 @@ class _TransacaoCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color:
-              isEstorno ? AppColors.warning.withOpacity(0.3) : AppColors.border,
+              isEstorno ? AppColors.warning.withValues(alpha: 0.3) : AppColors.border,
         ),
       ),
       child: Row(
@@ -361,7 +367,7 @@ class _TransacaoCard extends StatelessWidget {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Formulário para criar nova transação financeira.
 class TransacaoFormPage extends StatefulWidget {
@@ -16,7 +17,8 @@ class TransacaoFormPage extends StatefulWidget {
   State<TransacaoFormPage> createState() => _TransacaoFormPageState();
 }
 
-class _TransacaoFormPageState extends State<TransacaoFormPage> {
+class _TransacaoFormPageState extends State<TransacaoFormPage>
+    with AuthErrorMixin {
   final _formKey = GlobalKey<FormState>();
   String _tipo = 'ENTRADA';
   final _descricaoController = TextEditingController();
@@ -52,7 +54,9 @@ class _TransacaoFormPageState extends State<TransacaoFormPage> {
         _loadingCategorias = false;
       });
     } catch (e) {
-      setState(() => _loadingCategorias = false);
+      if (!handleAuthError(e)) {
+        setState(() => _loadingCategorias = false);
+      }
     }
   }
 
@@ -96,14 +100,17 @@ class _TransacaoFormPageState extends State<TransacaoFormPage> {
         widget.onSaved?.call();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro: ${e.toString().replaceAll('Exception: ', '')}',
-                style: GoogleFonts.inter()),
-            backgroundColor: AppColors.error,
-          ),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Erro: ${e.toString().replaceAll('Exception: ', '')}',
+                  style: GoogleFonts.inter()),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -390,7 +397,7 @@ class _TipoButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.08) : AppColors.surface,
+          color: selected ? color.withValues(alpha: 0.08) : AppColors.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: selected ? color : AppColors.border,

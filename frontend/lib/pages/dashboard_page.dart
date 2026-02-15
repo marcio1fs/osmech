@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/os_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Dashboard moderno sem AppBar — renderizado dentro do AppShell.
 class DashboardPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class DashboardPage extends StatefulWidget {
   State<DashboardPage> createState() => _DashboardPageState();
 }
 
-class _DashboardPageState extends State<DashboardPage> {
+class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
   Map<String, dynamic>? _stats;
   bool _loading = true;
   String? _error;
@@ -39,10 +40,12 @@ class _DashboardPageState extends State<DashboardPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar dados';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar dados';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -177,7 +180,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                               horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(
                                             color:
-                                                Colors.white.withOpacity(0.15),
+                                                Colors.white.withValues(alpha: 0.15),
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
@@ -197,7 +200,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                     width: 72,
                                     height: 72,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.12),
+                                      color: Colors.white.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: const Icon(Icons.build_rounded,
@@ -240,7 +243,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       icon: Icons.assignment_rounded,
                                       color: AppColors.accent,
                                       bgColor:
-                                          AppColors.accent.withOpacity(0.08),
+                                          AppColors.accent.withValues(alpha: 0.08),
                                     ),
                                     _MetricCard(
                                       label: 'Abertas',
@@ -248,7 +251,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       icon: Icons.folder_open_rounded,
                                       color: const Color(0xFFF59E0B),
                                       bgColor: const Color(0xFFF59E0B)
-                                          .withOpacity(0.08),
+                                          .withValues(alpha: 0.08),
                                     ),
                                     _MetricCard(
                                       label: 'Em Andamento',
@@ -256,7 +259,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       icon: Icons.engineering_rounded,
                                       color: const Color(0xFF8B5CF6),
                                       bgColor: const Color(0xFF8B5CF6)
-                                          .withOpacity(0.08),
+                                          .withValues(alpha: 0.08),
                                     ),
                                     _MetricCard(
                                       label: 'Concluídas',
@@ -264,7 +267,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                       icon: Icons.check_circle_rounded,
                                       color: AppColors.success,
                                       bgColor:
-                                          AppColors.success.withOpacity(0.08),
+                                          AppColors.success.withValues(alpha: 0.08),
                                     ),
                                   ],
                                 );
@@ -437,12 +440,12 @@ class _QuickActionState extends State<_QuickAction> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           decoration: BoxDecoration(
             color: _hovered
-                ? AppColors.accent.withOpacity(0.06)
+                ? AppColors.accent.withValues(alpha: 0.06)
                 : AppColors.surface,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: _hovered
-                  ? AppColors.accent.withOpacity(0.3)
+                  ? AppColors.accent.withValues(alpha: 0.3)
                   : AppColors.border,
             ),
           ),

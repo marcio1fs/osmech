@@ -1,0 +1,43 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../services/auth_service.dart';
+import '../services/api_client.dart';
+
+/// Mixin para tratamento centralizado de [UnauthorizedException] (401).
+/// Qualquer State que faz chamadas API deve usar este mixin.
+///
+/// Uso:
+/// ```dart
+/// class _MyPageState extends State<MyPage> with AuthErrorMixin {
+///   Future<void> _loadData() async {
+///     try {
+///       // ...chamada API...
+///     } catch (e) {
+///       if (!handleAuthError(e)) {
+///         // tratar outros erros
+///       }
+///     }
+///   }
+/// }
+/// ```
+mixin AuthErrorMixin<T extends StatefulWidget> on State<T> {
+  /// Verifica se o erro é [UnauthorizedException] e faz logout automático.
+  /// Retorna true se o erro foi tratado (401), false caso contrário.
+  bool handleAuthError(Object error) {
+    if (error is UnauthorizedException) {
+      if (mounted) {
+        final auth = Provider.of<AuthService>(context, listen: false);
+        auth.logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sessão expirada. Faça login novamente.'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      return true;
+    }
+    return false;
+  }
+}

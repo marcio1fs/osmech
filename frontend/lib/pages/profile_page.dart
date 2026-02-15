@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../mixins/auth_error_mixin.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
@@ -13,7 +14,7 @@ class ProfilePage extends StatefulWidget {
   State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState extends State<ProfilePage> {
+class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   // Perfil
   final _nomeCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
@@ -70,6 +71,7 @@ class _ProfilePageState extends State<ProfilePage> {
       });
     } catch (e) {
       setState(() => _loading = false);
+      if (handleAuthError(e)) return;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:
@@ -100,6 +102,8 @@ class _ProfilePageState extends State<ProfilePage> {
         nomeOficina:
             _oficinaCtrl.text.trim().isEmpty ? null : _oficinaCtrl.text.trim(),
       );
+      // Sincronizar nome no AuthService para atualizar sidebar
+      await auth.updateNome(_nomeCtrl.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Perfil atualizado com sucesso!',
@@ -108,7 +112,7 @@ class _ProfilePageState extends State<ProfilePage> {
         ));
       }
     } catch (e) {
-      if (mounted) {
+      if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('$e', style: GoogleFonts.inter()),
           backgroundColor: AppColors.error,
@@ -196,7 +200,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   children: [
                     CircleAvatar(
                       radius: 32,
-                      backgroundColor: AppColors.accent.withOpacity(0.15),
+                      backgroundColor: AppColors.accent.withValues(alpha: 0.15),
                       child: Text(
                         (_nomeCtrl.text.isNotEmpty ? _nomeCtrl.text[0] : 'U')
                             .toUpperCase(),
@@ -329,7 +333,7 @@ class _ProfilePageState extends State<ProfilePage> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Text(text,

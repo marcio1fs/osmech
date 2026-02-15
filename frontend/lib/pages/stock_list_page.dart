@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Lista de itens de estoque com busca, filtro por categoria e indicadores visuais.
 class StockListPage extends StatefulWidget {
@@ -24,7 +25,7 @@ class StockListPage extends StatefulWidget {
   State<StockListPage> createState() => _StockListPageState();
 }
 
-class _StockListPageState extends State<StockListPage> {
+class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
   List<Map<String, dynamic>> _itens = [];
   bool _loading = true;
   String? _error;
@@ -88,10 +89,12 @@ class _StockListPageState extends State<StockListPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar estoque';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar estoque';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -129,13 +132,15 @@ class _StockListPageState extends State<StockListPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content:
-                  Text('Erro ao desativar item', style: GoogleFonts.inter()),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content:
+                    Text('Erro ao desativar item', style: GoogleFonts.inter()),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     }
   }
@@ -186,10 +191,10 @@ class _StockListPageState extends State<StockListPage> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.warning.withOpacity(0.1),
+                        color: AppColors.warning.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                            color: AppColors.warning.withOpacity(0.3)),
+                            color: AppColors.warning.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -320,7 +325,7 @@ class _StockListPageState extends State<StockListPage> {
                                 Icon(Icons.inventory_2_outlined,
                                     size: 64,
                                     color:
-                                        AppColors.textMuted.withOpacity(0.4)),
+                                        AppColors.textMuted.withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),
                                 Text('Nenhuma peça cadastrada',
                                     style: GoogleFonts.inter(
@@ -384,9 +389,9 @@ class _StockListPageState extends State<StockListPage> {
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               decoration: BoxDecoration(
                 color: estoqueZerado
-                    ? AppColors.error.withOpacity(0.04)
+                    ? AppColors.error.withValues(alpha: 0.04)
                     : estoqueBaixo
-                        ? AppColors.warning.withOpacity(0.04)
+                        ? AppColors.warning.withValues(alpha: 0.04)
                         : Colors.transparent,
                 border: Border(
                     bottom: BorderSide(

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/chat_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Página de chat com a IA do OSMECH.
 class ChatPage extends StatefulWidget {
@@ -13,7 +14,7 @@ class ChatPage extends StatefulWidget {
   State<ChatPage> createState() => _ChatPageState();
 }
 
-class _ChatPageState extends State<ChatPage> {
+class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
   final _msgController = TextEditingController();
   final _scrollController = ScrollController();
   final _focusNode = FocusNode();
@@ -56,7 +57,9 @@ class _ChatPageState extends State<ChatPage> {
         });
         _scrollToBottom();
       }
-    } catch (_) {}
+    } catch (e) {
+      handleAuthError(e);
+    }
     setState(() => _loading = false);
   }
 
@@ -85,13 +88,15 @@ class _ChatPageState extends State<ChatPage> {
       });
       _scrollToBottom();
     } catch (e) {
-      setState(() {
-        _messages.add(_ChatMsg(
-          role: 'assistant',
-          content: '❌ Erro ao processar mensagem. Tente novamente.',
-        ));
-        _sending = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _messages.add(_ChatMsg(
+            role: 'assistant',
+            content: '❌ Erro ao processar mensagem. Tente novamente.',
+          ));
+          _sending = false;
+        });
+      }
     }
     _focusNode.requestFocus();
   }

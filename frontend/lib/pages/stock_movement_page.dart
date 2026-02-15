@@ -4,18 +4,21 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Tela de movimentação de estoque (entrada/saída manual).
 class StockMovementPage extends StatefulWidget {
   final VoidCallback? onSaved;
+  final int? preSelectedItemId;
 
-  const StockMovementPage({super.key, this.onSaved});
+  const StockMovementPage({super.key, this.onSaved, this.preSelectedItemId});
 
   @override
   State<StockMovementPage> createState() => _StockMovementPageState();
 }
 
-class _StockMovementPageState extends State<StockMovementPage> {
+class _StockMovementPageState extends State<StockMovementPage>
+    with AuthErrorMixin {
   final _formKey = GlobalKey<FormState>();
   List<Map<String, dynamic>> _itens = [];
   List<Map<String, dynamic>> _movimentacoes = [];
@@ -67,10 +70,19 @@ class _StockMovementPageState extends State<StockMovementPage> {
       setState(() {
         _itens = itens;
         _movimentacoes = movs;
+        // Pré-selecionar item se veio dos alertas
+        if (widget.preSelectedItemId != null && _selectedItemId == null) {
+          final exists = itens.any((i) => i['id'] == widget.preSelectedItemId);
+          if (exists) {
+            _selectedItemId = widget.preSelectedItemId;
+          }
+        }
         _loading = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
+      if (!handleAuthError(e)) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -113,13 +125,15 @@ class _StockMovementPageState extends State<StockMovementPage> {
         _loadData();
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(e.toString().replaceAll('Exception: ', ''),
-                  style: GoogleFonts.inter()),
-              backgroundColor: AppColors.error),
-        );
+      if (!handleAuthError(e)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+                content: Text(e.toString().replaceAll('Exception: ', ''),
+                    style: GoogleFonts.inter()),
+                backgroundColor: AppColors.error),
+          );
+        }
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -458,7 +472,7 @@ class _TipoButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.1) : AppColors.surfaceVariant,
+          color: selected ? color.withValues(alpha: 0.1) : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? color : AppColors.border,

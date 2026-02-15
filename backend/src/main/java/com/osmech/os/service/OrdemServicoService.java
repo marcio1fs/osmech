@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 
 /**
@@ -41,6 +42,11 @@ public class OrdemServicoService {
 
         // Verificar limite do plano
         verificarLimitePlano(usuario);
+
+        // Validar campo obrigatório placa
+        if (request.getPlaca() == null || request.getPlaca().isBlank()) {
+            throw new IllegalArgumentException("Placa é obrigatória");
+        }
 
         OrdemServico os = OrdemServico.builder()
                 .usuarioId(usuario.getId())
@@ -151,6 +157,7 @@ public class OrdemServicoService {
     /**
      * Exclui uma OS.
      */
+    @Transactional
     public void excluir(String emailUsuario, Long osId) {
         Usuario usuario = getUsuario(emailUsuario);
         OrdemServico os = osRepository.findById(osId)
@@ -187,16 +194,21 @@ public class OrdemServicoService {
 
     /**
      * Verifica se o usuário ainda pode criar OS dentro do limite do plano.
+     * Conta apenas as OS do mês atual.
      */
     private void verificarLimitePlano(Usuario usuario) {
         Plano plano = planoRepository.findByCodigo(usuario.getPlano()).orElse(null);
         if (plano != null && plano.getLimiteOs() != null && plano.getLimiteOs() > 0) {
             // Contar OS do mês atual
-            long totalOsMes = osRepository.countByUsuarioId(usuario.getId());
+            YearMonth mesAtual = YearMonth.now();
+            LocalDateTime inicioMes = mesAtual.atDay(1).atStartOfDay();
+            LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(23, 59, 59);
+            long totalOsMes = osRepository.countByUsuarioIdAndCriadoEmBetween(
+                    usuario.getId(), inicioMes, fimMes);
             if (totalOsMes >= plano.getLimiteOs()) {
                 throw new IllegalArgumentException(
                         "Limite de " + plano.getLimiteOs() + " Ordens de Serviço do plano " +
-                                plano.getNome() + " atingido. Faça upgrade do seu plano para continuar.");
+                                plano.getNome() + " atingido neste mês. Faça upgrade do seu plano para continuar.");
             }
         }
     }

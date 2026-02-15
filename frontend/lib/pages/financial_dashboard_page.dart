@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Dashboard Financeiro completo — módulo financeiro.
 class FinancialDashboardPage extends StatefulWidget {
@@ -24,7 +25,8 @@ class FinancialDashboardPage extends StatefulWidget {
   State<FinancialDashboardPage> createState() => _FinancialDashboardPageState();
 }
 
-class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
+class _FinancialDashboardPageState extends State<FinancialDashboardPage>
+    with AuthErrorMixin {
   Map<String, dynamic>? _resumo;
   List<Map<String, dynamic>> _ultimasTransacoes = [];
   bool _loading = true;
@@ -55,10 +57,12 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar dados financeiros';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar dados financeiros';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -277,7 +281,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
                 child: Column(
                   children: [
                     Icon(Icons.receipt_long_rounded,
-                        size: 48, color: AppColors.textMuted.withOpacity(0.5)),
+                        size: 48, color: AppColors.textMuted.withValues(alpha: 0.5)),
                     const SizedBox(height: 8),
                     Text('Nenhuma transação registrada',
                         style: GoogleFonts.inter(
@@ -416,7 +420,7 @@ class _MetricCard extends StatelessWidget {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 24),
@@ -476,7 +480,7 @@ class _TransacaoItem extends StatelessWidget {
             width: 36,
             height: 36,
             decoration: BoxDecoration(
-              color: color.withOpacity(0.08),
+              color: color.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

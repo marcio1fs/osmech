@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/os_service.dart';
 import '../theme/app_theme.dart';
 import 'os_form_page.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Lista de OS com layout moderno — sem AppBar, renderiza dentro do AppShell.
 class OsListPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class OsListPage extends StatefulWidget {
   State<OsListPage> createState() => _OsListPageState();
 }
 
-class _OsListPageState extends State<OsListPage> {
+class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
   List<Map<String, dynamic>> _ordens = [];
   List<Map<String, dynamic>> _filtered = [];
   bool _loading = true;
@@ -43,10 +44,12 @@ class _OsListPageState extends State<OsListPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar ordens de serviço';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar ordens de serviço';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -331,7 +334,7 @@ class _OsListPageState extends State<OsListPage> {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 10, vertical: 4),
                                             decoration: BoxDecoration(
-                                              color: color.withOpacity(0.1),
+                                              color: color.withValues(alpha: 0.1),
                                               borderRadius:
                                                   BorderRadius.circular(20),
                                             ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../mixins/auth_error_mixin.dart';
 import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
@@ -15,7 +16,7 @@ class StockAlertsPage extends StatefulWidget {
   State<StockAlertsPage> createState() => _StockAlertsPageState();
 }
 
-class _StockAlertsPageState extends State<StockAlertsPage> {
+class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
   List<Map<String, dynamic>> _alertas = [];
   bool _loading = true;
 
@@ -36,7 +37,9 @@ class _StockAlertsPageState extends State<StockAlertsPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() => _loading = false);
+      if (!handleAuthError(e)) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -211,9 +214,9 @@ class _SummaryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.06),
+          color: color.withValues(alpha: 0.06),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
         ),
         child: Row(
           children: [
@@ -221,7 +224,7 @@ class _SummaryCard extends StatelessWidget {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, size: 22, color: color),
@@ -257,11 +260,11 @@ class _AlertaCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCritico = alerta['nivel'] == 'CRITICO';
     final borderColor = isCritico
-        ? AppColors.error.withOpacity(0.4)
-        : AppColors.warning.withOpacity(0.4);
+        ? AppColors.error.withValues(alpha: 0.4)
+        : AppColors.warning.withValues(alpha: 0.4);
     final bgColor = isCritico
-        ? AppColors.error.withOpacity(0.03)
-        : AppColors.warning.withOpacity(0.03);
+        ? AppColors.error.withValues(alpha: 0.03)
+        : AppColors.warning.withValues(alpha: 0.03);
     final iconColor = isCritico ? AppColors.error : AppColors.warning;
 
     return Container(
@@ -296,7 +299,7 @@ class _AlertaCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
-                        color: iconColor.withOpacity(0.1),
+                        color: iconColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(alerta['categoria'] ?? '',

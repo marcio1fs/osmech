@@ -252,7 +252,7 @@ class _PricingPageState extends State<PricingPage> {
                                     boxShadow: recommended
                                         ? [
                                             BoxShadow(
-                                                color: color.withOpacity(0.1),
+                                                color: color.withValues(alpha: 0.1),
                                                 blurRadius: 20,
                                                 offset: const Offset(0, 8))
                                           ]
@@ -293,7 +293,7 @@ class _PricingPageState extends State<PricingPage> {
                                                 width: 52,
                                                 height: 52,
                                                 decoration: BoxDecoration(
-                                                  color: color.withOpacity(0.1),
+                                                  color: color.withValues(alpha: 0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(14),
                                                 ),
