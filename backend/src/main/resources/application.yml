@@ -6,14 +6,14 @@ spring:
     name: osmech-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/oficina_db
-    username: postgres
-    password: 3782
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/oficina_db}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:3782}
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
@@ -27,8 +27,12 @@ spring:
 # Configuração JWT
 app:
   jwt:
-    secret: osmech-secret-key-change-in-production-min-256-bits-long-enough-here
-    expiration-ms: 86400000  # 24 horas
+    secret: ${JWT_SECRET:osmech-secret-key-change-in-production-min-256-bits-long-enough-here}
+    expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 horas
+
+# CORS
+cors:
+  allowed-origins: ${CORS_ORIGINS:http://localhost:8083,http://localhost:3000}
 
 # Configuração futura WhatsApp (Twilio / Meta)
 whatsapp:

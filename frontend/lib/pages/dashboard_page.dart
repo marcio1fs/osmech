@@ -304,7 +304,7 @@ class _DashboardPageState extends State<DashboardPage> {
                                 _QuickAction(
                                   icon: Icons.workspace_premium_rounded,
                                   label: 'Planos',
-                                  onTap: () => widget.onNavigate?.call(6),
+                                  onTap: () => widget.onNavigate?.call(15),
                                 ),
                               ],
                             ),

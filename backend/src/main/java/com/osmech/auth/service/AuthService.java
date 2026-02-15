@@ -40,7 +40,7 @@ public class AuthService {
                 .telefone(request.getTelefone())
                 .nomeOficina(request.getNomeOficina())
                 .role("OFICINA")
-                .plano("PRO")
+                .plano("FREE")
                 .ativo(true)
                 .build();
 

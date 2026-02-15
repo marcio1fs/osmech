@@ -4,13 +4,18 @@ import com.osmech.finance.service.FinanceiroService;
 import com.osmech.os.dto.OrdemServicoRequest;
 import com.osmech.os.dto.OrdemServicoResponse;
 import com.osmech.os.entity.OrdemServico;
+import com.osmech.os.entity.StatusOS;
 import com.osmech.os.repository.OrdemServicoRepository;
+import com.osmech.plan.entity.Plano;
+import com.osmech.plan.repository.PlanoRepository;
 import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -24,12 +29,18 @@ public class OrdemServicoService {
     private final OrdemServicoRepository osRepository;
     private final UsuarioRepository usuarioRepository;
     private final FinanceiroService financeiroService;
+    private final PlanoRepository planoRepository;
 
     /**
      * Cria uma nova Ordem de Serviço.
+     * Verifica limites do plano antes de criar.
      */
+    @Transactional
     public OrdemServicoResponse criar(String emailUsuario, OrdemServicoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
+
+        // Verificar limite do plano
+        verificarLimitePlano(usuario);
 
         OrdemServico os = OrdemServico.builder()
                 .usuarioId(usuario.getId())
@@ -79,7 +90,9 @@ public class OrdemServicoService {
 
     /**
      * Atualiza uma OS existente.
+     * Valida transições de status.
      */
+    @Transactional
     public OrdemServicoResponse atualizar(String emailUsuario, Long osId, OrdemServicoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
         OrdemServico os = osRepository.findById(osId)
@@ -103,8 +116,19 @@ public class OrdemServicoService {
         if (request.getDiagnostico() != null) os.setDiagnostico(request.getDiagnostico());
         if (request.getPecas() != null) os.setPecas(request.getPecas());
         if (request.getValor() != null) os.setValor(request.getValor());
-        if (request.getStatus() != null) os.setStatus(request.getStatus());
         if (request.getWhatsappConsentimento() != null) os.setWhatsappConsentimento(request.getWhatsappConsentimento());
+
+        // Validação de transição de status
+        if (request.getStatus() != null) {
+            StatusOS novoStatus = StatusOS.fromString(request.getStatus());
+            StatusOS statusAtual = StatusOS.fromString(statusAnterior);
+            if (!statusAtual.podeTransicionarPara(novoStatus)) {
+                throw new IllegalArgumentException(
+                        "Transição de status inválida: " + statusAnterior + " → " + request.getStatus() +
+                        ". Transições permitidas: " + getTransicoesPermitidas(statusAtual));
+            }
+            os.setStatus(novoStatus.name());
+        }
 
         os = osRepository.save(os);
 
@@ -159,6 +183,36 @@ public class OrdemServicoService {
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+    }
+
+    /**
+     * Verifica se o usuário ainda pode criar OS dentro do limite do plano.
+     */
+    private void verificarLimitePlano(Usuario usuario) {
+        Plano plano = planoRepository.findByCodigo(usuario.getPlano()).orElse(null);
+        if (plano != null && plano.getLimiteOs() != null && plano.getLimiteOs() > 0) {
+            // Contar OS do mês atual
+            long totalOsMes = osRepository.countByUsuarioId(usuario.getId());
+            if (totalOsMes >= plano.getLimiteOs()) {
+                throw new IllegalArgumentException(
+                        "Limite de " + plano.getLimiteOs() + " Ordens de Serviço do plano " +
+                                plano.getNome() + " atingido. Faça upgrade do seu plano para continuar.");
+            }
+        }
+    }
+
+    /**
+     * Retorna string com transições permitidas para um status.
+     */
+    private String getTransicoesPermitidas(StatusOS status) {
+        StringBuilder sb = new StringBuilder();
+        for (StatusOS s : StatusOS.values()) {
+            if (status.podeTransicionarPara(s) && status != s) {
+                if (!sb.isEmpty()) sb.append(", ");
+                sb.append(s.name());
+            }
+        }
+        return sb.isEmpty() ? "nenhuma (status final)" : sb.toString();
     }
 
     private OrdemServicoResponse toResponse(OrdemServico os) {

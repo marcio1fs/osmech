@@ -31,6 +31,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> {
   int _selectedIndex = 0;
   bool _sidebarExpanded = true;
+  int? _editStockItemId;
 
   final List<_NavItem> _navItems = const [
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
@@ -99,12 +100,20 @@ class _AppShellState extends State<AppShell> {
           onNavigateMovimentacao: () => setState(() => _selectedIndex = 12),
           onNavigateAlertas: () => setState(() => _selectedIndex = 13),
           onEditarItem: (id) {
-            setState(() => _selectedIndex = 11);
+            setState(() {
+              _editStockItemId = id;
+              _selectedIndex = 11;
+            });
           },
         );
       case 11:
+        final editId = _editStockItemId;
         return StockFormPage(
-          onSaved: () => setState(() => _selectedIndex = 10),
+          editItemId: editId,
+          onSaved: () => setState(() {
+            _editStockItemId = null;
+            _selectedIndex = 10;
+          }),
         );
       case 12:
         return StockMovementPage(

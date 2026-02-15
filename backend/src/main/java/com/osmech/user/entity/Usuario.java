@@ -41,10 +41,10 @@ public class Usuario {
     @Builder.Default
     private String role = "OFICINA";
 
-    /** Plano atual: PRO, PRO_PLUS, PREMIUM */
+    /** Plano atual: FREE, PRO, PRO_PLUS, PREMIUM */
     @Column(nullable = false)
     @Builder.Default
-    private String plano = "PRO";
+    private String plano = "FREE";
 
     /** Indica se a assinatura está ativa */
     @Column(nullable = false)
