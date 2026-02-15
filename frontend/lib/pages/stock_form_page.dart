@@ -108,13 +108,19 @@ class _StockFormPageState extends State<StockFormPage> {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = StockService(token: auth.token!);
 
+      // Tratar vírgula como separador decimal (padrão brasileiro)
+      double parsePreco(String text) {
+        final normalized = text.replaceAll(',', '.');
+        return double.tryParse(normalized) ?? 0.0;
+      }
+
       final dados = {
         'nome': _nomeCtrl.text.trim(),
         'categoria': _categoria,
         'quantidade': int.tryParse(_quantidadeCtrl.text) ?? 0,
         'quantidadeMinima': int.tryParse(_quantidadeMinimaCtrl.text) ?? 1,
-        'precoCusto': double.tryParse(_precoCustoCtrl.text) ?? 0.0,
-        'precoVenda': double.tryParse(_precoVendaCtrl.text) ?? 0.0,
+        'precoCusto': parsePreco(_precoCustoCtrl.text),
+        'precoVenda': parsePreco(_precoVendaCtrl.text),
         'localizacao': _localizacaoCtrl.text.trim().isNotEmpty
             ? _localizacaoCtrl.text.trim()
             : null,
