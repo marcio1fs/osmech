@@ -4,6 +4,9 @@ import '../services/auth_service.dart';
 import '../services/os_service.dart';
 import 'os_list_page.dart';
 import 'pricing_page.dart';
+import 'subscription_page.dart';
+import 'payment_history_page.dart';
+import 'financial_dashboard_page.dart';
 
 /// Tela principal — Dashboard com estatísticas.
 class DashboardPage extends StatefulWidget {
@@ -66,12 +69,30 @@ class _DashboardPageState extends State<DashboardPage> {
                   context,
                   MaterialPageRoute(builder: (_) => const PricingPage()),
                 );
+              } else if (value == 'assinatura') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SubscriptionPage()),
+                );
+              } else if (value == 'pagamentos') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PaymentHistoryPage()),
+                );
+              } else if (value == 'financeiro') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const FinancialDashboardPage()),
+                );
               } else if (value == 'logout') {
                 auth.logout();
               }
             },
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'planos', child: Text('Planos')),
+              const PopupMenuItem(value: 'assinatura', child: Text('Minha Assinatura')),
+              const PopupMenuItem(value: 'pagamentos', child: Text('Pagamentos')),
+              const PopupMenuItem(value: 'financeiro', child: Text('Financeiro')),
               const PopupMenuItem(value: 'logout', child: Text('Sair')),
             ],
           ),

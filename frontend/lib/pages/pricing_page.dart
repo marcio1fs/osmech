@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import '../services/api_config.dart';
+import '../services/auth_service.dart';
+import '../services/payment_service.dart';
 
 /// Tela de Planos (Pricing) — rota pública.
 class PricingPage extends StatefulWidget {
@@ -57,6 +60,8 @@ class _PricingPageState extends State<PricingPage> {
 
   IconData _planIcon(String codigo) {
     switch (codigo) {
+      case 'FREE':
+        return Icons.card_giftcard;
       case 'PRO':
         return Icons.star_border;
       case 'PRO_PLUS':
@@ -70,6 +75,8 @@ class _PricingPageState extends State<PricingPage> {
 
   Color _planColor(String codigo) {
     switch (codigo) {
+      case 'FREE':
+        return Colors.green;
       case 'PRO':
         return Colors.blue;
       case 'PRO_PLUS':
@@ -78,6 +85,65 @@ class _PricingPageState extends State<PricingPage> {
         return Colors.amber.shade700;
       default:
         return Colors.grey;
+    }
+  }
+
+  Future<void> _assinarPlano(String codigo) async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    if (!auth.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Faça login para assinar um plano')),
+      );
+      return;
+    }
+
+    // Selecionar método de pagamento
+    final metodo = await showDialog<String>(
+      context: context,
+      builder: (ctx) => SimpleDialog(
+        title: const Text('Método de Pagamento'),
+        children: [
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'PIX'),
+            child: const ListTile(
+              leading: Icon(Icons.qr_code),
+              title: Text('PIX'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'CARTAO_CREDITO'),
+            child: const ListTile(
+              leading: Icon(Icons.credit_card),
+              title: Text('Cartão de Crédito'),
+            ),
+          ),
+          SimpleDialogOption(
+            onPressed: () => Navigator.pop(ctx, 'BOLETO'),
+            child: const ListTile(
+              leading: Icon(Icons.receipt),
+              title: Text('Boleto'),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (metodo == null) return;
+
+    try {
+      final service = PaymentService(token: auth.token!);
+      await service.assinar(planoCodigo: codigo, metodoPagamento: metodo);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Plano $codigo assinado com sucesso!')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao assinar: $e')),
+        );
+      }
     }
   }
 
@@ -163,15 +229,7 @@ class _PricingPageState extends State<PricingPage> {
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
-                            onPressed: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Pagamento será integrado em breve!',
-                                  ),
-                                ),
-                              );
-                            },
+                            onPressed: () => _assinarPlano(codigo),
                             style: FilledButton.styleFrom(
                               backgroundColor: color,
                             ),

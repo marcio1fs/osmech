@@ -26,6 +26,17 @@ public class DataSeeder implements CommandLineRunner {
             log.info("Inserindo planos de assinatura...");
 
             planoRepository.save(Plano.builder()
+                    .codigo("FREE")
+                    .nome("GRATUITO")
+                    .preco(new BigDecimal("0.00"))
+                    .limiteOs(10)
+                    .whatsappHabilitado(false)
+                    .iaHabilitada(false)
+                    .descricao("Até 10 OS/mês. Ideal para começar. Sem custo.")
+                    .ativo(true)
+                    .build());
+
+            planoRepository.save(Plano.builder()
                     .codigo("PRO")
                     .nome("PRO")
                     .preco(new BigDecimal("49.90"))
