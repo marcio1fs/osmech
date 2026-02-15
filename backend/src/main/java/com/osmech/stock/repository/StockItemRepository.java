@@ -1,7 +1,9 @@
 package com.osmech.stock.repository;
 
 import com.osmech.stock.entity.StockItem;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -42,7 +44,8 @@ public interface StockItemRepository extends JpaRepository<StockItem, Long> {
            "AND s.quantidade <= s.quantidadeMinima")
     long countAlertItems(@Param("uid") Long usuarioId);
 
-    /** Busca o maior número sequencial do código (PCA-XXX) por oficina */
+    /** Busca o maior número sequencial do código (PCA-XXX) por oficina com lock pessimista */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT MAX(CAST(SUBSTRING(s.codigo, 5) AS int)) FROM StockItem s WHERE s.usuarioId = :uid AND s.codigo LIKE 'PCA-%'")
     Integer findMaxCodigoSequencial(@Param("uid") Long usuarioId);
 

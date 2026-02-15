@@ -36,6 +36,7 @@ public class PagamentoService {
     /**
      * Registra um novo pagamento.
      */
+    @Transactional
     public PagamentoResponse criar(String emailUsuario, PagamentoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
 
@@ -99,6 +100,7 @@ public class PagamentoService {
     /**
      * Cancela um pagamento pendente.
      */
+    @Transactional
     public PagamentoResponse cancelar(String emailUsuario, Long pagamentoId) {
         Usuario usuario = getUsuario(emailUsuario);
         Pagamento pagamento = pagamentoRepository.findById(pagamentoId)

@@ -8,9 +8,11 @@ import '../theme/app_theme.dart';
 /// Formulário de cadastro e edição de peça/item de estoque.
 class StockFormPage extends StatefulWidget {
   final VoidCallback? onSaved;
+  final VoidCallback? onCancel;
   final int? editItemId;
 
-  const StockFormPage({super.key, this.onSaved, this.editItemId});
+  const StockFormPage(
+      {super.key, this.onSaved, this.onCancel, this.editItemId});
 
   @override
   State<StockFormPage> createState() => _StockFormPageState();
@@ -178,7 +180,7 @@ class _StockFormPageState extends State<StockFormPage> {
                         color: AppColors.textPrimary)),
                 const Spacer(),
                 OutlinedButton(
-                  onPressed: widget.onSaved,
+                  onPressed: widget.onCancel ?? widget.onSaved,
                   child: const Text('Cancelar'),
                 ),
                 const SizedBox(width: 8),

@@ -1,17 +1,11 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'api_config.dart';
+import 'api_client.dart';
 
 /// Serviço para comunicação com a API do módulo financeiro.
 class FinanceService {
-  final String token;
+  final ApiClient _api;
 
-  FinanceService({required this.token});
-
-  Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+  FinanceService({required String token}) : _api = ApiClient(token: token);
 
   // ==========================================
   // TRANSAÇÕES
@@ -20,13 +14,7 @@ class FinanceService {
   /// Cria uma nova transação financeira.
   Future<Map<String, dynamic>> criarTransacao(
       Map<String, dynamic> dados) async {
-    final response = await http
-        .post(
-          Uri.parse('${ApiConfig.baseUrl}/finance/transaction'),
-          headers: _headers,
-          body: jsonEncode(dados),
-        )
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api.post('/finance/transaction', body: dados);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -46,12 +34,8 @@ class FinanceService {
     if (dataFim != null) params['dataFim'] = dataFim;
     if (tipo != null) params['tipo'] = tipo;
 
-    final uri = Uri.parse('${ApiConfig.baseUrl}/finance/transaction')
-        .replace(queryParameters: params.isNotEmpty ? params : null);
-
-    final response = await http
-        .get(uri, headers: _headers)
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api.get('/finance/transaction',
+        queryParams: params.isNotEmpty ? params : null);
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -62,13 +46,8 @@ class FinanceService {
 
   /// Estorna uma transação.
   Future<Map<String, dynamic>> estornarTransacao(int transacaoId) async {
-    final response = await http
-        .post(
-          Uri.parse(
-              '${ApiConfig.baseUrl}/finance/transaction/$transacaoId/estorno'),
-          headers: _headers,
-        )
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response =
+        await _api.post('/finance/transaction/$transacaoId/estorno');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -83,10 +62,7 @@ class FinanceService {
 
   /// Lista todas as categorias (usuário + sistema).
   Future<List<Map<String, dynamic>>> listarCategorias() async {
-    final response = await http
-        .get(Uri.parse('${ApiConfig.baseUrl}/finance/category'),
-            headers: _headers)
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api.get('/finance/category');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -98,13 +74,7 @@ class FinanceService {
   /// Cria uma nova categoria.
   Future<Map<String, dynamic>> criarCategoria(
       Map<String, dynamic> dados) async {
-    final response = await http
-        .post(
-          Uri.parse('${ApiConfig.baseUrl}/finance/category'),
-          headers: _headers,
-          body: jsonEncode(dados),
-        )
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api.post('/finance/category', body: dados);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -115,12 +85,7 @@ class FinanceService {
 
   /// Exclui uma categoria.
   Future<void> excluirCategoria(int categoriaId) async {
-    final response = await http
-        .delete(
-          Uri.parse('${ApiConfig.baseUrl}/finance/category/$categoriaId'),
-          headers: _headers,
-        )
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api.delete('/finance/category/$categoriaId');
 
     if (response.statusCode != 200) {
       final body = jsonDecode(response.body);
@@ -135,12 +100,8 @@ class FinanceService {
   /// Retorna o fluxo de caixa de um período.
   Future<List<Map<String, dynamic>>> getFluxoCaixa(
       String inicio, String fim) async {
-    final uri = Uri.parse('${ApiConfig.baseUrl}/finance/cashflow')
-        .replace(queryParameters: {'inicio': inicio, 'fim': fim});
-
-    final response = await http
-        .get(uri, headers: _headers)
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api
+        .get('/finance/cashflow', queryParams: {'inicio': inicio, 'fim': fim});
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -155,10 +116,7 @@ class FinanceService {
 
   /// Retorna o resumo financeiro para o dashboard.
   Future<Map<String, dynamic>> getResumoFinanceiro() async {
-    final response = await http
-        .get(Uri.parse('${ApiConfig.baseUrl}/finance/summary'),
-            headers: _headers)
-        .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+    final response = await _api.get('/finance/summary');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

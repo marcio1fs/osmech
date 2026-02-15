@@ -19,6 +19,7 @@ import '../pages/stock_form_page.dart';
 import '../pages/stock_movement_page.dart';
 import '../pages/stock_alerts_page.dart';
 import '../pages/chat_page.dart';
+import '../pages/profile_page.dart';
 
 /// Shell principal com sidebar persistente para navegação web.
 class AppShell extends StatefulWidget {
@@ -56,10 +57,8 @@ class _AppShellState extends State<AppShell> {
         icon: Icons.smart_toy_rounded,
         label: 'IA OSMECH',
         section: 'ASSISTENTE'),
-    _NavItem(
-        icon: Icons.workspace_premium_rounded,
-        label: 'Planos',
-        section: 'CONTA'),
+    _NavItem(icon: Icons.person_rounded, label: 'Meu Perfil', section: 'CONTA'),
+    _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos'),
   ];
 
   Widget _getPage(int index) {
@@ -114,6 +113,10 @@ class _AppShellState extends State<AppShell> {
             _editStockItemId = null;
             _selectedIndex = 10;
           }),
+          onCancel: () => setState(() {
+            _editStockItemId = null;
+            _selectedIndex = 10;
+          }),
         );
       case 12:
         return StockMovementPage(
@@ -128,6 +131,8 @@ class _AppShellState extends State<AppShell> {
       case 14:
         return const ChatPage();
       case 15:
+        return const ProfilePage();
+      case 16:
         return const PricingPage();
       default:
         return DashboardPage(

@@ -8,6 +8,7 @@ import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -37,6 +38,7 @@ public class CategoriaFinanceiraService {
     /**
      * Cria uma nova categoria personalizada para a oficina.
      */
+    @Transactional
     public CategoriaResponse criar(String emailUsuario, CategoriaRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
 
@@ -65,6 +67,7 @@ public class CategoriaFinanceiraService {
     /**
      * Exclui uma categoria personalizada (não é possível excluir categorias do sistema).
      */
+    @Transactional
     public void excluir(String emailUsuario, Long categoriaId) {
         Usuario usuario = getUsuario(emailUsuario);
         CategoriaFinanceira cat = categoriaRepository.findById(categoriaId)

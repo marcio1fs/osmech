@@ -1,16 +1,11 @@
 import 'dart:convert';
-import 'package:http/http.dart' as http;
-import 'api_config.dart';
+import 'api_client.dart';
 
 /// Serviço de comunicação com a IA OSMECH.
 class ChatService {
-  final String token;
-  ChatService({required this.token});
+  final ApiClient _api;
 
-  Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      };
+  ChatService({required String token}) : _api = ApiClient(token: token);
 
   /// Enviar mensagem para a IA
   Future<Map<String, dynamic>> enviarMensagem(String message,
@@ -19,11 +14,7 @@ class ChatService {
       'message': message,
       if (sessionId != null) 'sessionId': sessionId,
     };
-    final resp = await http.post(
-      Uri.parse('${ApiConfig.baseUrl}/chat'),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
+    final resp = await _api.post('/chat', body: body);
     if (resp.statusCode == 200) {
       return jsonDecode(resp.body);
     }
@@ -33,10 +24,7 @@ class ChatService {
 
   /// Buscar histórico de uma sessão
   Future<List<Map<String, dynamic>>> getHistorico(String sessionId) async {
-    final resp = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/chat/session/$sessionId'),
-      headers: _headers,
-    );
+    final resp = await _api.get('/chat/session/$sessionId');
     if (resp.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(resp.body));
     }
@@ -45,10 +33,7 @@ class ChatService {
 
   /// Listar sessões
   Future<List<String>> getSessoes() async {
-    final resp = await http.get(
-      Uri.parse('${ApiConfig.baseUrl}/chat/sessions'),
-      headers: _headers,
-    );
+    final resp = await _api.get('/chat/sessions');
     if (resp.statusCode == 200) {
       return List<String>.from(jsonDecode(resp.body));
     }
@@ -57,10 +42,7 @@ class ChatService {
 
   /// Deletar sessão
   Future<void> deletarSessao(String sessionId) async {
-    final resp = await http.delete(
-      Uri.parse('${ApiConfig.baseUrl}/chat/session/$sessionId'),
-      headers: _headers,
-    );
+    final resp = await _api.delete('/chat/session/$sessionId');
     if (resp.statusCode != 200) {
       throw Exception('Erro ao deletar sessão');
     }

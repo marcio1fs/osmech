@@ -119,7 +119,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Faz logout e limpa dados salvos.
+  /// Faz logout e limpa apenas dados de autenticação.
   Future<void> logout() async {
     _token = null;
     _email = null;
@@ -127,7 +127,11 @@ class AuthService extends ChangeNotifier {
     _role = null;
     _plano = null;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove('token');
+    await prefs.remove('email');
+    await prefs.remove('nome');
+    await prefs.remove('role');
+    await prefs.remove('plano');
     notifyListeners();
   }
 }
