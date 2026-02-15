@@ -10,6 +10,10 @@ import '../pages/pricing_page.dart';
 import '../pages/subscription_page.dart';
 import '../pages/payment_history_page.dart';
 import '../pages/financial_dashboard_page.dart';
+import '../pages/transacao_form_page.dart';
+import '../pages/categorias_page.dart';
+import '../pages/fluxo_caixa_page.dart';
+import '../pages/transacoes_historico_page.dart';
 
 /// Shell principal com sidebar persistente para navegação web.
 class AppShell extends StatefulWidget {
@@ -29,8 +33,18 @@ class _AppShellState extends State<AppShell> {
     _NavItem(icon: Icons.add_circle_outline_rounded, label: 'Nova OS'),
     _NavItem(icon: Icons.payments_rounded, label: 'Pagamentos'),
     _NavItem(icon: Icons.card_membership_rounded, label: 'Assinatura'),
-    _NavItem(icon: Icons.bar_chart_rounded, label: 'Financeiro'),
-    _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos'),
+    _NavItem(
+        icon: Icons.bar_chart_rounded,
+        label: 'Financeiro',
+        section: 'FINANCEIRO'),
+    _NavItem(icon: Icons.add_card_rounded, label: 'Novo Lançamento'),
+    _NavItem(icon: Icons.category_rounded, label: 'Categorias'),
+    _NavItem(icon: Icons.trending_up_rounded, label: 'Fluxo de Caixa'),
+    _NavItem(icon: Icons.receipt_long_rounded, label: 'Histórico'),
+    _NavItem(
+        icon: Icons.workspace_premium_rounded,
+        label: 'Planos',
+        section: 'CONTA'),
   ];
 
   Widget _getPage(int index) {
@@ -41,14 +55,31 @@ class _AppShellState extends State<AppShell> {
       case 1:
         return const OsListPage();
       case 2:
-        return const OsFormPage();
+        return OsFormPage(
+          onSaved: () => setState(() => _selectedIndex = 1),
+        );
       case 3:
         return const PaymentHistoryPage();
       case 4:
         return const SubscriptionPage();
       case 5:
-        return const FinancialDashboardPage();
+        return FinancialDashboardPage(
+          onNavigateTransacoes: () => setState(() => _selectedIndex = 9),
+          onNavigateNovaTransacao: () => setState(() => _selectedIndex = 6),
+          onNavigateFluxoCaixa: () => setState(() => _selectedIndex = 8),
+          onNavigateCategorias: () => setState(() => _selectedIndex = 7),
+        );
       case 6:
+        return TransacaoFormPage(
+          onSaved: () => setState(() => _selectedIndex = 9),
+        );
+      case 7:
+        return const CategoriasPage();
+      case 8:
+        return const FluxoCaixaPage();
+      case 9:
+        return const TransacoesHistoricoPage();
+      case 10:
         return const PricingPage();
       default:
         return DashboardPage(
@@ -160,12 +191,38 @@ class _AppShellState extends State<AppShell> {
                     itemBuilder: (context, index) {
                       final item = _navItems[index];
                       final selected = _selectedIndex == index;
-                      return _SidebarItem(
-                        icon: item.icon,
-                        label: item.label,
-                        selected: selected,
-                        expanded: _sidebarExpanded,
-                        onTap: () => setState(() => _selectedIndex = index),
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (item.section != null) ...[
+                            const SizedBox(height: 8),
+                            const Divider(color: Color(0xFF1E293B), height: 1),
+                            if (_sidebarExpanded)
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                    left: 14, top: 12, bottom: 4),
+                                child: Text(
+                                  item.section!,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color:
+                                        AppColors.sidebarText.withOpacity(0.5),
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                              )
+                            else
+                              const SizedBox(height: 12),
+                          ],
+                          _SidebarItem(
+                            icon: item.icon,
+                            label: item.label,
+                            selected: selected,
+                            expanded: _sidebarExpanded,
+                            onTap: () => setState(() => _selectedIndex = index),
+                          ),
+                        ],
                       );
                     },
                   ),
@@ -310,7 +367,8 @@ class _AppShellState extends State<AppShell> {
 class _NavItem {
   final IconData icon;
   final String label;
-  const _NavItem({required this.icon, required this.label});
+  final String? section;
+  const _NavItem({required this.icon, required this.label, this.section});
 }
 
 class _SidebarItem extends StatefulWidget {

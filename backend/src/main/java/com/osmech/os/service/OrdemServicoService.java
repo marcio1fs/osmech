@@ -1,5 +1,6 @@
 package com.osmech.os.service;
 
+import com.osmech.finance.service.FinanceiroService;
 import com.osmech.os.dto.OrdemServicoRequest;
 import com.osmech.os.dto.OrdemServicoResponse;
 import com.osmech.os.entity.OrdemServico;
@@ -7,6 +8,7 @@ import com.osmech.os.repository.OrdemServicoRepository;
 import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,10 +18,12 @@ import java.util.List;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class OrdemServicoService {
 
     private final OrdemServicoRepository osRepository;
     private final UsuarioRepository usuarioRepository;
+    private final FinanceiroService financeiroService;
 
     /**
      * Cria uma nova Ordem de Serviço.
@@ -85,6 +89,9 @@ public class OrdemServicoService {
             throw new IllegalArgumentException("Acesso negado a esta Ordem de Serviço");
         }
 
+        // Captura status anterior para detectar mudança para CONCLUIDA
+        String statusAnterior = os.getStatus();
+
         // Atualiza campos
         if (request.getClienteNome() != null) os.setClienteNome(request.getClienteNome());
         if (request.getClienteTelefone() != null) os.setClienteTelefone(request.getClienteTelefone());
@@ -100,6 +107,20 @@ public class OrdemServicoService {
         if (request.getWhatsappConsentimento() != null) os.setWhatsappConsentimento(request.getWhatsappConsentimento());
 
         os = osRepository.save(os);
+
+        // Auto-criar entrada financeira quando OS é concluída
+        if ("CONCLUIDA".equals(os.getStatus()) && !"CONCLUIDA".equals(statusAnterior)
+                && os.getValor() != null && os.getValor().signum() > 0) {
+            try {
+                financeiroService.criarEntradaOS(
+                        os.getUsuarioId(), os.getId(), os.getValor(),
+                        os.getClienteNome(), os.getPlaca());
+                log.info("Entrada financeira criada automaticamente para OS #{}", os.getId());
+            } catch (Exception e) {
+                log.warn("Falha ao criar entrada financeira para OS #{}: {}", os.getId(), e.getMessage());
+            }
+        }
+
         return toResponse(os);
     }
 

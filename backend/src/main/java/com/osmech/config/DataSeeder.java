@@ -1,5 +1,7 @@
 package com.osmech.config;
 
+import com.osmech.finance.entity.CategoriaFinanceira;
+import com.osmech.finance.repository.CategoriaFinanceiraRepository;
 import com.osmech.plan.entity.Plano;
 import com.osmech.plan.repository.PlanoRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +12,8 @@ import org.springframework.stereotype.Component;
 import java.math.BigDecimal;
 
 /**
- * Popula dados iniciais no banco (planos de assinatura).
- * Só insere se os planos ainda não existirem.
+ * Popula dados iniciais no banco (planos de assinatura e categorias financeiras).
+ * Só insere se os dados ainda não existirem.
  */
 @Component
 @RequiredArgsConstructor
@@ -19,6 +21,7 @@ import java.math.BigDecimal;
 public class DataSeeder implements CommandLineRunner {
 
     private final PlanoRepository planoRepository;
+    private final CategoriaFinanceiraRepository categoriaRepository;
 
     @Override
     public void run(String... args) {
@@ -71,5 +74,39 @@ public class DataSeeder implements CommandLineRunner {
 
             log.info("Planos inseridos com sucesso!");
         }
+
+        // Seed categorias financeiras do sistema
+        if (categoriaRepository.count() == 0) {
+            log.info("Inserindo categorias financeiras do sistema...");
+
+            // Categorias de ENTRADA
+            criarCategoriaSistema("Serviço OS", "ENTRADA", "build");
+            criarCategoriaSistema("Venda Balcão", "ENTRADA", "storefront");
+            criarCategoriaSistema("Outros Recebimentos", "ENTRADA", "attach_money");
+
+            // Categorias de SAÍDA
+            criarCategoriaSistema("Peças e Materiais", "SAIDA", "settings");
+            criarCategoriaSistema("Salários", "SAIDA", "people");
+            criarCategoriaSistema("Aluguel", "SAIDA", "home");
+            criarCategoriaSistema("Energia Elétrica", "SAIDA", "bolt");
+            criarCategoriaSistema("Água", "SAIDA", "water_drop");
+            criarCategoriaSistema("Internet/Telefone", "SAIDA", "wifi");
+            criarCategoriaSistema("Impostos", "SAIDA", "receipt_long");
+            criarCategoriaSistema("Manutenção", "SAIDA", "handyman");
+            criarCategoriaSistema("Combustível", "SAIDA", "local_gas_station");
+            criarCategoriaSistema("Outras Despesas", "SAIDA", "money_off");
+
+            log.info("Categorias financeiras inseridas com sucesso!");
+        }
+    }
+
+    private void criarCategoriaSistema(String nome, String tipo, String icone) {
+        categoriaRepository.save(CategoriaFinanceira.builder()
+                .nome(nome)
+                .tipo(tipo)
+                .icone(icone)
+                .sistema(true)
+                .usuarioId(null)
+                .build());
     }
 }

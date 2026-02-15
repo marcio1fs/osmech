@@ -2,12 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import '../services/payment_service.dart';
+import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 
-/// Dashboard Financeiro — design moderno.
+/// Dashboard Financeiro completo — módulo financeiro.
 class FinancialDashboardPage extends StatefulWidget {
-  const FinancialDashboardPage({super.key});
+  final VoidCallback? onNavigateTransacoes;
+  final VoidCallback? onNavigateNovaTransacao;
+  final VoidCallback? onNavigateFluxoCaixa;
+  final VoidCallback? onNavigateCategorias;
+
+  const FinancialDashboardPage({
+    super.key,
+    this.onNavigateTransacoes,
+    this.onNavigateNovaTransacao,
+    this.onNavigateFluxoCaixa,
+    this.onNavigateCategorias,
+  });
 
   @override
   State<FinancialDashboardPage> createState() => _FinancialDashboardPageState();
@@ -15,62 +26,45 @@ class FinancialDashboardPage extends StatefulWidget {
 
 class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
   Map<String, dynamic>? _resumo;
+  List<Map<String, dynamic>> _ultimasTransacoes = [];
   bool _loading = true;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _loadResumo();
+    _loadData();
   }
 
-  Future<void> _loadResumo() async {
+  Future<void> _loadData() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
-      final service = PaymentService(token: auth.token!);
-      final data = await service.getResumoFinanceiro();
+      final service = FinanceService(token: auth.token!);
+      final results = await Future.wait([
+        service.getResumoFinanceiro(),
+        service.listarTransacoes(),
+      ]);
       setState(() {
-        _resumo = data;
+        _resumo = results[0] as Map<String, dynamic>;
+        final allTx = results[1] as List<Map<String, dynamic>>;
+        _ultimasTransacoes = allTx.take(5).toList();
         _loading = false;
       });
     } catch (e) {
       setState(() {
-        _error = 'Erro ao carregar resumo financeiro';
+        _error = 'Erro ao carregar dados financeiros';
         _loading = false;
       });
     }
   }
 
-  Color _statusColor(String? status) {
-    switch (status) {
-      case 'ACTIVE':
-        return AppColors.success;
-      case 'PAST_DUE':
-        return AppColors.warning;
-      case 'SUSPENDED':
-        return AppColors.error;
-      default:
-        return AppColors.textMuted;
-    }
-  }
-
-  String _statusLabel(String? status) {
-    switch (status) {
-      case 'ACTIVE':
-        return 'Ativa';
-      case 'PAST_DUE':
-        return 'Atrasada';
-      case 'SUSPENDED':
-        return 'Suspensa';
-      case 'NONE':
-        return 'Sem assinatura';
-      default:
-        return status ?? '-';
-    }
+  String _formatCurrency(dynamic value) {
+    final v = (value is num) ? value.toDouble() : 0.0;
+    return 'R\$ ${v.toStringAsFixed(2)}';
   }
 
   @override
@@ -93,19 +87,30 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Financeiro',
+                    Text('Dashboard Financeiro',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('Acompanhe receitas e pagamentos',
+                    Text('Visão geral das finanças da oficina',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
                 ),
                 const Spacer(),
+                FilledButton.icon(
+                  onPressed: widget.onNavigateNovaTransacao,
+                  icon: const Icon(Icons.add_rounded, size: 18),
+                  label: const Text('Novo Lançamento'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                  ),
+                ),
+                const SizedBox(width: 8),
                 OutlinedButton.icon(
-                  onPressed: _loadResumo,
+                  onPressed: _loadData,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Atualizar'),
                 ),
@@ -123,7 +128,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text(_error!,
@@ -131,7 +136,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
-                                onPressed: _loadResumo,
+                                onPressed: _loadData,
                                 child: const Text('Tentar novamente')),
                           ],
                         ),
@@ -141,170 +146,92 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Subscription status bar
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: _statusColor(
-                                              _resumo?['statusAssinatura'])
-                                          .withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Icon(Icons.card_membership_rounded,
-                                        color: _statusColor(
-                                            _resumo?['statusAssinatura']),
-                                        size: 24),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Plano ${_resumo?['planoAtual'] ?? '-'}',
-                                          style: GoogleFonts.inter(
-                                              fontSize: 15,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.textPrimary),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Row(
-                                          children: [
-                                            Container(
-                                              width: 8,
-                                              height: 8,
-                                              decoration: BoxDecoration(
-                                                shape: BoxShape.circle,
-                                                color: _statusColor(_resumo?[
-                                                    'statusAssinatura']),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Text(
-                                                _statusLabel(_resumo?[
-                                                    'statusAssinatura']),
-                                                style: GoogleFonts.inter(
-                                                    fontSize: 13,
-                                                    color: AppColors
-                                                        .textSecondary)),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Text(
-                                    'R\$ ${(_resumo?['valorAssinatura'] ?? 0).toStringAsFixed(2)}/mês',
-                                    style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Metrics grid
-                            Text('Resumo Financeiro',
-                                style: GoogleFonts.inter(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary)),
-                            const SizedBox(height: 16),
+                            // Metric cards grid
                             LayoutBuilder(
                               builder: (context, constraints) {
                                 final crossAxisCount =
-                                    constraints.maxWidth > 900 ? 4 : 2;
+                                    constraints.maxWidth > 1000
+                                        ? 4
+                                        : constraints.maxWidth > 600
+                                            ? 2
+                                            : 1;
                                 return GridView.count(
                                   crossAxisCount: crossAxisCount,
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
                                   mainAxisSpacing: 16,
                                   crossAxisSpacing: 16,
-                                  childAspectRatio: 2.2,
+                                  childAspectRatio: 2.4,
                                   children: [
-                                    _FinMetricCard(
-                                      label: 'Receita Total',
-                                      value:
-                                          'R\$ ${(_resumo?['receitaTotal'] ?? 0).toStringAsFixed(2)}',
+                                    _MetricCard(
+                                      label: 'Saldo Atual',
+                                      value: _formatCurrency(
+                                          _resumo?['saldoAtual']),
                                       icon:
                                           Icons.account_balance_wallet_rounded,
-                                      color: AppColors.success,
+                                      color: (_resumo?['saldoAtual'] ?? 0) >= 0
+                                          ? AppColors.success
+                                          : AppColors.error,
+                                      subtitle: 'Total acumulado',
                                     ),
-                                    _FinMetricCard(
-                                      label: 'Receita do Mês',
-                                      value:
-                                          'R\$ ${(_resumo?['receitaMesAtual'] ?? 0).toStringAsFixed(2)}',
+                                    _MetricCard(
+                                      label: 'Entradas do Mês',
+                                      value: _formatCurrency(
+                                          _resumo?['entradasMes']),
                                       icon: Icons.trending_up_rounded,
-                                      color: AppColors.accent,
+                                      color: AppColors.success,
+                                      subtitle:
+                                          '${_resumo?['qtdTransacoesMes'] ?? 0} transações',
                                     ),
-                                    _FinMetricCard(
-                                      label: 'Pendente',
-                                      value:
-                                          'R\$ ${(_resumo?['totalPendente'] ?? 0).toStringAsFixed(2)}',
-                                      icon: Icons.hourglass_empty_rounded,
-                                      color: AppColors.warning,
+                                    _MetricCard(
+                                      label: 'Saídas do Mês',
+                                      value: _formatCurrency(
+                                          _resumo?['saidasMes']),
+                                      icon: Icons.trending_down_rounded,
+                                      color: AppColors.error,
+                                      subtitle: 'Despesas atuais',
                                     ),
-                                    _FinMetricCard(
-                                      label: 'OS Pagas (Mês)',
+                                    _MetricCard(
+                                      label: 'Lucro do Mês',
                                       value:
-                                          '${_resumo?['qtdOsPagasMes'] ?? 0}',
-                                      icon: Icons.check_circle_outline_rounded,
-                                      color: const Color(0xFF14B8A6),
+                                          _formatCurrency(_resumo?['lucroMes']),
+                                      icon: Icons.show_chart_rounded,
+                                      color: (_resumo?['lucroMes'] ?? 0) >= 0
+                                          ? const Color(0xFF14B8A6)
+                                          : AppColors.warning,
+                                      subtitle: 'Entradas − Saídas',
                                     ),
                                   ],
                                 );
                               },
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 32),
 
-                            // Additional indicators
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: AppColors.border),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Indicadores',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary)),
-                                  const SizedBox(height: 16),
-                                  _IndicatorRow(
-                                    label: 'Pagamentos no mês',
-                                    value:
-                                        '${_resumo?['qtdPagamentosMes'] ?? 0}',
-                                  ),
-                                  const Divider(
-                                      color: AppColors.border, height: 24),
-                                  _IndicatorRow(
-                                    label: 'Pagamentos pendentes',
-                                    value: '${_resumo?['qtdPendentes'] ?? 0}',
-                                    valueColor:
-                                        (_resumo?['qtdPendentes'] ?? 0) > 0
-                                            ? AppColors.warning
-                                            : AppColors.success,
-                                  ),
-                                ],
-                              ),
+                            // Two-column layout
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                if (constraints.maxWidth > 800) {
+                                  return Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(
+                                          flex: 3,
+                                          child: _buildUltimasTransacoes()),
+                                      const SizedBox(width: 24),
+                                      Expanded(
+                                          flex: 2, child: _buildAcoesPaineis()),
+                                    ],
+                                  );
+                                }
+                                return Column(
+                                  children: [
+                                    _buildUltimasTransacoes(),
+                                    const SizedBox(height: 24),
+                                    _buildAcoesPaineis(),
+                                  ],
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -314,18 +241,165 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage> {
       ),
     );
   }
+
+  Widget _buildUltimasTransacoes() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Últimas Transações',
+                  style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              TextButton(
+                onPressed: widget.onNavigateTransacoes,
+                child: Text('Ver todas',
+                    style: GoogleFonts.inter(
+                        color: AppColors.accent, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_ultimasTransacoes.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.receipt_long_rounded,
+                        size: 48, color: AppColors.textMuted.withOpacity(0.5)),
+                    const SizedBox(height: 8),
+                    Text('Nenhuma transação registrada',
+                        style: GoogleFonts.inter(
+                            color: AppColors.textSecondary, fontSize: 14)),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._ultimasTransacoes.map((tx) => _TransacaoItem(tx: tx)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcoesPaineis() {
+    return Column(
+      children: [
+        // Resumo geral
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Resumo Geral',
+                  style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 16),
+              _IndicatorRow(
+                  label: 'Total Entradas',
+                  value: _formatCurrency(_resumo?['totalEntradas']),
+                  valueColor: AppColors.success),
+              const Divider(color: AppColors.border, height: 20),
+              _IndicatorRow(
+                  label: 'Total Saídas',
+                  value: _formatCurrency(_resumo?['totalSaidas']),
+                  valueColor: AppColors.error),
+              const Divider(color: AppColors.border, height: 20),
+              _IndicatorRow(
+                  label: 'Lucro Total',
+                  value: _formatCurrency(_resumo?['lucroTotal']),
+                  valueColor: (_resumo?['lucroTotal'] ?? 0) >= 0
+                      ? AppColors.success
+                      : AppColors.error),
+              const Divider(color: AppColors.border, height: 20),
+              _IndicatorRow(
+                  label: 'Sem categoria',
+                  value: '${_resumo?['qtdSemCategoria'] ?? 0}',
+                  valueColor: (_resumo?['qtdSemCategoria'] ?? 0) > 0
+                      ? AppColors.warning
+                      : AppColors.success),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Ações rápidas
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Ações Rápidas',
+                  style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+              const SizedBox(height: 12),
+              _ActionButton(
+                label: 'Nova Transação',
+                icon: Icons.add_circle_outline_rounded,
+                onTap: widget.onNavigateNovaTransacao,
+              ),
+              _ActionButton(
+                label: 'Fluxo de Caixa',
+                icon: Icons.bar_chart_rounded,
+                onTap: widget.onNavigateFluxoCaixa,
+              ),
+              _ActionButton(
+                label: 'Categorias',
+                icon: Icons.category_rounded,
+                onTap: widget.onNavigateCategorias,
+              ),
+              _ActionButton(
+                label: 'Histórico',
+                icon: Icons.history_rounded,
+                onTap: widget.onNavigateTransacoes,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 }
 
-class _FinMetricCard extends StatelessWidget {
+class _MetricCard extends StatelessWidget {
   final String label;
   final String value;
   final IconData icon;
   final Color color;
-  const _FinMetricCard(
+  final String subtitle;
+  const _MetricCard(
       {required this.label,
       required this.value,
       required this.icon,
-      required this.color});
+      required this.color,
+      required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -353,21 +427,89 @@ class _FinMetricCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  value,
-                  style: GoogleFonts.inter(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary),
-                  overflow: TextOverflow.ellipsis,
-                ),
                 Text(label,
                     style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500)),
+                const SizedBox(height: 4),
+                Text(value,
+                    style: GoogleFonts.inter(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary),
+                    overflow: TextOverflow.ellipsis),
+                Text(subtitle,
+                    style: GoogleFonts.inter(
+                        fontSize: 11, color: AppColors.textMuted)),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TransacaoItem extends StatelessWidget {
+  final Map<String, dynamic> tx;
+  const _TransacaoItem({required this.tx});
+
+  @override
+  Widget build(BuildContext context) {
+    final isEntrada = tx['tipo'] == 'ENTRADA';
+    final isEstorno = tx['estorno'] == true;
+    final color = isEstorno
+        ? AppColors.warning
+        : isEntrada
+            ? AppColors.success
+            : AppColors.error;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 0.5)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isEstorno
+                  ? Icons.undo_rounded
+                  : isEntrada
+                      ? Icons.arrow_downward_rounded
+                      : Icons.arrow_upward_rounded,
+              color: color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(tx['descricao'] ?? '',
+                    style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary),
+                    overflow: TextOverflow.ellipsis),
+                Text(tx['categoriaNome'] ?? 'Sem categoria',
+                    style: GoogleFonts.inter(
+                        fontSize: 11, color: AppColors.textMuted)),
+              ],
+            ),
+          ),
+          Text(
+            '${isEntrada ? '+' : '-'} R\$ ${(tx['valor'] ?? 0).toStringAsFixed(2)}',
+            style: GoogleFonts.inter(
+                fontSize: 14, fontWeight: FontWeight.w700, color: color),
           ),
         ],
       ),
@@ -390,14 +532,44 @@ class _IndicatorRow extends StatelessWidget {
         Text(label,
             style: GoogleFonts.inter(
                 fontSize: 14, color: AppColors.textSecondary)),
-        Text(
-          value,
-          style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: valueColor ?? AppColors.textPrimary),
-        ),
+        Text(value,
+            style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: valueColor ?? AppColors.textPrimary)),
       ],
+    );
+  }
+}
+
+class _ActionButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+  const _ActionButton({required this.label, required this.icon, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.accent),
+            const SizedBox(width: 12),
+            Text(label,
+                style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary)),
+            const Spacer(),
+            const Icon(Icons.chevron_right_rounded,
+                size: 18, color: AppColors.textMuted),
+          ],
+        ),
+      ),
     );
   }
 }

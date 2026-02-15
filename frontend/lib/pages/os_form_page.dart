@@ -8,7 +8,8 @@ import '../theme/app_theme.dart';
 /// Formulário de criação/edição de OS — design moderno.
 class OsFormPage extends StatefulWidget {
   final Map<String, dynamic>? osData;
-  const OsFormPage({super.key, this.osData});
+  final VoidCallback? onSaved;
+  const OsFormPage({super.key, this.osData, this.onSaved});
 
   @override
   State<OsFormPage> createState() => _OsFormPageState();
@@ -42,12 +43,12 @@ class _OsFormPageState extends State<OsFormPage> {
     _modelo = TextEditingController(text: d?['modelo'] ?? '');
     _ano = TextEditingController(text: d?['ano']?.toString() ?? '');
     _km = TextEditingController(text: d?['quilometragem']?.toString() ?? '');
-    _descricao = TextEditingController(text: d?['descricaoProblema'] ?? '');
+    _descricao = TextEditingController(text: d?['descricao'] ?? '');
     _diagnostico = TextEditingController(text: d?['diagnostico'] ?? '');
-    _pecas = TextEditingController(text: d?['pecasUtilizadas'] ?? '');
+    _pecas = TextEditingController(text: d?['pecas'] ?? '');
     _valor = TextEditingController(text: d?['valor']?.toString() ?? '');
     _status = d?['status'] ?? 'ABERTA';
-    _notificarWhatsApp = d?['notificarWhatsApp'] ?? false;
+    _notificarWhatsApp = d?['whatsappConsentimento'] ?? false;
   }
 
   @override
@@ -78,19 +79,25 @@ class _OsFormPageState extends State<OsFormPage> {
         'modelo': _modelo.text.trim(),
         'ano': int.tryParse(_ano.text.trim()),
         'quilometragem': int.tryParse(_km.text.trim()),
-        'descricaoProblema': _descricao.text.trim(),
+        'descricao': _descricao.text.trim(),
         'diagnostico': _diagnostico.text.trim(),
-        'pecasUtilizadas': _pecas.text.trim(),
+        'pecas': _pecas.text.trim(),
         'valor': double.tryParse(_valor.text.trim()) ?? 0,
         'status': _status,
-        'notificarWhatsApp': _notificarWhatsApp,
+        'whatsappConsentimento': _notificarWhatsApp,
       };
       if (_isEditing) {
         await osService.atualizar(widget.osData!['id'], data);
       } else {
         await osService.criar(data);
       }
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        if (widget.onSaved != null) {
+          widget.onSaved!();
+        } else {
+          Navigator.pop(context, true);
+        }
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
