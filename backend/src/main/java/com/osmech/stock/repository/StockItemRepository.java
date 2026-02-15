@@ -42,6 +42,10 @@ public interface StockItemRepository extends JpaRepository<StockItem, Long> {
            "AND s.quantidade <= s.quantidadeMinima")
     long countAlertItems(@Param("uid") Long usuarioId);
 
+    /** Busca o maior número sequencial do código (PCA-XXX) por oficina */
+    @Query("SELECT MAX(CAST(SUBSTRING(s.codigo, 5) AS int)) FROM StockItem s WHERE s.usuarioId = :uid AND s.codigo LIKE 'PCA-%'")
+    Integer findMaxCodigoSequencial(@Param("uid") Long usuarioId);
+
     /** Busca por categoria */
     List<StockItem> findByUsuarioIdAndCategoriaAndAtivoTrueOrderByNomeAsc(Long usuarioId, String categoria);
 

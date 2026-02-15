@@ -51,6 +51,8 @@ class _StockFormPageState extends State<StockFormPage> {
     super.initState();
     if (isEditing) {
       _loadItem();
+    } else {
+      _codigoCtrl.text = 'Auto';
     }
   }
 
@@ -107,7 +109,6 @@ class _StockFormPageState extends State<StockFormPage> {
       final service = StockService(token: auth.token!);
 
       final dados = {
-        'codigo': _codigoCtrl.text.trim(),
         'nome': _nomeCtrl.text.trim(),
         'categoria': _categoria,
         'quantidade': int.tryParse(_quantidadeCtrl.text) ?? 0,
@@ -218,22 +219,25 @@ class _StockFormPageState extends State<StockFormPage> {
                                       color: AppColors.textPrimary)),
                               const SizedBox(height: 24),
 
-                              // Código + Categoria
+                              // Código (auto) + Categoria
                               Row(
                                 children: [
                                   Expanded(
                                     flex: 2,
                                     child: TextFormField(
                                       controller: _codigoCtrl,
-                                      decoration: const InputDecoration(
-                                        labelText: 'Código *',
-                                        hintText: 'Ex: PCA-001',
-                                        prefixIcon: Icon(Icons.qr_code_rounded),
+                                      readOnly: true,
+                                      enabled: false,
+                                      decoration: InputDecoration(
+                                        labelText: 'Código',
+                                        hintText: isEditing
+                                            ? ''
+                                            : 'Gerado automaticamente',
+                                        prefixIcon:
+                                            const Icon(Icons.qr_code_rounded),
+                                        filled: true,
+                                        fillColor: AppColors.background,
                                       ),
-                                      validator: (v) =>
-                                          v == null || v.trim().isEmpty
-                                              ? 'Informe o código'
-                                              : null,
                                     ),
                                   ),
                                   const SizedBox(width: 16),

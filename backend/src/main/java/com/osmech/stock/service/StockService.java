@@ -42,15 +42,20 @@ public class StockService {
     // ITENS DE ESTOQUE
     // ==========================================
 
+    /** Gerar próximo código auto-incremental PCA-XXX */
+    private String gerarProximoCodigo(Long usuarioId) {
+        Integer maxSeq = itemRepository.findMaxCodigoSequencial(usuarioId);
+        int nextSeq = (maxSeq != null ? maxSeq : 0) + 1;
+        return String.format("PCA-%03d", nextSeq);
+    }
+
     /** Criar novo item de estoque */
     @Transactional
     public StockItemResponse criarItem(String emailUsuario, StockItemRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
 
-        // Validar código único
-        if (itemRepository.existsByUsuarioIdAndCodigoIgnoreCase(usuario.getId(), request.getCodigo())) {
-            throw new IllegalArgumentException("Já existe um item com o código '" + request.getCodigo() + "'");
-        }
+        // Gerar código automático
+        String codigo = gerarProximoCodigo(usuario.getId());
 
         // Validar categoria
         String categoria = request.getCategoria() != null ? request.getCategoria().toUpperCase() : "OUTROS";
@@ -60,7 +65,7 @@ public class StockService {
 
         StockItem item = StockItem.builder()
                 .usuarioId(usuario.getId())
-                .codigo(request.getCodigo().toUpperCase().trim())
+                .codigo(codigo)
                 .nome(request.getNome().trim())
                 .categoria(categoria)
                 .quantidade(request.getQuantidade() != null ? request.getQuantidade() : 0)
@@ -88,13 +93,7 @@ public class StockService {
         Usuario usuario = getUsuario(emailUsuario);
         StockItem item = getItemDoUsuario(usuario.getId(), itemId);
 
-        // Verificar duplicata de código (se mudou)
-        if (!item.getCodigo().equalsIgnoreCase(request.getCodigo())) {
-            if (itemRepository.existsByUsuarioIdAndCodigoIgnoreCase(usuario.getId(), request.getCodigo())) {
-                throw new IllegalArgumentException("Já existe um item com o código '" + request.getCodigo() + "'");
-            }
-            item.setCodigo(request.getCodigo().toUpperCase().trim());
-        }
+        // Código é auto-gerado, não permitir alteração na edição
 
         if (request.getNome() != null) item.setNome(request.getNome().trim());
         if (request.getCategoria() != null) {

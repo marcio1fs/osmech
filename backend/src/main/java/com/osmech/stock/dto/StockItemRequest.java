@@ -14,7 +14,7 @@ import java.math.BigDecimal;
 @Builder
 public class StockItemRequest {
 
-    @NotBlank(message = "Código é obrigatório")
+    /** Código auto-gerado pelo sistema (opcional no request) */
     private String codigo;
 
     @NotBlank(message = "Nome é obrigatório")
