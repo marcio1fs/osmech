@@ -1,0 +1,17 @@
+{
+    "folders": [
+        {
+            "path": "backend"
+        },
+        {
+            "path": "frontend"
+        }
+    ],
+    "settings": {
+        "java.configuration.updateBuildConfiguration": "automatic",
+        "java.project.sourcePaths": ["src/main/java"],
+        "java.project.outputPath": "target/classes",
+        "java.import.maven.enabled": true,
+        "dart.flutterSdkPath": "C:\\tools\\flutter"
+    }
+}
