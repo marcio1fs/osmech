@@ -20,7 +20,7 @@ class StockService {
   /// Criar novo item de estoque
   Future<Map<String, dynamic>> criarItem(Map<String, dynamic> dados) async {
     final response = await http
-        .post(Uri.parse('${ApiConfig.baseUrl}/api/stock'),
+        .post(Uri.parse('${ApiConfig.baseUrl}/stock'),
             headers: _headers, body: jsonEncode(dados))
         .timeout(const Duration(seconds: 15));
     final body = jsonDecode(response.body);
@@ -37,7 +37,7 @@ class StockService {
     if (categoria != null) params['categoria'] = categoria;
     if (busca != null && busca.isNotEmpty) params['busca'] = busca;
 
-    final uri = Uri.parse('${ApiConfig.baseUrl}/api/stock')
+    final uri = Uri.parse('${ApiConfig.baseUrl}/stock')
         .replace(queryParameters: params.isNotEmpty ? params : null);
     final response = await http
         .get(uri, headers: _headers)
@@ -51,7 +51,7 @@ class StockService {
   /// Buscar item por ID
   Future<Map<String, dynamic>> buscarItem(int itemId) async {
     final response = await http
-        .get(Uri.parse('${ApiConfig.baseUrl}/api/stock/$itemId'),
+        .get(Uri.parse('${ApiConfig.baseUrl}/stock/$itemId'),
             headers: _headers)
         .timeout(const Duration(seconds: 15));
     final body = jsonDecode(response.body);
@@ -63,7 +63,7 @@ class StockService {
   Future<Map<String, dynamic>> atualizarItem(
       int itemId, Map<String, dynamic> dados) async {
     final response = await http
-        .put(Uri.parse('${ApiConfig.baseUrl}/api/stock/$itemId'),
+        .put(Uri.parse('${ApiConfig.baseUrl}/stock/$itemId'),
             headers: _headers, body: jsonEncode(dados))
         .timeout(const Duration(seconds: 15));
     final body = jsonDecode(response.body);
@@ -74,7 +74,7 @@ class StockService {
   /// Desativar item (soft delete)
   Future<void> desativarItem(int itemId) async {
     final response = await http
-        .delete(Uri.parse('${ApiConfig.baseUrl}/api/stock/$itemId'),
+        .delete(Uri.parse('${ApiConfig.baseUrl}/stock/$itemId'),
             headers: _headers)
         .timeout(const Duration(seconds: 15));
     if (response.statusCode != 200) {
@@ -91,7 +91,7 @@ class StockService {
   Future<Map<String, dynamic>> registrarMovimentacao(
       Map<String, dynamic> dados) async {
     final response = await http
-        .post(Uri.parse('${ApiConfig.baseUrl}/api/stock/move'),
+        .post(Uri.parse('${ApiConfig.baseUrl}/stock/move'),
             headers: _headers, body: jsonEncode(dados))
         .timeout(const Duration(seconds: 15));
     final body = jsonDecode(response.body);
@@ -102,7 +102,7 @@ class StockService {
   /// Listar todas as movimentações
   Future<List<Map<String, dynamic>>> listarMovimentacoes() async {
     final response = await http
-        .get(Uri.parse('${ApiConfig.baseUrl}/api/stock/movements'),
+        .get(Uri.parse('${ApiConfig.baseUrl}/stock/movements'),
             headers: _headers)
         .timeout(const Duration(seconds: 15));
     if (response.statusCode == 200) {
@@ -115,7 +115,7 @@ class StockService {
   Future<List<Map<String, dynamic>>> listarMovimentacoesItem(
       int itemId) async {
     final response = await http
-        .get(Uri.parse('${ApiConfig.baseUrl}/api/stock/$itemId/movements'),
+        .get(Uri.parse('${ApiConfig.baseUrl}/stock/$itemId/movements'),
             headers: _headers)
         .timeout(const Duration(seconds: 15));
     if (response.statusCode == 200) {
@@ -131,7 +131,7 @@ class StockService {
   /// Obter alertas de estoque baixo/zerado
   Future<List<Map<String, dynamic>>> getAlertas() async {
     final response = await http
-        .get(Uri.parse('${ApiConfig.baseUrl}/api/stock/alerts'),
+        .get(Uri.parse('${ApiConfig.baseUrl}/stock/alerts'),
             headers: _headers)
         .timeout(const Duration(seconds: 15));
     if (response.statusCode == 200) {
