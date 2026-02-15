@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
+import '../theme/app_theme.dart';
 
-/// Tela de status da assinatura e gerenciamento de plano.
+/// Tela de assinatura — design moderno.
 class SubscriptionPage extends StatefulWidget {
   const SubscriptionPage({super.key});
 
@@ -27,7 +29,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       _loading = true;
       _error = null;
     });
-
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = PaymentService(token: auth.token!);
@@ -48,25 +49,24 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Cancelar Assinatura'),
-        content: const Text(
-          'Tem certeza que deseja cancelar sua assinatura? '
-          'Você perderá acesso aos recursos do plano atual.',
+        title: Text('Cancelar Assinatura',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Tem certeza que deseja cancelar sua assinatura? Você perderá acesso aos recursos do plano atual.',
+          style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Não'),
-          ),
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Manter')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
             child: const Text('Sim, cancelar'),
           ),
         ],
       ),
     );
-
     if (confirm != true) return;
 
     try {
@@ -75,14 +75,16 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       await service.cancelarAssinatura();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Assinatura cancelada com sucesso')),
+          const SnackBar(
+              content: Text('Assinatura cancelada com sucesso'),
+              backgroundColor: AppColors.success),
         );
         _loadAssinatura();
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
+          SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -91,15 +93,15 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
   Color _statusColor(String? status) {
     switch (status) {
       case 'ACTIVE':
-        return Colors.green;
+        return AppColors.success;
       case 'PAST_DUE':
-        return Colors.orange;
+        return AppColors.warning;
       case 'SUSPENDED':
-        return Colors.red;
+        return AppColors.error;
       case 'CANCELED':
-        return Colors.grey;
+        return AppColors.textMuted;
       default:
-        return Colors.blue;
+        return AppColors.accent;
     }
   }
 
@@ -118,171 +120,6 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Minha Assinatura')),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _loadAssinatura,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadAssinatura,
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Card principal da assinatura
-                        Card(
-                          elevation: 3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              children: [
-                                Icon(
-                                  Icons.card_membership,
-                                  size: 48,
-                                  color: _statusColor(_assinatura?['status']),
-                                ),
-                                const SizedBox(height: 12),
-                                Text(
-                                  _assinatura?['planoNome'] ?? 'Sem plano',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .headlineMedium
-                                      ?.copyWith(fontWeight: FontWeight.bold),
-                                ),
-                                const SizedBox(height: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: _statusColor(_assinatura?['status'])
-                                        .withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color:
-                                          _statusColor(_assinatura?['status']),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    _statusLabel(_assinatura?['status']),
-                                    style: TextStyle(
-                                      color:
-                                          _statusColor(_assinatura?['status']),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'R\$ ${(_assinatura?['valorMensal'] ?? 0).toStringAsFixed(2)}/mês',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.w600),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Detalhes
-                        if (_assinatura?['dataInicio'] != null) ...[
-                          _DetailRow(
-                            icon: Icons.calendar_today,
-                            label: 'Início',
-                            value: _formatDate(_assinatura!['dataInicio']),
-                          ),
-                        ],
-                        if (_assinatura?['proximaCobranca'] != null) ...[
-                          _DetailRow(
-                            icon: Icons.event,
-                            label: 'Próxima cobrança',
-                            value:
-                                _formatDate(_assinatura!['proximaCobranca']),
-                          ),
-                        ],
-                        if (_assinatura?['dataCancelamento'] != null) ...[
-                          _DetailRow(
-                            icon: Icons.cancel,
-                            label: 'Cancelado em',
-                            value:
-                                _formatDate(_assinatura!['dataCancelamento']),
-                          ),
-                        ],
-
-                        const SizedBox(height: 24),
-
-                        // Botões de ação
-                        if (_assinatura?['status'] == 'ACTIVE' ||
-                            _assinatura?['status'] == 'PAST_DUE') ...[
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: _cancelarAssinatura,
-                              icon: const Icon(Icons.cancel, color: Colors.red),
-                              label: const Text(
-                                'Cancelar Assinatura',
-                                style: TextStyle(color: Colors.red),
-                              ),
-                            ),
-                          ),
-                        ],
-
-                        if (_assinatura?['status'] == 'PAST_DUE' ||
-                            _assinatura?['status'] == 'SUSPENDED') ...[
-                          const SizedBox(height: 12),
-                          Card(
-                            color: Colors.orange.shade50,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16),
-                              child: Row(
-                                children: [
-                                  Icon(Icons.warning,
-                                      color: Colors.orange.shade700),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      _assinatura?['status'] == 'PAST_DUE'
-                                          ? 'Seu pagamento está atrasado. Regularize para evitar a suspensão.'
-                                          : 'Sua conta está suspensa por inadimplência. Efetue o pagamento para reativar.',
-                                      style: TextStyle(
-                                          color: Colors.orange.shade900),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-    );
-  }
-
   String _formatDate(String? dateStr) {
     if (dateStr == null) return '-';
     try {
@@ -292,29 +129,273 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
       return dateStr;
     }
   }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.background,
+      child: Column(
+        children: [
+          // Header
+          Container(
+            height: 72,
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            ),
+            child: Row(
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Minha Assinatura',
+                        style: GoogleFonts.inter(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)),
+                    Text('Gerencie seu plano e pagamentos',
+                        style: GoogleFonts.inter(
+                            fontSize: 13, color: AppColors.textSecondary)),
+                  ],
+                ),
+                const Spacer(),
+                OutlinedButton.icon(
+                  onPressed: _loadAssinatura,
+                  icon: const Icon(Icons.refresh_rounded, size: 18),
+                  label: const Text('Atualizar'),
+                ),
+              ],
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent))
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline_rounded,
+                                size: 48, color: AppColors.error),
+                            const SizedBox(height: 12),
+                            Text(_error!,
+                                style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary)),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                                onPressed: _loadAssinatura,
+                                child: const Text('Tentar novamente')),
+                          ],
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.all(32),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 700),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Status card
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(28),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 64,
+                                      height: 64,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            _statusColor(_assinatura?['status'])
+                                                .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                      child: Icon(Icons.card_membership_rounded,
+                                          size: 32,
+                                          color: _statusColor(
+                                              _assinatura?['status'])),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      _assinatura?['planoNome'] ?? 'Sem plano',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 16, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            _statusColor(_assinatura?['status'])
+                                                .withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        _statusLabel(_assinatura?['status']),
+                                        style: GoogleFonts.inter(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: _statusColor(
+                                                _assinatura?['status'])),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 16),
+                                    Text(
+                                      'R\$ ${(_assinatura?['valorMensal'] ?? 0).toStringAsFixed(2)}/mês',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Details card
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: AppColors.border),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Detalhes',
+                                        style: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: AppColors.textPrimary)),
+                                    const SizedBox(height: 16),
+                                    if (_assinatura?['dataInicio'] != null)
+                                      _DetailItem(
+                                          icon: Icons.calendar_today_rounded,
+                                          label: 'Início',
+                                          value: _formatDate(
+                                              _assinatura!['dataInicio'])),
+                                    if (_assinatura?['proximaCobranca'] != null)
+                                      _DetailItem(
+                                          icon: Icons.event_rounded,
+                                          label: 'Próxima cobrança',
+                                          value: _formatDate(
+                                              _assinatura!['proximaCobranca'])),
+                                    if (_assinatura?['dataCancelamento'] !=
+                                        null)
+                                      _DetailItem(
+                                          icon: Icons.cancel_rounded,
+                                          label: 'Cancelado em',
+                                          value: _formatDate(_assinatura![
+                                              'dataCancelamento'])),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 24),
+
+                              // Warning
+                              if (_assinatura?['status'] == 'PAST_DUE' ||
+                                  _assinatura?['status'] == 'SUSPENDED')
+                                Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.warning.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                        color:
+                                            AppColors.warning.withOpacity(0.3)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.warning_amber_rounded,
+                                          color: AppColors.warning),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          _assinatura?['status'] == 'PAST_DUE'
+                                              ? 'Seu pagamento está atrasado. Regularize para evitar a suspensão.'
+                                              : 'Sua conta está suspensa por inadimplência.',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              color: AppColors.textPrimary,
+                                              height: 1.4),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                              // Cancel button
+                              if (_assinatura?['status'] == 'ACTIVE' ||
+                                  _assinatura?['status'] == 'PAST_DUE') ...[
+                                const SizedBox(height: 24),
+                                SizedBox(
+                                  width: double.infinity,
+                                  height: 48,
+                                  child: OutlinedButton.icon(
+                                    onPressed: _cancelarAssinatura,
+                                    icon: const Icon(Icons.cancel_outlined,
+                                        color: AppColors.error, size: 18),
+                                    label: Text('Cancelar Assinatura',
+                                        style: GoogleFonts.inter(
+                                            color: AppColors.error,
+                                            fontWeight: FontWeight.w600)),
+                                    style: OutlinedButton.styleFrom(
+                                        side: const BorderSide(
+                                            color: AppColors.error)),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _DetailRow extends StatelessWidget {
+class _DetailItem extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
-
-  const _DetailRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
+  const _DetailItem(
+      {required this.icon, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey),
+          Icon(icon, size: 18, color: AppColors.textMuted),
           const SizedBox(width: 12),
-          Text('$label: ', style: const TextStyle(color: Colors.grey)),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+          Text('$label:',
+              style: GoogleFonts.inter(
+                  fontSize: 13, color: AppColors.textSecondary)),
+          const SizedBox(width: 8),
+          Text(value,
+              style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
         ],
       ),
     );

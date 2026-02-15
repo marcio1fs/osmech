@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'pages/login_page.dart';
-import 'pages/dashboard_page.dart';
+import 'widgets/app_shell.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(
@@ -24,26 +25,12 @@ class OsmechApp extends StatelessWidget {
     return MaterialApp(
       title: 'OSMECH',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF1565C0),
-        useMaterial3: true,
-        brightness: Brightness.light,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
-      ),
-      darkTheme: ThemeData(
-        colorSchemeSeed: const Color(0xFF1565C0),
-        useMaterial3: true,
-        brightness: Brightness.dark,
-      ),
+      theme: AppTheme.lightTheme,
       themeMode: ThemeMode.light,
       home: Consumer<AuthService>(
         builder: (context, auth, _) {
-          // Se autenticado, vai pro Dashboard; senão, Login
           if (auth.isAuthenticated) {
-            return const DashboardPage();
+            return const AppShell();
           }
           return const LoginPage();
         },

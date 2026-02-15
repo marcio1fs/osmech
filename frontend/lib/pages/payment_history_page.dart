@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
+import '../theme/app_theme.dart';
 
-/// Tela de histórico de pagamentos.
+/// Tela de histórico de pagamentos — design moderno com tabs.
 class PaymentHistoryPage extends StatefulWidget {
   const PaymentHistoryPage({super.key});
 
@@ -38,16 +40,13 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
       _loading = true;
       _error = null;
     });
-
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = PaymentService(token: auth.token!);
-
       final todos = await service.listarPagamentos();
       setState(() {
         _todos = todos;
-        _assinatura =
-            todos.where((p) => p['tipo'] == 'ASSINATURA').toList();
+        _assinatura = todos.where((p) => p['tipo'] == 'ASSINATURA').toList();
         _os = todos.where((p) => p['tipo'] == 'OS').toList();
         _loading = false;
       });
@@ -66,15 +65,16 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
       await service.confirmarPagamento(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pagamento confirmado!')),
+          const SnackBar(
+              content: Text('Pagamento confirmado!'),
+              backgroundColor: AppColors.success),
         );
         _loadPagamentos();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erro: $e'), backgroundColor: AppColors.error));
       }
     }
   }
@@ -86,123 +86,34 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
       await service.cancelarPagamento(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pagamento cancelado')),
+          const SnackBar(
+              content: Text('Pagamento cancelado'),
+              backgroundColor: AppColors.warning),
         );
         _loadPagamentos();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e')),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text('Erro: $e'), backgroundColor: AppColors.error));
       }
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pagamentos'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Todos'),
-            Tab(text: 'Assinatura'),
-            Tab(text: 'OS'),
-          ],
-        ),
-      ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_error!,
-                          style: const TextStyle(color: Colors.red)),
-                      const SizedBox(height: 16),
-                      FilledButton(
-                        onPressed: _loadPagamentos,
-                        child: const Text('Tentar novamente'),
-                      ),
-                    ],
-                  ),
-                )
-              : TabBarView(
-                  controller: _tabController,
-                  children: [
-                    _buildList(_todos),
-                    _buildList(_assinatura),
-                    _buildList(_os),
-                  ],
-                ),
-    );
-  }
-
-  Widget _buildList(List<Map<String, dynamic>> pagamentos) {
-    if (pagamentos.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('Nenhum pagamento encontrado',
-                style: TextStyle(color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-
-    return RefreshIndicator(
-      onRefresh: _loadPagamentos,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(12),
-        itemCount: pagamentos.length,
-        itemBuilder: (context, index) {
-          final p = pagamentos[index];
-          return _PagamentoCard(
-            pagamento: p,
-            onConfirmar: p['status'] == 'PENDENTE'
-                ? () => _confirmarPagamento(p['id'])
-                : null,
-            onCancelar: p['status'] == 'PENDENTE'
-                ? () => _cancelarPagamento(p['id'])
-                : null,
-          );
-        },
-      ),
-    );
-  }
-}
-
-class _PagamentoCard extends StatelessWidget {
-  final Map<String, dynamic> pagamento;
-  final VoidCallback? onConfirmar;
-  final VoidCallback? onCancelar;
-
-  const _PagamentoCard({
-    required this.pagamento,
-    this.onConfirmar,
-    this.onCancelar,
-  });
-
   Color _statusColor(String? status) {
     switch (status) {
       case 'PAGO':
-        return Colors.green;
+        return AppColors.success;
       case 'PENDENTE':
-        return Colors.orange;
+        return AppColors.warning;
       case 'FALHOU':
-        return Colors.red;
+        return AppColors.error;
       case 'CANCELADO':
-        return Colors.grey;
+        return AppColors.textMuted;
       case 'REEMBOLSADO':
-        return Colors.blue;
+        return AppColors.accent;
       default:
-        return Colors.grey;
+        return AppColors.textMuted;
     }
   }
 
@@ -220,17 +131,6 @@ class _PagamentoCard extends StatelessWidget {
         return 'Reembolsado';
       default:
         return status ?? '-';
-    }
-  }
-
-  IconData _tipoIcon(String? tipo) {
-    switch (tipo) {
-      case 'ASSINATURA':
-        return Icons.card_membership;
-      case 'OS':
-        return Icons.build;
-      default:
-        return Icons.payment;
     }
   }
 
@@ -257,11 +157,7 @@ class _PagamentoCard extends StatelessWidget {
     if (dateStr == null) return '-';
     try {
       final dt = DateTime.parse(dateStr);
-      return '${dt.day.toString().padLeft(2, '0')}/'
-          '${dt.month.toString().padLeft(2, '0')}/'
-          '${dt.year} '
-          '${dt.hour.toString().padLeft(2, '0')}:'
-          '${dt.minute.toString().padLeft(2, '0')}';
+      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     } catch (_) {
       return dateStr;
     }
@@ -269,104 +165,202 @@ class _PagamentoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = pagamento['status'] as String?;
-    final color = _statusColor(status);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: color.withOpacity(0.3)),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return Container(
+      color: AppColors.background,
+      child: Column(
+        children: [
+          // Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              border: Border(bottom: BorderSide(color: AppColors.border)),
+            ),
+            child: Column(
               children: [
-                Icon(_tipoIcon(pagamento['tipo']), color: color),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    pagamento['descricao'] ?? pagamento['tipo'] ?? 'Pagamento',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                ),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    _statusLabel(status),
-                    style: TextStyle(
-                        color: color,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'R\$ ${(pagamento['valor'] ?? 0).toStringAsFixed(2)}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(fontWeight: FontWeight.bold, color: color),
-                ),
-                Text(
-                  _metodoPagamentoLabel(pagamento['metodoPagamento']),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _formatDateTime(pagamento['criadoEm']),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodySmall
-                  ?.copyWith(color: Colors.grey),
-            ),
-            if (pagamento['pagoEm'] != null) ...[
-              Text(
-                'Pago em: ${_formatDateTime(pagamento['pagoEm'])}',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodySmall
-                    ?.copyWith(color: Colors.green),
-              ),
-            ],
-            if (onConfirmar != null || onCancelar != null) ...[
-              const SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (onCancelar != null)
-                    TextButton(
-                      onPressed: onCancelar,
-                      child: const Text('Cancelar',
-                          style: TextStyle(color: Colors.red)),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Pagamentos',
+                            style: GoogleFonts.inter(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary)),
+                        Text('${_todos.length} registro(s)',
+                            style: GoogleFonts.inter(
+                                fontSize: 13, color: AppColors.textSecondary)),
+                      ],
                     ),
-                  if (onConfirmar != null) ...[
-                    const SizedBox(width: 8),
-                    FilledButton.icon(
-                      onPressed: onConfirmar,
-                      icon: const Icon(Icons.check),
-                      label: const Text('Confirmar'),
+                    const Spacer(),
+                    OutlinedButton.icon(
+                      onPressed: _loadPagamentos,
+                      icon: const Icon(Icons.refresh_rounded, size: 18),
+                      label: const Text('Atualizar'),
                     ),
                   ],
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(height: 16),
+                TabBar(
+                  controller: _tabController,
+                  labelStyle: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600, fontSize: 13),
+                  unselectedLabelStyle: GoogleFonts.inter(
+                      fontWeight: FontWeight.w400, fontSize: 13),
+                  labelColor: AppColors.accent,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorColor: AppColors.accent,
+                  indicatorSize: TabBarIndicatorSize.label,
+                  tabs: [
+                    Tab(text: 'Todos (${_todos.length})'),
+                    Tab(text: 'Assinatura (${_assinatura.length})'),
+                    Tab(text: 'OS (${_os.length})'),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: _loading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.accent))
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline_rounded,
+                                size: 48, color: AppColors.error),
+                            const SizedBox(height: 12),
+                            Text(_error!,
+                                style: GoogleFonts.inter(
+                                    color: AppColors.textSecondary)),
+                            const SizedBox(height: 12),
+                            FilledButton(
+                                onPressed: _loadPagamentos,
+                                child: const Text('Tentar novamente')),
+                          ],
+                        ),
+                      )
+                    : TabBarView(
+                        controller: _tabController,
+                        children: [
+                          _buildPaymentTable(_todos),
+                          _buildPaymentTable(_assinatura),
+                          _buildPaymentTable(_os),
+                        ],
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentTable(List<Map<String, dynamic>> pagamentos) {
+    if (pagamentos.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.receipt_long_outlined,
+                size: 56, color: AppColors.textMuted),
+            const SizedBox(height: 12),
+            Text('Nenhum pagamento encontrado',
+                style: GoogleFonts.inter(
+                    fontSize: 15, color: AppColors.textSecondary)),
           ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: DataTable(
+            headingRowColor: WidgetStateProperty.all(AppColors.surfaceVariant),
+            headingTextStyle: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textSecondary),
+            dataTextStyle:
+                GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary),
+            columnSpacing: 20,
+            horizontalMargin: 20,
+            columns: const [
+              DataColumn(label: Text('DESCRIÇÃO')),
+              DataColumn(label: Text('TIPO')),
+              DataColumn(label: Text('MÉTODO')),
+              DataColumn(label: Text('STATUS')),
+              DataColumn(label: Text('VALOR'), numeric: true),
+              DataColumn(label: Text('DATA')),
+              DataColumn(label: Text('AÇÕES')),
+            ],
+            rows: pagamentos.map((p) {
+              final status = p['status'] as String?;
+              final color = _statusColor(status);
+              return DataRow(
+                cells: [
+                  DataCell(Text(p['descricao'] ?? p['tipo'] ?? 'Pagamento',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
+                  DataCell(Text(p['tipo'] ?? '-')),
+                  DataCell(Text(_metodoPagamentoLabel(p['metodoPagamento']))),
+                  DataCell(
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                          color: color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20)),
+                      child: Text(_statusLabel(status),
+                          style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: color)),
+                    ),
+                  ),
+                  DataCell(Text('R\$ ${(p['valor'] ?? 0).toStringAsFixed(2)}',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
+                  DataCell(Text(_formatDateTime(p['criadoEm']),
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: AppColors.textSecondary))),
+                  DataCell(
+                    status == 'PENDENTE'
+                        ? Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(
+                                    Icons.check_circle_outline_rounded,
+                                    size: 18,
+                                    color: AppColors.success),
+                                onPressed: () => _confirmarPagamento(p['id']),
+                                tooltip: 'Confirmar',
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.cancel_outlined,
+                                    size: 18, color: AppColors.error),
+                                onPressed: () => _cancelarPagamento(p['id']),
+                                tooltip: 'Cancelar',
+                              ),
+                            ],
+                          )
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
         ),
       ),
     );
