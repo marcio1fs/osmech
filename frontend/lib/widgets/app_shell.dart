@@ -14,6 +14,10 @@ import '../pages/transacao_form_page.dart';
 import '../pages/categorias_page.dart';
 import '../pages/fluxo_caixa_page.dart';
 import '../pages/transacoes_historico_page.dart';
+import '../pages/stock_list_page.dart';
+import '../pages/stock_form_page.dart';
+import '../pages/stock_movement_page.dart';
+import '../pages/stock_alerts_page.dart';
 
 /// Shell principal com sidebar persistente para navegação web.
 class AppShell extends StatefulWidget {
@@ -41,6 +45,11 @@ class _AppShellState extends State<AppShell> {
     _NavItem(icon: Icons.category_rounded, label: 'Categorias'),
     _NavItem(icon: Icons.trending_up_rounded, label: 'Fluxo de Caixa'),
     _NavItem(icon: Icons.receipt_long_rounded, label: 'Histórico'),
+    _NavItem(
+        icon: Icons.inventory_2_rounded, label: 'Estoque', section: 'ESTOQUE'),
+    _NavItem(icon: Icons.add_box_rounded, label: 'Nova Peça'),
+    _NavItem(icon: Icons.swap_vert_rounded, label: 'Movimentação'),
+    _NavItem(icon: Icons.notification_important_rounded, label: 'Alertas'),
     _NavItem(
         icon: Icons.workspace_premium_rounded,
         label: 'Planos',
@@ -80,6 +89,29 @@ class _AppShellState extends State<AppShell> {
       case 9:
         return const TransacoesHistoricoPage();
       case 10:
+        return StockListPage(
+          onNavigateNovaPeca: () => setState(() => _selectedIndex = 11),
+          onNavigateMovimentacao: () => setState(() => _selectedIndex = 12),
+          onNavigateAlertas: () => setState(() => _selectedIndex = 13),
+          onEditarItem: (id) {
+            setState(() => _selectedIndex = 11);
+          },
+        );
+      case 11:
+        return StockFormPage(
+          onSaved: () => setState(() => _selectedIndex = 10),
+        );
+      case 12:
+        return StockMovementPage(
+          onSaved: () => setState(() => _selectedIndex = 10),
+        );
+      case 13:
+        return StockAlertsPage(
+          onEntradaEstoque: (id) {
+            setState(() => _selectedIndex = 12);
+          },
+        );
+      case 14:
         return const PricingPage();
       default:
         return DashboardPage(
