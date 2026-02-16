@@ -24,6 +24,7 @@ class _StockMovementPageState extends State<StockMovementPage>
   List<Map<String, dynamic>> _movimentacoes = [];
   bool _loading = true;
   bool _saving = false;
+  String? _error;
 
   int? _selectedItemId;
   String _tipo = 'ENTRADA';
@@ -61,18 +62,23 @@ class _StockMovementPageState extends State<StockMovementPage>
   }
 
   Future<void> _loadData() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = StockService(token: auth.token!);
-      final itens = await service.listarItens();
-      final movs = await service.listarMovimentacoes();
+      final results = await Future.wait([
+        service.listarItens(),
+        service.listarMovimentacoes(),
+      ]);
       setState(() {
-        _itens = itens;
-        _movimentacoes = movs;
+        _itens = results[0];
+        _movimentacoes = results[1];
         // Pré-selecionar item se veio dos alertas
         if (widget.preSelectedItemId != null && _selectedItemId == null) {
-          final exists = itens.any((i) => i['id'] == widget.preSelectedItemId);
+          final exists = _itens.any((i) => i['id'] == widget.preSelectedItemId);
           if (exists) {
             _selectedItemId = widget.preSelectedItemId;
           }
@@ -81,7 +87,10 @@ class _StockMovementPageState extends State<StockMovementPage>
       });
     } catch (e) {
       if (!handleAuthError(e)) {
-        setState(() => _loading = false);
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _loading = false;
+        });
       }
     }
   }
@@ -179,272 +188,280 @@ class _StockMovementPageState extends State<StockMovementPage>
             child: _loading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.accent))
-                : SingleChildScrollView(
-                    padding: const EdgeInsets.all(32),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Form
-                        Expanded(
-                          flex: 2,
-                          child: Container(
-                            padding: const EdgeInsets.all(28),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.border),
-                            ),
-                            child: Form(
-                              key: _formKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  Text('Nova Movimentação',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.textPrimary)),
-                                  const SizedBox(height: 20),
-
-                                  // Tipo toggle
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: _TipoButton(
-                                          label: 'Entrada',
-                                          icon: Icons.arrow_downward_rounded,
-                                          selected: _tipo == 'ENTRADA',
-                                          color: AppColors.success,
-                                          onTap: () => setState(() {
-                                            _tipo = 'ENTRADA';
-                                            _motivo = 'COMPRA';
-                                          }),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: _TipoButton(
-                                          label: 'Saída',
-                                          icon: Icons.arrow_upward_rounded,
-                                          selected: _tipo == 'SAIDA',
-                                          color: AppColors.error,
-                                          onTap: () => setState(() {
-                                            _tipo = 'SAIDA';
-                                            _motivo = 'CONSUMO_INTERNO';
-                                          }),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Item
-                                  DropdownButtonFormField<int>(
-                                    value: _selectedItemId,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Peça / Item *',
-                                      prefixIcon: Icon(Icons.build_rounded),
-                                    ),
-                                    items: _itens
-                                        .map((i) => DropdownMenuItem<int>(
-                                            value: i['id'] as int,
-                                            child: Text(
-                                                '${i['codigo']} - ${i['nome']} (${i['quantidade']} un)',
-                                                style: GoogleFonts.inter(
-                                                    fontSize: 13))))
-                                        .toList(),
-                                    onChanged: (v) =>
-                                        setState(() => _selectedItemId = v),
-                                    validator: (v) =>
-                                        v == null ? 'Selecione um item' : null,
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Quantidade + Motivo
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: TextFormField(
-                                          controller: _quantidadeCtrl,
-                                          keyboardType: TextInputType.number,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Quantidade *',
-                                            prefixIcon:
-                                                Icon(Icons.numbers_rounded),
-                                          ),
-                                          validator: (v) {
-                                            if (v == null || v.isEmpty) {
-                                              return 'Obrigatório';
-                                            }
-                                            final n = int.tryParse(v);
-                                            if (n == null || n < 1) {
-                                              return 'Mín. 1';
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                      Expanded(
-                                        child: DropdownButtonFormField<String>(
-                                          value: _motivo,
-                                          decoration: const InputDecoration(
-                                            labelText: 'Motivo',
-                                            prefixIcon: Icon(
-                                                Icons.info_outline_rounded),
-                                          ),
-                                          items: _motivosAtuais.entries
-                                              .map((e) => DropdownMenuItem(
-                                                  value: e.key,
-                                                  child: Text(e.value)))
-                                              .toList(),
-                                          onChanged: (v) =>
-                                              setState(() => _motivo = v!),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Descrição
-                                  TextFormField(
-                                    controller: _descricaoCtrl,
-                                    maxLines: 2,
-                                    decoration: const InputDecoration(
-                                      labelText: 'Descrição (opcional)',
-                                      prefixIcon: Icon(Icons.notes_rounded),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-
-                                  FilledButton.icon(
-                                    onPressed: _saving ? null : _registrar,
-                                    icon: _saving
-                                        ? const SizedBox(
-                                            width: 16,
-                                            height: 16,
-                                            child: CircularProgressIndicator(
-                                                strokeWidth: 2,
-                                                color: Colors.white))
-                                        : const Icon(Icons.check_rounded,
-                                            size: 18),
-                                    label: Text(_saving
-                                        ? 'Registrando...'
-                                        : 'Registrar Movimentação'),
-                                  ),
-                                ],
+                : _error != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.error_outline_rounded,
+                                size: 64, color: AppColors.error),
+                            const SizedBox(height: 12),
+                            Text('Erro ao carregar dados',
+                                style: GoogleFonts.inter(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary)),
+                            const SizedBox(height: 4),
+                            Text(_error!,
+                                style: GoogleFonts.inter(
+                                    fontSize: 13, color: AppColors.textMuted)),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _loadData,
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Tentar novamente'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                foregroundColor: Colors.white,
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        const SizedBox(width: 24),
-
-                        // Últimas movimentações
-                        Expanded(
-                          flex: 3,
-                          child: Container(
+                      )
+                    : LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth > 800;
+                          final formWidget = Container(
                             padding: const EdgeInsets.all(28),
                             decoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(color: AppColors.border),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Últimas Movimentações',
-                                    style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.textPrimary)),
-                                const SizedBox(height: 16),
-                                if (_movimentacoes.isEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 32),
-                                    child: Center(
-                                      child: Text('Nenhuma movimentação',
-                                          style: GoogleFonts.inter(
-                                              color: AppColors.textMuted)),
-                                    ),
-                                  )
-                                else
-                                  ...(_movimentacoes.take(20).map((m) {
-                                    final isEntrada = m['tipo'] == 'ENTRADA';
-                                    return Container(
-                                      margin: const EdgeInsets.only(bottom: 8),
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.surfaceVariant,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(
-                                            isEntrada
-                                                ? Icons.arrow_downward_rounded
-                                                : Icons.arrow_upward_rounded,
-                                            size: 18,
-                                            color: isEntrada
-                                                ? AppColors.success
-                                                : AppColors.error,
-                                          ),
-                                          const SizedBox(width: 10),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  '${m['stockItemCodigo']} - ${m['stockItemNome']}',
-                                                  style: GoogleFonts.inter(
-                                                      fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.w600),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                                Text(
-                                                  '${m['motivo']} • ${_formatDate(m['criadoEm']?.toString())}',
-                                                  style: GoogleFonts.inter(
-                                                      fontSize: 11,
-                                                      color:
-                                                          AppColors.textMuted),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Text(
-                                            '${isEntrada ? '+' : '-'}${m['quantidade']}',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: isEntrada
-                                                  ? AppColors.success
-                                                  : AppColors.error,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '${m['quantidadeAnterior']} → ${m['quantidadePosterior']}',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 11,
-                                                color: AppColors.textMuted),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  })),
-                              ],
+                            child: _buildForm(),
+                          );
+                          final movWidget = Container(
+                            padding: const EdgeInsets.all(28),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border),
                             ),
-                          ),
+                            child: _buildMovimentacoes(),
+                          );
+                          return SingleChildScrollView(
+                            padding: const EdgeInsets.all(32),
+                            child: isWide
+                                ? Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Expanded(flex: 2, child: formWidget),
+                                      const SizedBox(width: 24),
+                                      Expanded(flex: 3, child: movWidget),
+                                    ],
+                                  )
+                                : Column(
+                                    children: [
+                                      formWidget,
+                                      const SizedBox(height: 24),
+                                      movWidget,
+                                    ],
+                                  ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text('Nova Movimentação',
+              style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _TipoButton(
+                  label: 'Entrada',
+                  icon: Icons.arrow_downward_rounded,
+                  selected: _tipo == 'ENTRADA',
+                  color: AppColors.success,
+                  onTap: () => setState(() {
+                    _tipo = 'ENTRADA';
+                    _motivo = 'COMPRA';
+                  }),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _TipoButton(
+                  label: 'Saída',
+                  icon: Icons.arrow_upward_rounded,
+                  selected: _tipo == 'SAIDA',
+                  color: AppColors.error,
+                  onTap: () => setState(() {
+                    _tipo = 'SAIDA';
+                    _motivo = 'CONSUMO_INTERNO';
+                  }),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<int>(
+            value: _selectedItemId,
+            decoration: const InputDecoration(
+              labelText: 'Peça / Item *',
+              prefixIcon: Icon(Icons.build_rounded),
+            ),
+            items: _itens
+                .map((i) => DropdownMenuItem<int>(
+                    value: i['id'] as int,
+                    child: Text(
+                        '${i['codigo']} - ${i['nome']} (${i['quantidade']} un)',
+                        style: GoogleFonts.inter(fontSize: 13))))
+                .toList(),
+            onChanged: (v) => setState(() => _selectedItemId = v),
+            validator: (v) => v == null ? 'Selecione um item' : null,
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _quantidadeCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    labelText: 'Quantidade *',
+                    prefixIcon: Icon(Icons.numbers_rounded),
+                  ),
+                  validator: (v) {
+                    if (v == null || v.isEmpty) return 'Obrigatório';
+                    final n = int.tryParse(v);
+                    if (n == null || n < 1) return 'Mín. 1';
+                    return null;
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: DropdownButtonFormField<String>(
+                  value: _motivo,
+                  decoration: const InputDecoration(
+                    labelText: 'Motivo',
+                    prefixIcon: Icon(Icons.info_outline_rounded),
+                  ),
+                  items: _motivosAtuais.entries
+                      .map((e) =>
+                          DropdownMenuItem(value: e.key, child: Text(e.value)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _motivo = v!),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _descricaoCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Descrição (opcional)',
+              prefixIcon: Icon(Icons.notes_rounded),
+            ),
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _saving ? null : _registrar,
+            icon: _saving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: Colors.white))
+                : const Icon(Icons.check_rounded, size: 18),
+            label: Text(_saving ? 'Registrando...' : 'Registrar Movimentação'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMovimentacoes() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Últimas Movimentações',
+            style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary)),
+        const SizedBox(height: 16),
+        if (_movimentacoes.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 32),
+            child: Center(
+              child: Text('Nenhuma movimentação',
+                  style: GoogleFonts.inter(color: AppColors.textMuted)),
+            ),
+          )
+        else
+          ...(_movimentacoes.take(20).map((m) {
+            final isEntrada = m['tipo'] == 'ENTRADA';
+            return Container(
+              margin: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    isEntrada
+                        ? Icons.arrow_downward_rounded
+                        : Icons.arrow_upward_rounded,
+                    size: 18,
+                    color: isEntrada ? AppColors.success : AppColors.error,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${m['stockItemCodigo']} - ${m['stockItemNome']}',
+                          style: GoogleFonts.inter(
+                              fontSize: 13, fontWeight: FontWeight.w600),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          '${m['motivo']} • ${_formatDate(m['criadoEm']?.toString())}',
+                          style: GoogleFonts.inter(
+                              fontSize: 11, color: AppColors.textMuted),
                         ),
                       ],
                     ),
                   ),
-          ),
-        ],
-      ),
+                  Text(
+                    '${isEntrada ? '+' : '-'}${m['quantidade']}',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: isEntrada ? AppColors.success : AppColors.error,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${m['quantidadeAnterior']} → ${m['quantidadePosterior']}',
+                    style: GoogleFonts.inter(
+                        fontSize: 11, color: AppColors.textMuted),
+                  ),
+                ],
+              ),
+            );
+          })),
+      ],
     );
   }
 }
@@ -472,7 +489,9 @@ class _TipoButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          color: selected ? color.withValues(alpha: 0.1) : AppColors.surfaceVariant,
+          color: selected
+              ? color.withValues(alpha: 0.1)
+              : AppColors.surfaceVariant,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: selected ? color : AppColors.border,

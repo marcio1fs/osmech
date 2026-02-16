@@ -24,14 +24,9 @@ public class CategoriaFinanceiraController {
 
     /** POST /api/finance/category - Criar nova categoria */
     @PostMapping
-    public ResponseEntity<?> criar(Authentication auth,
-                                    @Valid @RequestBody CategoriaRequest request) {
-        try {
-            CategoriaResponse response = categoriaService.criar(auth.getName(), request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<CategoriaResponse> criar(Authentication auth,
+                                                      @Valid @RequestBody CategoriaRequest request) {
+        return ResponseEntity.ok(categoriaService.criar(auth.getName(), request));
     }
 
     /** GET /api/finance/category - Listar categorias do usuário + sistema */
@@ -42,12 +37,8 @@ public class CategoriaFinanceiraController {
 
     /** DELETE /api/finance/category/{id} - Excluir categoria */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> excluir(Authentication auth, @PathVariable Long id) {
-        try {
-            categoriaService.excluir(auth.getName(), id);
-            return ResponseEntity.ok(Map.of("message", "Categoria excluída com sucesso"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<Map<String, String>> excluir(Authentication auth, @PathVariable Long id) {
+        categoriaService.excluir(auth.getName(), id);
+        return ResponseEntity.ok(Map.of("message", "Categoria excluída com sucesso"));
     }
 }

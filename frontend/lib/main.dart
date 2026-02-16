@@ -6,6 +6,7 @@ import 'widgets/app_shell.dart';
 import 'theme/app_theme.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     MultiProvider(
       providers: [
@@ -29,6 +30,14 @@ class OsmechApp extends StatelessWidget {
       themeMode: ThemeMode.light,
       home: Consumer<AuthService>(
         builder: (context, auth, _) {
+          // Splash enquanto AuthService carrega do SharedPreferences
+          if (!auth.initialized) {
+            return const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
           if (auth.isAuthenticated) {
             return const AppShell();
           }

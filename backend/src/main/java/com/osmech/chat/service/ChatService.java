@@ -4,11 +4,13 @@ import com.osmech.chat.dto.ChatRequest;
 import com.osmech.chat.dto.ChatResponse;
 import com.osmech.chat.entity.ChatMessage;
 import com.osmech.chat.repository.ChatRepository;
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.*;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -173,7 +175,7 @@ public class ChatService {
     @SuppressWarnings("unchecked")
     private String chamarOpenAI(Long usuarioId, String sessionId, String userMessage) {
         // Montar histórico de contexto
-        List<ChatMessage> history = chatRepository.findRecentMessages(usuarioId, sessionId);
+        List<ChatMessage> history = chatRepository.findRecentMessages(usuarioId, sessionId, PageRequest.of(0, 20));
         Collections.reverse(history); // Mais antigo primeiro
 
         List<Map<String, String>> messages = new ArrayList<>();
@@ -353,6 +355,6 @@ public class ChatService {
     // ── Helpers ──────────────────────────────────────────────────────────
     private Usuario getUsuario(Authentication auth) {
         return userRepository.findByEmail(auth.getName())
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 }

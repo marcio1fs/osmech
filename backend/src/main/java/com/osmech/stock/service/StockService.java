@@ -1,5 +1,6 @@
 package com.osmech.stock.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.stock.dto.*;
 import com.osmech.stock.entity.StockItem;
 import com.osmech.stock.entity.StockMovement;
@@ -9,6 +10,7 @@ import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -207,10 +209,10 @@ public class StockService {
     public void darBaixaOS(Long usuarioId, Long ordemServicoId, List<StockMovementRequest> itens) {
         for (StockMovementRequest req : itens) {
             StockItem item = itemRepository.findById(req.getStockItemId())
-                    .orElseThrow(() -> new IllegalArgumentException("Item não encontrado: " + req.getStockItemId()));
+                    .orElseThrow(() -> new ResourceNotFoundException("Item não encontrado: " + req.getStockItemId()));
 
             if (!item.getUsuarioId().equals(usuarioId)) {
-                throw new IllegalArgumentException("Item não pertence a esta oficina");
+                throw new AccessDeniedException("Item não pertence a esta oficina");
             }
 
             int qtdAnterior = item.getQuantidade();
@@ -288,14 +290,14 @@ public class StockService {
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     private StockItem getItemDoUsuario(Long usuarioId, Long itemId) {
         StockItem item = itemRepository.findById(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Item não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Item não encontrado"));
         if (!item.getUsuarioId().equals(usuarioId)) {
-            throw new IllegalArgumentException("Acesso negado a este item");
+            throw new AccessDeniedException("Acesso negado a este item");
         }
         if (!item.getAtivo()) {
             throw new IllegalArgumentException("Item está desativado");

@@ -1,5 +1,6 @@
 package com.osmech.os.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.finance.service.FinanceiroService;
 import com.osmech.os.dto.OrdemServicoRequest;
 import com.osmech.os.dto.OrdemServicoResponse;
@@ -12,10 +13,12 @@ import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
 
@@ -85,10 +88,10 @@ public class OrdemServicoService {
     public OrdemServicoResponse buscarPorId(String emailUsuario, Long osId) {
         Usuario usuario = getUsuario(emailUsuario);
         OrdemServico os = osRepository.findById(osId)
-                .orElseThrow(() -> new IllegalArgumentException("Ordem de Serviço não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
         if (!os.getUsuarioId().equals(usuario.getId())) {
-            throw new IllegalArgumentException("Acesso negado a esta Ordem de Serviço");
+            throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
         return toResponse(os);
@@ -102,10 +105,10 @@ public class OrdemServicoService {
     public OrdemServicoResponse atualizar(String emailUsuario, Long osId, OrdemServicoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
         OrdemServico os = osRepository.findById(osId)
-                .orElseThrow(() -> new IllegalArgumentException("Ordem de Serviço não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
         if (!os.getUsuarioId().equals(usuario.getId())) {
-            throw new IllegalArgumentException("Acesso negado a esta Ordem de Serviço");
+            throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
         // Captura status anterior para detectar mudança para CONCLUIDA
@@ -161,10 +164,10 @@ public class OrdemServicoService {
     public void excluir(String emailUsuario, Long osId) {
         Usuario usuario = getUsuario(emailUsuario);
         OrdemServico os = osRepository.findById(osId)
-                .orElseThrow(() -> new IllegalArgumentException("Ordem de Serviço não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
         if (!os.getUsuarioId().equals(usuario.getId())) {
-            throw new IllegalArgumentException("Acesso negado a esta Ordem de Serviço");
+            throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
         osRepository.delete(os);
@@ -180,7 +183,7 @@ public class OrdemServicoService {
         // Contagens mensais
         YearMonth mesAtual = YearMonth.now();
         LocalDateTime inicioMes = mesAtual.atDay(1).atStartOfDay();
-        LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(23, 59, 59);
+        LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(LocalTime.MAX);
 
         return new DashboardStats(
                 osRepository.countByUsuarioId(uid),
@@ -195,7 +198,7 @@ public class OrdemServicoService {
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     /**
@@ -208,7 +211,7 @@ public class OrdemServicoService {
             // Contar OS do mês atual
             YearMonth mesAtual = YearMonth.now();
             LocalDateTime inicioMes = mesAtual.atDay(1).atStartOfDay();
-            LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(23, 59, 59);
+            LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(LocalTime.MAX);
             long totalOsMes = osRepository.countByUsuarioIdAndCriadoEmBetween(
                     usuario.getId(), inicioMes, fimMes);
             if (totalOsMes >= plano.getLimiteOs()) {

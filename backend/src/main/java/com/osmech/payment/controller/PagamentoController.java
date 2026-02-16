@@ -11,7 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controller REST para Pagamentos.
@@ -23,83 +22,46 @@ public class PagamentoController {
 
     private final PagamentoService pagamentoService;
 
-    /**
-     * POST /api/pagamento - Registrar novo pagamento
-     */
+    /** POST /api/pagamento - Registrar novo pagamento */
     @PostMapping
-    public ResponseEntity<?> criar(Authentication auth, @Valid @RequestBody PagamentoRequest request) {
-        try {
-            PagamentoResponse response = pagamentoService.criar(auth.getName(), request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<PagamentoResponse> criar(Authentication auth,
+                                                     @Valid @RequestBody PagamentoRequest request) {
+        return ResponseEntity.ok(pagamentoService.criar(auth.getName(), request));
     }
 
-    /**
-     * PUT /api/pagamento/{id}/confirmar - Confirmar pagamento
-     */
+    /** PUT /api/pagamento/{id}/confirmar - Confirmar pagamento */
     @PutMapping("/{id}/confirmar")
-    public ResponseEntity<?> confirmar(Authentication auth, @PathVariable Long id) {
-        try {
-            PagamentoResponse response = pagamentoService.confirmar(auth.getName(), id);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<PagamentoResponse> confirmar(Authentication auth, @PathVariable Long id) {
+        return ResponseEntity.ok(pagamentoService.confirmar(auth.getName(), id));
     }
 
-    /**
-     * PUT /api/pagamento/{id}/cancelar - Cancelar pagamento pendente
-     */
+    /** PUT /api/pagamento/{id}/cancelar - Cancelar pagamento pendente */
     @PutMapping("/{id}/cancelar")
-    public ResponseEntity<?> cancelar(Authentication auth, @PathVariable Long id) {
-        try {
-            PagamentoResponse response = pagamentoService.cancelar(auth.getName(), id);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<PagamentoResponse> cancelar(Authentication auth, @PathVariable Long id) {
+        return ResponseEntity.ok(pagamentoService.cancelar(auth.getName(), id));
     }
 
-    /**
-     * GET /api/pagamento - Listar todos os pagamentos
-     */
+    /** GET /api/pagamento - Listar todos os pagamentos */
     @GetMapping
     public ResponseEntity<List<PagamentoResponse>> listar(Authentication auth) {
         return ResponseEntity.ok(pagamentoService.listar(auth.getName()));
     }
 
-    /**
-     * GET /api/pagamento/tipo/{tipo} - Listar por tipo (ASSINATURA ou OS)
-     */
+    /** GET /api/pagamento/tipo/{tipo} - Listar por tipo (ASSINATURA ou OS) */
     @GetMapping("/tipo/{tipo}")
     public ResponseEntity<List<PagamentoResponse>> listarPorTipo(Authentication auth, @PathVariable String tipo) {
         return ResponseEntity.ok(pagamentoService.listarPorTipo(auth.getName(), tipo.toUpperCase()));
     }
 
-    /**
-     * GET /api/pagamento/{id} - Buscar pagamento por ID
-     */
+    /** GET /api/pagamento/{id} - Buscar pagamento por ID */
     @GetMapping("/{id}")
-    public ResponseEntity<?> buscarPorId(Authentication auth, @PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(pagamentoService.buscarPorId(auth.getName(), id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<PagamentoResponse> buscarPorId(Authentication auth, @PathVariable Long id) {
+        return ResponseEntity.ok(pagamentoService.buscarPorId(auth.getName(), id));
     }
 
-    /**
-     * GET /api/pagamento/resumo - Resumo financeiro
-     */
+    /** GET /api/pagamento/resumo - Resumo financeiro */
     @GetMapping("/resumo")
-    public ResponseEntity<?> resumoFinanceiro(Authentication auth) {
-        try {
-            ResumoFinanceiroResponse resumo = pagamentoService.getResumoFinanceiro(auth.getName());
-            return ResponseEntity.ok(resumo);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ResumoFinanceiroResponse> resumoFinanceiro(Authentication auth) {
+        return ResponseEntity.ok(pagamentoService.getResumoFinanceiro(auth.getName()));
     }
 }

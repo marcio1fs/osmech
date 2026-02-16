@@ -22,39 +22,24 @@ public class UserController {
 
     private final UserService userService;
 
-    /**
-     * GET /api/usuario/perfil - Retorna dados do perfil
-     */
+    /** GET /api/usuario/perfil - Retorna dados do perfil */
     @GetMapping("/perfil")
     public ResponseEntity<UserProfileResponse> getPerfil(Authentication auth) {
         return ResponseEntity.ok(userService.getPerfil(auth.getName()));
     }
 
-    /**
-     * PUT /api/usuario/perfil - Atualiza dados do perfil
-     */
+    /** PUT /api/usuario/perfil - Atualiza dados do perfil */
     @PutMapping("/perfil")
-    public ResponseEntity<?> atualizarPerfil(Authentication auth,
-                                              @Valid @RequestBody UserProfileRequest request) {
-        try {
-            UserProfileResponse response = userService.atualizarPerfil(auth.getName(), request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<UserProfileResponse> atualizarPerfil(Authentication auth,
+                                                                 @Valid @RequestBody UserProfileRequest request) {
+        return ResponseEntity.ok(userService.atualizarPerfil(auth.getName(), request));
     }
 
-    /**
-     * PUT /api/usuario/senha - Alterar senha
-     */
+    /** PUT /api/usuario/senha - Alterar senha */
     @PutMapping("/senha")
-    public ResponseEntity<?> alterarSenha(Authentication auth,
-                                           @Valid @RequestBody ChangePasswordRequest request) {
-        try {
-            userService.alterarSenha(auth.getName(), request);
-            return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<Map<String, String>> alterarSenha(Authentication auth,
+                                                              @Valid @RequestBody ChangePasswordRequest request) {
+        userService.alterarSenha(auth.getName(), request);
+        return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso"));
     }
 }

@@ -1,5 +1,6 @@
 package com.osmech.user.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.user.dto.ChangePasswordRequest;
 import com.osmech.user.dto.UserProfileRequest;
 import com.osmech.user.dto.UserProfileResponse;
@@ -76,7 +77,7 @@ public class UserService {
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     private UserProfileResponse toResponse(Usuario usuario) {

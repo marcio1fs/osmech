@@ -19,53 +19,31 @@ public class ChatController {
 
     private final ChatService chatService;
 
-    // ── Enviar mensagem ────────────────────────────────────────────
+    /** POST /api/chat - Enviar mensagem */
     @PostMapping
-    public ResponseEntity<?> enviarMensagem(
-            @Valid @RequestBody ChatRequest request,
-            Authentication auth) {
-        try {
-            ChatResponse response = chatService.enviarMensagem(request, auth);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ChatResponse> enviarMensagem(@Valid @RequestBody ChatRequest request,
+                                                         Authentication auth) {
+        return ResponseEntity.ok(chatService.enviarMensagem(request, auth));
     }
 
-    // ── Histórico de uma sessão ────────────────────────────────────
+    /** GET /api/chat/session/{sessionId} - Histórico de uma sessão */
     @GetMapping("/session/{sessionId}")
-    public ResponseEntity<?> getHistorico(
-            @PathVariable String sessionId,
-            Authentication auth) {
-        try {
-            List<ChatResponse> historico = chatService.getHistoricoSessao(sessionId, auth);
-            return ResponseEntity.ok(historico);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<List<ChatResponse>> getHistorico(@PathVariable String sessionId,
+                                                             Authentication auth) {
+        return ResponseEntity.ok(chatService.getHistoricoSessao(sessionId, auth));
     }
 
-    // ── Listar sessões do usuário ──────────────────────────────────
+    /** GET /api/chat/sessions - Listar sessões do usuário */
     @GetMapping("/sessions")
-    public ResponseEntity<?> getSessoes(Authentication auth) {
-        try {
-            List<String> sessoes = chatService.getSessoes(auth);
-            return ResponseEntity.ok(sessoes);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<List<String>> getSessoes(Authentication auth) {
+        return ResponseEntity.ok(chatService.getSessoes(auth));
     }
 
-    // ── Deletar sessão ─────────────────────────────────────────────
+    /** DELETE /api/chat/session/{sessionId} - Deletar sessão */
     @DeleteMapping("/session/{sessionId}")
-    public ResponseEntity<?> deletarSessao(
-            @PathVariable String sessionId,
-            Authentication auth) {
-        try {
-            chatService.deletarSessao(sessionId, auth);
-            return ResponseEntity.ok(Map.of("message", "Sessão removida"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<Map<String, String>> deletarSessao(@PathVariable String sessionId,
+                                                               Authentication auth) {
+        chatService.deletarSessao(sessionId, auth);
+        return ResponseEntity.ok(Map.of("message", "Sessão removida"));
     }
 }

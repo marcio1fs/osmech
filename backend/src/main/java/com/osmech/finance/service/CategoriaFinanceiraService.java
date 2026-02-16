@@ -1,5 +1,6 @@
 package com.osmech.finance.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.finance.dto.CategoriaRequest;
 import com.osmech.finance.dto.CategoriaResponse;
 import com.osmech.finance.entity.CategoriaFinanceira;
@@ -7,6 +8,7 @@ import com.osmech.finance.repository.CategoriaFinanceiraRepository;
 import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -71,13 +73,13 @@ public class CategoriaFinanceiraService {
     public void excluir(String emailUsuario, Long categoriaId) {
         Usuario usuario = getUsuario(emailUsuario);
         CategoriaFinanceira cat = categoriaRepository.findById(categoriaId)
-                .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
 
         if (Boolean.TRUE.equals(cat.getSistema())) {
             throw new IllegalArgumentException("Categorias do sistema não podem ser excluídas");
         }
         if (!usuario.getId().equals(cat.getUsuarioId())) {
-            throw new IllegalArgumentException("Acesso negado a esta categoria");
+            throw new AccessDeniedException("Acesso negado a esta categoria");
         }
 
         categoriaRepository.delete(cat);
@@ -87,7 +89,7 @@ public class CategoriaFinanceiraService {
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     private CategoriaResponse toResponse(CategoriaFinanceira cat) {

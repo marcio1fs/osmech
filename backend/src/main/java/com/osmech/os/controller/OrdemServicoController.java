@@ -23,71 +23,43 @@ public class OrdemServicoController {
 
     private final OrdemServicoService osService;
 
-    /**
-     * POST /api/os - Criar nova OS
-     */
+    /** POST /api/os - Criar nova OS */
     @PostMapping
-    public ResponseEntity<?> criar(Authentication auth, @Valid @RequestBody OrdemServicoRequest request) {
-        try {
-            OrdemServicoResponse response = osService.criar(auth.getName(), request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<OrdemServicoResponse> criar(Authentication auth,
+                                                       @Valid @RequestBody OrdemServicoRequest request) {
+        return ResponseEntity.ok(osService.criar(auth.getName(), request));
     }
 
-    /**
-     * GET /api/os - Listar todas as OS do usuário
-     */
+    /** GET /api/os - Listar todas as OS do usuário */
     @GetMapping
     public ResponseEntity<List<OrdemServicoResponse>> listar(Authentication auth) {
         return ResponseEntity.ok(osService.listarPorUsuario(auth.getName()));
     }
 
-    /**
-     * GET /api/os/{id} - Buscar OS por ID
-     */
+    /** GET /api/os/{id} - Buscar OS por ID */
     @GetMapping("/{id}")
-    public ResponseEntity<?> buscarPorId(Authentication auth, @PathVariable Long id) {
-        try {
-            return ResponseEntity.ok(osService.buscarPorId(auth.getName(), id));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<OrdemServicoResponse> buscarPorId(Authentication auth, @PathVariable Long id) {
+        return ResponseEntity.ok(osService.buscarPorId(auth.getName(), id));
     }
 
-    /**
-     * PUT /api/os/{id} - Atualizar OS
-     */
+    /** PUT /api/os/{id} - Atualizar OS */
     @PutMapping("/{id}")
-    public ResponseEntity<?> atualizar(Authentication auth,
-                                        @PathVariable Long id,
-                                        @Valid @RequestBody OrdemServicoRequest request) {
-        try {
-            return ResponseEntity.ok(osService.atualizar(auth.getName(), id, request));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<OrdemServicoResponse> atualizar(Authentication auth,
+                                                           @PathVariable Long id,
+                                                           @Valid @RequestBody OrdemServicoRequest request) {
+        return ResponseEntity.ok(osService.atualizar(auth.getName(), id, request));
     }
 
-    /**
-     * DELETE /api/os/{id} - Excluir OS
-     */
+    /** DELETE /api/os/{id} - Excluir OS */
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> excluir(Authentication auth, @PathVariable Long id) {
-        try {
-            osService.excluir(auth.getName(), id);
-            return ResponseEntity.ok(Map.of("message", "Ordem de Serviço excluída com sucesso"));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<Map<String, String>> excluir(Authentication auth, @PathVariable Long id) {
+        osService.excluir(auth.getName(), id);
+        return ResponseEntity.ok(Map.of("message", "Ordem de Serviço excluída com sucesso"));
     }
 
-    /**
-     * GET /api/os/dashboard - Estatísticas do dashboard
-     */
+    /** GET /api/os/dashboard - Estatísticas do dashboard */
     @GetMapping("/dashboard")
-    public ResponseEntity<?> dashboard(Authentication auth) {
+    public ResponseEntity<OrdemServicoService.DashboardStats> dashboard(Authentication auth) {
         return ResponseEntity.ok(osService.getDashboardStats(auth.getName()));
     }
 }

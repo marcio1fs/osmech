@@ -1,5 +1,6 @@
 package com.osmech.payment.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.payment.dto.PagamentoRequest;
 import com.osmech.payment.dto.PagamentoResponse;
 import com.osmech.payment.dto.ResumoFinanceiroResponse;
@@ -11,6 +12,7 @@ import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,10 +66,10 @@ public class PagamentoService {
     public PagamentoResponse confirmar(String emailUsuario, Long pagamentoId) {
         Usuario usuario = getUsuario(emailUsuario);
         Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
-                .orElseThrow(() -> new IllegalArgumentException("Pagamento não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado"));
 
         if (!pagamento.getUsuarioId().equals(usuario.getId())) {
-            throw new IllegalArgumentException("Acesso negado a este pagamento");
+            throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
         if (!"PENDENTE".equals(pagamento.getStatus())) {
@@ -104,10 +106,10 @@ public class PagamentoService {
     public PagamentoResponse cancelar(String emailUsuario, Long pagamentoId) {
         Usuario usuario = getUsuario(emailUsuario);
         Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
-                .orElseThrow(() -> new IllegalArgumentException("Pagamento não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado"));
 
         if (!pagamento.getUsuarioId().equals(usuario.getId())) {
-            throw new IllegalArgumentException("Acesso negado a este pagamento");
+            throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
         if (!"PENDENTE".equals(pagamento.getStatus())) {
@@ -149,10 +151,10 @@ public class PagamentoService {
     public PagamentoResponse buscarPorId(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
         Pagamento pagamento = pagamentoRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Pagamento não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado"));
 
         if (!pagamento.getUsuarioId().equals(usuario.getId())) {
-            throw new IllegalArgumentException("Acesso negado a este pagamento");
+            throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
         return toResponse(pagamento);
@@ -199,7 +201,7 @@ public class PagamentoService {
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     private PagamentoResponse toResponse(Pagamento p) {

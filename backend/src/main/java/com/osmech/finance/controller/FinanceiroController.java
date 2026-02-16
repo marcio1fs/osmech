@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controller REST do módulo financeiro.
@@ -30,41 +29,25 @@ public class FinanceiroController {
 
     /** POST /api/finance/transaction - Criar nova transação */
     @PostMapping("/transaction")
-    public ResponseEntity<?> criarTransacao(Authentication auth,
-                                             @Valid @RequestBody TransacaoRequest request) {
-        try {
-            TransacaoResponse response = financeiroService.criarTransacao(auth.getName(), request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<TransacaoResponse> criarTransacao(Authentication auth,
+                                                              @Valid @RequestBody TransacaoRequest request) {
+        return ResponseEntity.ok(financeiroService.criarTransacao(auth.getName(), request));
     }
 
     /** GET /api/finance/transaction - Listar transações (com filtros opcionais) */
     @GetMapping("/transaction")
-    public ResponseEntity<?> listarTransacoes(
+    public ResponseEntity<List<TransacaoResponse>> listarTransacoes(
             Authentication auth,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataInicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dataFim,
             @RequestParam(required = false) String tipo) {
-        try {
-            List<TransacaoResponse> lista = financeiroService.listarTransacoes(
-                    auth.getName(), dataInicio, dataFim, tipo);
-            return ResponseEntity.ok(lista);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(financeiroService.listarTransacoes(auth.getName(), dataInicio, dataFim, tipo));
     }
 
     /** POST /api/finance/transaction/{id}/estorno - Estornar transação */
     @PostMapping("/transaction/{id}/estorno")
-    public ResponseEntity<?> estornarTransacao(Authentication auth, @PathVariable Long id) {
-        try {
-            TransacaoResponse response = financeiroService.estornarTransacao(auth.getName(), id);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<TransacaoResponse> estornarTransacao(Authentication auth, @PathVariable Long id) {
+        return ResponseEntity.ok(financeiroService.estornarTransacao(auth.getName(), id));
     }
 
     // ==========================================
@@ -73,17 +56,11 @@ public class FinanceiroController {
 
     /** GET /api/finance/cashflow - Fluxo de caixa por período */
     @GetMapping("/cashflow")
-    public ResponseEntity<?> getFluxoCaixa(
+    public ResponseEntity<List<FluxoCaixaResponse>> getFluxoCaixa(
             Authentication auth,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
-        try {
-            List<FluxoCaixaResponse> fluxo = financeiroService.getFluxoCaixa(
-                    auth.getName(), inicio, fim);
-            return ResponseEntity.ok(fluxo);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+        return ResponseEntity.ok(financeiroService.getFluxoCaixa(auth.getName(), inicio, fim));
     }
 
     // ==========================================
@@ -92,12 +69,7 @@ public class FinanceiroController {
 
     /** GET /api/finance/summary - Resumo financeiro para dashboard */
     @GetMapping("/summary")
-    public ResponseEntity<?> getResumoFinanceiro(Authentication auth) {
-        try {
-            ResumoFinanceiroDTO resumo = financeiroService.getResumoFinanceiro(auth.getName());
-            return ResponseEntity.ok(resumo);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<ResumoFinanceiroDTO> getResumoFinanceiro(Authentication auth) {
+        return ResponseEntity.ok(financeiroService.getResumoFinanceiro(auth.getName()));
     }
 }

@@ -12,8 +12,10 @@ class AuthService extends ChangeNotifier {
   String? _nome;
   String? _role;
   String? _plano;
+  bool _initialized = false;
 
   bool get isAuthenticated => _token != null;
+  bool get initialized => _initialized;
   String? get token => _token;
   String? get email => _email;
   String? get nome => _nome;
@@ -32,6 +34,7 @@ class AuthService extends ChangeNotifier {
     _nome = prefs.getString('nome');
     _role = prefs.getString('role');
     _plano = prefs.getString('plano');
+    _initialized = true;
     notifyListeners();
   }
 

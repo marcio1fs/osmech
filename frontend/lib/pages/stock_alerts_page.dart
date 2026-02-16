@@ -19,6 +19,7 @@ class StockAlertsPage extends StatefulWidget {
 class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
   List<Map<String, dynamic>> _alertas = [];
   bool _loading = true;
+  String? _error;
 
   @override
   void initState() {
@@ -27,7 +28,10 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
   }
 
   Future<void> _loadAlertas() async {
-    setState(() => _loading = true);
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = StockService(token: auth.token!);
@@ -38,7 +42,10 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
       });
     } catch (e) {
       if (!handleAuthError(e)) {
-        setState(() => _loading = false);
+        setState(() {
+          _error = e.toString().replaceAll('Exception: ', '');
+          _loading = false;
+        });
       }
     }
   }
@@ -89,105 +96,136 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
             child: _loading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.accent))
-                : _alertas.isEmpty
+                : _error != null
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.check_circle_outline_rounded,
-                                size: 64, color: AppColors.success),
+                            Icon(Icons.error_outline_rounded,
+                                size: 64, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text('Estoque está em dia!',
+                            Text('Erro ao carregar alertas',
                                 style: GoogleFonts.inter(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary)),
                             const SizedBox(height: 4),
-                            Text('Nenhum alerta encontrado',
+                            Text(_error!,
                                 style: GoogleFonts.inter(
                                     fontSize: 13, color: AppColors.textMuted)),
+                            const SizedBox(height: 16),
+                            FilledButton.icon(
+                              onPressed: _loadAlertas,
+                              icon: const Icon(Icons.refresh_rounded, size: 16),
+                              label: const Text('Tentar novamente'),
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                foregroundColor: Colors.white,
+                              ),
+                            ),
                           ],
                         ),
                       )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Summary cards
-                            Row(
+                    : _alertas.isEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                _SummaryCard(
-                                  icon: Icons.error_rounded,
-                                  label: 'Críticos',
-                                  count: criticos.length,
-                                  color: AppColors.error,
-                                ),
-                                const SizedBox(width: 16),
-                                _SummaryCard(
-                                  icon: Icons.warning_rounded,
-                                  label: 'Alertas',
-                                  count: avisos.length,
-                                  color: AppColors.warning,
-                                ),
-                                const SizedBox(width: 16),
-                                _SummaryCard(
-                                  icon: Icons.inventory_2_rounded,
-                                  label: 'Total itens',
-                                  count: _alertas.length,
-                                  color: AppColors.accent,
-                                ),
+                                Icon(Icons.check_circle_outline_rounded,
+                                    size: 64, color: AppColors.success),
+                                const SizedBox(height: 12),
+                                Text('Estoque está em dia!',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.textPrimary)),
+                                const SizedBox(height: 4),
+                                Text('Nenhum alerta encontrado',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 13,
+                                        color: AppColors.textMuted)),
                               ],
                             ),
-                            const SizedBox(height: 28),
+                          )
+                        : SingleChildScrollView(
+                            padding: const EdgeInsets.all(32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Summary cards
+                                Row(
+                                  children: [
+                                    _SummaryCard(
+                                      icon: Icons.error_rounded,
+                                      label: 'Críticos',
+                                      count: criticos.length,
+                                      color: AppColors.error,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    _SummaryCard(
+                                      icon: Icons.warning_rounded,
+                                      label: 'Alertas',
+                                      count: avisos.length,
+                                      color: AppColors.warning,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    _SummaryCard(
+                                      icon: Icons.inventory_2_rounded,
+                                      label: 'Total itens',
+                                      count: _alertas.length,
+                                      color: AppColors.accent,
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 28),
 
-                            // Críticos
-                            if (criticos.isNotEmpty) ...[
-                              Row(
-                                children: [
-                                  const Icon(Icons.error_rounded,
-                                      size: 20, color: AppColors.error),
-                                  const SizedBox(width: 8),
-                                  Text('Estoque Zerado (Crítico)',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.error)),
+                                // Críticos
+                                if (criticos.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.error_rounded,
+                                          size: 20, color: AppColors.error),
+                                      const SizedBox(width: 8),
+                                      Text('Estoque Zerado (Crítico)',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.error)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...criticos.map((a) => _AlertaCard(
+                                        alerta: a,
+                                        onEntrada: () => widget.onEntradaEstoque
+                                            ?.call(a['id'] as int),
+                                      )),
+                                  const SizedBox(height: 24),
                                 ],
-                              ),
-                              const SizedBox(height: 12),
-                              ...criticos.map((a) => _AlertaCard(
-                                    alerta: a,
-                                    onEntrada: () => widget.onEntradaEstoque
-                                        ?.call(a['id'] as int),
-                                  )),
-                              const SizedBox(height: 24),
-                            ],
 
-                            // Alertas
-                            if (avisos.isNotEmpty) ...[
-                              Row(
-                                children: [
-                                  const Icon(Icons.warning_rounded,
-                                      size: 20, color: AppColors.warning),
-                                  const SizedBox(width: 8),
-                                  Text('Estoque Baixo (Alerta)',
-                                      style: GoogleFonts.inter(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: AppColors.warning)),
+                                // Alertas
+                                if (avisos.isNotEmpty) ...[
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.warning_rounded,
+                                          size: 20, color: AppColors.warning),
+                                      const SizedBox(width: 8),
+                                      Text('Estoque Baixo (Alerta)',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.warning)),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ...avisos.map((a) => _AlertaCard(
+                                        alerta: a,
+                                        onEntrada: () => widget.onEntradaEstoque
+                                            ?.call(a['id'] as int),
+                                      )),
                                 ],
-                              ),
-                              const SizedBox(height: 12),
-                              ...avisos.map((a) => _AlertaCard(
-                                    alerta: a,
-                                    onEntrada: () => widget.onEntradaEstoque
-                                        ?.call(a['id'] as int),
-                                  )),
-                            ],
-                          ],
-                        ),
-                      ),
+                              ],
+                            ),
+                          ),
           ),
         ],
       ),

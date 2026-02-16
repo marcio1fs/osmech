@@ -1,5 +1,6 @@
 package com.osmech.finance.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.finance.dto.*;
 import com.osmech.finance.entity.CategoriaFinanceira;
 import com.osmech.finance.entity.FluxoCaixa;
@@ -47,7 +48,7 @@ public class FinanceiroService {
         CategoriaFinanceira categoria = null;
         if (request.getCategoriaId() != null) {
             categoria = categoriaRepository.findById(request.getCategoriaId())
-                    .orElseThrow(() -> new IllegalArgumentException("Categoria não encontrada"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
         }
 
         TransacaoFinanceira tx = TransacaoFinanceira.builder()
@@ -107,7 +108,7 @@ public class FinanceiroService {
     public TransacaoResponse estornarTransacao(String emailUsuario, Long transacaoId) {
         Usuario usuario = getUsuario(emailUsuario);
         TransacaoFinanceira original = transacaoRepository.findByIdAndUsuarioId(transacaoId, usuario.getId())
-                .orElseThrow(() -> new IllegalArgumentException("Transação não encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
 
         if (Boolean.TRUE.equals(original.getEstorno())) {
             throw new IllegalArgumentException("Não é possível estornar uma transação de estorno");
@@ -253,7 +254,7 @@ public class FinanceiroService {
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     private void validarTipo(String tipo) {

@@ -23,69 +23,42 @@ public class AssinaturaController {
 
     private final AssinaturaService assinaturaService;
 
-    /**
-     * POST /api/assinatura - Criar/atualizar assinatura (assinar plano)
-     */
+    /** POST /api/assinatura - Criar/atualizar assinatura (assinar plano) */
     @PostMapping
-    public ResponseEntity<?> assinar(Authentication auth, @Valid @RequestBody AssinaturaRequest request) {
-        try {
-            AssinaturaResponse response = assinaturaService.assinar(auth.getName(), request);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<AssinaturaResponse> assinar(Authentication auth,
+                                                        @Valid @RequestBody AssinaturaRequest request) {
+        return ResponseEntity.ok(assinaturaService.assinar(auth.getName(), request));
     }
 
-    /**
-     * GET /api/assinatura - Buscar assinatura ativa
-     */
+    /** GET /api/assinatura - Buscar assinatura ativa */
     @GetMapping
-    public ResponseEntity<?> buscarAtiva(Authentication auth) {
-        try {
-            AssinaturaResponse response = assinaturaService.buscarAtiva(auth.getName());
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<AssinaturaResponse> buscarAtiva(Authentication auth) {
+        return ResponseEntity.ok(assinaturaService.buscarAtiva(auth.getName()));
     }
 
-    /**
-     * GET /api/assinatura/historico - Histórico de assinaturas
-     */
+    /** GET /api/assinatura/historico - Histórico de assinaturas */
     @GetMapping("/historico")
     public ResponseEntity<List<AssinaturaResponse>> historico(Authentication auth) {
         return ResponseEntity.ok(assinaturaService.listarHistorico(auth.getName()));
     }
 
-    /**
-     * DELETE /api/assinatura - Cancelar assinatura
-     */
+    /** DELETE /api/assinatura - Cancelar assinatura */
     @DeleteMapping
-    public ResponseEntity<?> cancelar(Authentication auth) {
-        try {
-            AssinaturaResponse response = assinaturaService.cancelar(auth.getName());
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<AssinaturaResponse> cancelar(Authentication auth) {
+        return ResponseEntity.ok(assinaturaService.cancelar(auth.getName()));
     }
 
-    /**
-     * GET /api/assinatura/status - Verifica se assinatura está ativa
-     */
+    /** GET /api/assinatura/status - Verifica se assinatura está ativa */
     @GetMapping("/status")
-    public ResponseEntity<?> verificarStatus(Authentication auth) {
+    public ResponseEntity<Map<String, Boolean>> verificarStatus(Authentication auth) {
         boolean ativa = assinaturaService.isAssinaturaAtiva(auth.getName());
         return ResponseEntity.ok(Map.of("ativa", ativa));
     }
 
-    /**
-     * POST /api/assinatura/verificar-inadimplencia - Verifica e aplica regras de inadimplência
-     * Somente usuários com role ADMIN podem acessar.
-     */
+    /** POST /api/assinatura/verificar-inadimplencia - Verificar inadimplência (ADMIN) */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/verificar-inadimplencia")
-    public ResponseEntity<?> verificarInadimplencia() {
+    public ResponseEntity<Map<String, String>> verificarInadimplencia() {
         assinaturaService.verificarInadimplencia();
         return ResponseEntity.ok(Map.of("message", "Verificação de inadimplência executada"));
     }

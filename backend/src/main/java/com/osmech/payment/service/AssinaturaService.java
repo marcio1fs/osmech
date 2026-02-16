@@ -1,5 +1,6 @@
 package com.osmech.payment.service;
 
+import com.osmech.config.ResourceNotFoundException;
 import com.osmech.payment.dto.AssinaturaRequest;
 import com.osmech.payment.dto.AssinaturaResponse;
 import com.osmech.payment.entity.Assinatura;
@@ -40,7 +41,7 @@ public class AssinaturaService {
     public AssinaturaResponse assinar(String emailUsuario, AssinaturaRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
         Plano plano = planoRepository.findByCodigo(request.getPlanoCodigo())
-                .orElseThrow(() -> new IllegalArgumentException("Plano não encontrado: " + request.getPlanoCodigo()));
+                .orElseThrow(() -> new ResourceNotFoundException("Plano não encontrado: " + request.getPlanoCodigo()));
 
         // Verifica se já tem assinatura ativa
         var assinaturaAtiva = assinaturaRepository
@@ -142,11 +143,15 @@ public class AssinaturaService {
 
         Assinatura assinatura = assinaturaRepository
                 .findByUsuarioIdAndStatusIn(usuario.getId(), List.of("ACTIVE", "PAST_DUE"))
-                .orElseThrow(() -> new IllegalArgumentException("Nenhuma assinatura ativa encontrada"));
+                .orElseThrow(() -> new ResourceNotFoundException("Nenhuma assinatura ativa encontrada"));
 
         assinatura.setStatus("CANCELED");
         assinatura.setDataCancelamento(LocalDate.now());
         assinatura = assinaturaRepository.save(assinatura);
+
+        // Downgrade para plano FREE após cancelamento
+        usuario.setPlano("FREE");
+        usuarioRepository.save(usuario);
 
         log.info("Assinatura cancelada para usuário {}", usuario.getEmail());
 
@@ -197,14 +202,14 @@ public class AssinaturaService {
         Usuario usuario = getUsuario(emailUsuario);
         return assinaturaRepository
                 .findByUsuarioIdAndStatusIn(usuario.getId(), List.of("ACTIVE"))
-                .isPresent() || usuario.getAtivo();
+                .isPresent();
     }
 
     // --- Helpers ---
 
     private Usuario getUsuario(String email) {
         return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
     private AssinaturaResponse toResponse(Assinatura a, String planoNome) {
