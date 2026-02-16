@@ -43,7 +43,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // Verifica se o usuário ainda existe no banco
                 Usuario usuario = usuarioRepository.findByEmail(email).orElse(null);
 
-                if (usuario != null && usuario.getAtivo()) {
+                if (usuario != null && Boolean.TRUE.equals(usuario.getAtivo())) {
                     var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                     var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(authToken);
