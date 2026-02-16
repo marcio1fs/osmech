@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Tela de histórico de transações financeiras com filtros e estorno.
 class TransacoesHistoricoPage extends StatefulWidget {
@@ -33,24 +34,13 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
   String _formatDateParam(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  String _formatDateBR(String? dateStr) {
-    if (dateStr == null) return '-';
-    try {
-      final dt = DateTime.parse(dateStr);
-      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return dateStr;
-    }
-  }
-
   Future<void> _loadTransacoes() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       final data = await service.listarTransacoes(
         tipo: _filtroTipo,
         dataInicio: _dataInicio != null ? _formatDateParam(_dataInicio!) : null,
@@ -92,8 +82,7 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
     if (confirm != true) return;
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       await service.estornarTransacao(transacaoId);
       _loadTransacoes();
       if (mounted) {
@@ -155,11 +144,6 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
       _dataFim = null;
     });
     _loadTransacoes();
-  }
-
-  String _formatCurrency(dynamic value) {
-    final v = (value is num) ? value.toDouble() : 0.0;
-    return 'R\$ ${v.toStringAsFixed(2)}';
   }
 
   String _metodoLabel(String? metodo) {
@@ -286,8 +270,8 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                               children: [
                                 Icon(Icons.receipt_long_rounded,
                                     size: 64,
-                                    color:
-                                        AppColors.textMuted.withValues(alpha: 0.4)),
+                                    color: AppColors.textMuted
+                                        .withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),
                                 Text('Nenhuma transação encontrada',
                                     style: GoogleFonts.inter(
@@ -308,8 +292,8 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                               final tx = _transacoes[index];
                               return _TransacaoCard(
                                 tx: tx,
-                                formatCurrency: _formatCurrency,
-                                formatDate: _formatDateBR,
+                                formatCurrency: formatCurrency,
+                                formatDate: formatDateTimeBR,
                                 metodoLabel: _metodoLabel,
                                 onEstornar: tx['estorno'] == true
                                     ? null
@@ -356,8 +340,9 @@ class _TransacaoCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color:
-              isEstorno ? AppColors.warning.withValues(alpha: 0.3) : AppColors.border,
+          color: isEstorno
+              ? AppColors.warning.withValues(alpha: 0.3)
+              : AppColors.border,
         ),
       ),
       child: Row(

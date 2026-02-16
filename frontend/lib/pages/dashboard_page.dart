@@ -32,8 +32,7 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final osService = OsService(token: auth.token!);
+      final osService = OsService(token: safeToken);
       final stats = await osService.getDashboardStats();
       setState(() {
         _stats = stats;

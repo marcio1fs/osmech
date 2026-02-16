@@ -33,8 +33,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
       final data = await service.getAlertas();
       setState(() {
         _alertas = data;

@@ -13,6 +13,7 @@ import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -96,6 +97,7 @@ public class AssinaturaService {
     /**
      * Busca a assinatura ativa do usuário.
      */
+    @Transactional(readOnly = true)
     public AssinaturaResponse buscarAtiva(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
 
@@ -123,6 +125,7 @@ public class AssinaturaService {
     /**
      * Lista histórico de assinaturas do usuário.
      */
+    @Transactional(readOnly = true)
     public List<AssinaturaResponse> listarHistorico(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         return assinaturaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
@@ -163,6 +166,7 @@ public class AssinaturaService {
      * Verifica assinaturas vencidas e aplica regras de inadimplência.
      * Deve ser chamado por um scheduler ou manualmente.
      */
+    @Scheduled(cron = "0 0 2 * * *") // 2h da manhã diariamente
     @Transactional
     public void verificarInadimplencia() {
         LocalDate hoje = LocalDate.now();
@@ -198,6 +202,7 @@ public class AssinaturaService {
     /**
      * Verifica se o usuário está com a assinatura em dia.
      */
+    @Transactional(readOnly = true)
     public boolean isAssinaturaAtiva(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         return assinaturaRepository

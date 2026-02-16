@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Lista de itens de estoque com busca, filtro por categoria e indicadores visuais.
 class StockListPage extends StatefulWidget {
@@ -78,8 +79,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
       final data = await service.listarItens(
         categoria: _filtroCategoria,
         busca: _buscaCtrl.text.isNotEmpty ? _buscaCtrl.text : null,
@@ -120,8 +120,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
     if (confirm != true) return;
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
       await service.desativarItem(id);
       _loadItens();
       if (mounted) {
@@ -143,11 +142,6 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
         }
       }
     }
-  }
-
-  String _formatCurrency(dynamic v) {
-    final val = (v is num) ? v.toDouble() : 0.0;
-    return 'R\$ ${val.toStringAsFixed(2)}';
   }
 
   @override
@@ -448,8 +442,8 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                     ),
                   ),
                   _colCell('${item['quantidadeMinima']}', flex: 1),
-                  _colCell(_formatCurrency(item['precoCusto']), flex: 1),
-                  _colCell(_formatCurrency(item['precoVenda']), flex: 1),
+                  _colCell(formatCurrency(item['precoCusto']), flex: 1),
+                  _colCell(formatCurrency(item['precoVenda']), flex: 1),
                   Expanded(
                     flex: 1,
                     child: Row(

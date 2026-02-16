@@ -126,6 +126,7 @@ public class PagamentoService {
     /**
      * Lista todos os pagamentos do usuário.
      */
+    @Transactional(readOnly = true)
     public List<PagamentoResponse> listar(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         return pagamentoRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
@@ -137,6 +138,7 @@ public class PagamentoService {
     /**
      * Lista pagamentos por tipo (ASSINATURA ou OS).
      */
+    @Transactional(readOnly = true)
     public List<PagamentoResponse> listarPorTipo(String emailUsuario, String tipo) {
         Usuario usuario = getUsuario(emailUsuario);
         return pagamentoRepository.findByUsuarioIdAndTipoOrderByCriadoEmDesc(usuario.getId(), tipo)
@@ -148,6 +150,7 @@ public class PagamentoService {
     /**
      * Busca pagamento por ID.
      */
+    @Transactional(readOnly = true)
     public PagamentoResponse buscarPorId(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
         Pagamento pagamento = pagamentoRepository.findById(id)
@@ -163,6 +166,7 @@ public class PagamentoService {
     /**
      * Retorna resumo financeiro do usuário.
      */
+    @Transactional(readOnly = true)
     public ResumoFinanceiroResponse getResumoFinanceiro(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         Long uid = usuario.getId();

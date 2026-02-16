@@ -7,6 +7,7 @@ import '../services/api_config.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 
 /// Tela de Planos — design moderno com grid de pricing cards.
 class PricingPage extends StatefulWidget {
@@ -252,7 +253,8 @@ class _PricingPageState extends State<PricingPage> {
                                     boxShadow: recommended
                                         ? [
                                             BoxShadow(
-                                                color: color.withValues(alpha: 0.1),
+                                                color: color.withValues(
+                                                    alpha: 0.1),
                                                 blurRadius: 20,
                                                 offset: const Offset(0, 8))
                                           ]
@@ -293,7 +295,8 @@ class _PricingPageState extends State<PricingPage> {
                                                 width: 52,
                                                 height: 52,
                                                 decoration: BoxDecoration(
-                                                  color: color.withValues(alpha: 0.1),
+                                                  color: color.withValues(
+                                                      alpha: 0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(14),
                                                 ),
@@ -314,8 +317,8 @@ class _PricingPageState extends State<PricingPage> {
                                                 text: TextSpan(
                                                   children: [
                                                     TextSpan(
-                                                      text:
-                                                          'R\$ ${(plano['preco'] ?? 0).toStringAsFixed(2)}',
+                                                      text: formatCurrency(
+                                                          plano['preco'] ?? 0),
                                                       style: GoogleFonts.inter(
                                                           fontSize: 28,
                                                           fontWeight:

@@ -140,6 +140,7 @@ public class FinanceiroService {
     /**
      * Lista transações do usuário, opcionalmente filtradas por período e tipo.
      */
+    @Transactional(readOnly = true)
     public List<TransacaoResponse> listarTransacoes(String emailUsuario,
                                                      LocalDate dataInicio,
                                                      LocalDate dataFim,
@@ -170,6 +171,7 @@ public class FinanceiroService {
     /**
      * Retorna o fluxo de caixa em um período.
      */
+    @Transactional(readOnly = true)
     public List<FluxoCaixaResponse> getFluxoCaixa(String emailUsuario, LocalDate inicio, LocalDate fim) {
         Usuario usuario = getUsuario(emailUsuario);
         return fluxoRepository
@@ -220,6 +222,7 @@ public class FinanceiroService {
     /**
      * Retorna resumo financeiro para o dashboard.
      */
+    @Transactional(readOnly = true)
     public ResumoFinanceiroDTO getResumoFinanceiro(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         Long uid = usuario.getId();

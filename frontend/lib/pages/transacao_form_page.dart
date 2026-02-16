@@ -46,8 +46,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
 
   Future<void> _loadCategorias() async {
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       final cats = await service.listarCategorias();
       setState(() {
         _categorias = cats;
@@ -69,8 +68,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
 
     setState(() => _saving = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
 
       final valorStr = _valorController.text
           .replaceAll('R\$', '')

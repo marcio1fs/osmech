@@ -31,8 +31,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       final cats = await service.listarCategorias();
       setState(() {
         _categorias = cats;
@@ -69,8 +68,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
     if (confirm != true) return;
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       await service.excluirCategoria(id);
       _loadCategorias();
       if (mounted) {
@@ -162,8 +160,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                 if (nomeCtrl.text.trim().isEmpty) return;
                 Navigator.pop(ctx);
                 try {
-                  final auth = Provider.of<AuthService>(context, listen: false);
-                  final service = FinanceService(token: auth.token!);
+                  final service = FinanceService(token: safeToken);
                   await service.criarCategoria({
                     'nome': nomeCtrl.text.trim(),
                     'tipo': tipo,

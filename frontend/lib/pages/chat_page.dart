@@ -41,8 +41,7 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
   Future<void> _initChat() async {
     setState(() => _loading = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = ChatService(token: auth.token!);
+      final service = ChatService(token: safeToken);
       final sessoes = await service.getSessoes();
       if (sessoes.isNotEmpty) {
         _sessionId = sessoes.first;
@@ -75,8 +74,7 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
     _scrollToBottom();
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = ChatService(token: auth.token!);
+      final service = ChatService(token: safeToken);
       final resp = await service.enviarMensagem(text, sessionId: _sessionId);
       setState(() {
         _sessionId = resp['sessionId'] as String?;
@@ -418,8 +416,8 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
             CircleAvatar(
               radius: 16,
               backgroundColor: AppColors.accent.withValues(alpha: 0.15),
-              child:
-                  const Icon(Icons.person_rounded, size: 16, color: AppColors.accent),
+              child: const Icon(Icons.person_rounded,
+                  size: 16, color: AppColors.accent),
             ),
           ],
         ],

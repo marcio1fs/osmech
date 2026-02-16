@@ -6,6 +6,7 @@ import '../services/os_service.dart';
 import '../theme/app_theme.dart';
 import 'os_form_page.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Lista de OS com layout moderno — sem AppBar, renderiza dentro do AppShell.
 class OsListPage extends StatefulWidget {
@@ -36,8 +37,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final osService = OsService(token: auth.token!);
+      final osService = OsService(token: safeToken);
       final ordens = await osService.listar();
       setState(() {
         _ordens = ordens;
@@ -101,8 +101,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
 
     setState(() => _deleting = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final osService = OsService(token: auth.token!);
+      final osService = OsService(token: safeToken);
       await osService.excluir(os['id']);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -408,7 +407,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                             ),
                                           ),
                                           DataCell(Text(
-                                            'R\$ ${(os['valor'] ?? 0).toStringAsFixed(2)}',
+                                            formatCurrency(os['valor'] ?? 0),
                                             style: GoogleFonts.inter(
                                                 fontWeight: FontWeight.w700),
                                           )),

@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Tela de movimentação de estoque (entrada/saída manual).
 class StockMovementPage extends StatefulWidget {
@@ -67,8 +68,7 @@ class _StockMovementPageState extends State<StockMovementPage>
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
       final results = await Future.wait([
         service.listarItens(),
         service.listarMovimentacoes(),
@@ -108,8 +108,7 @@ class _StockMovementPageState extends State<StockMovementPage>
 
     setState(() => _saving = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
       await service.registrarMovimentacao({
         'stockItemId': _selectedItemId,
         'tipo': _tipo,
@@ -146,16 +145,6 @@ class _StockMovementPageState extends State<StockMovementPage>
       }
     } finally {
       if (mounted) setState(() => _saving = false);
-    }
-  }
-
-  String _formatDate(String? dateStr) {
-    if (dateStr == null) return '-';
-    try {
-      final dt = DateTime.parse(dateStr);
-      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return dateStr;
     }
   }
 
@@ -436,7 +425,7 @@ class _StockMovementPageState extends State<StockMovementPage>
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          '${m['motivo']} • ${_formatDate(m['criadoEm']?.toString())}',
+                          '${m['motivo']} • ${formatDateTimeBR(m['criadoEm']?.toString())}',
                           style: GoogleFonts.inter(
                               fontSize: 11, color: AppColors.textMuted),
                         ),

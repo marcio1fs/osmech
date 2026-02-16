@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Tela de histórico de pagamentos — design moderno com tabs.
 class PaymentHistoryPage extends StatefulWidget {
@@ -42,8 +43,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = PaymentService(token: auth.token!);
+      final service = PaymentService(token: safeToken);
       final todos = await service.listarPagamentos();
       setState(() {
         _todos = todos;
@@ -85,8 +85,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     if (confirm != true) return;
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = PaymentService(token: auth.token!);
+      final service = PaymentService(token: safeToken);
       await service.confirmarPagamento(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -129,8 +128,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     if (confirm != true) return;
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = PaymentService(token: auth.token!);
+      final service = PaymentService(token: safeToken);
       await service.cancelarPagamento(id);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -198,16 +196,6 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         return 'Transferência';
       default:
         return metodo ?? '-';
-    }
-  }
-
-  String _formatDateTime(String? dateStr) {
-    if (dateStr == null) return '-';
-    try {
-      final dt = DateTime.parse(dateStr);
-      return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return dateStr;
     }
   }
 
@@ -380,9 +368,9 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
                                 color: color)),
                       ),
                     ),
-                    DataCell(Text('R\$ ${(p['valor'] ?? 0).toStringAsFixed(2)}',
+                    DataCell(Text(formatCurrency(p['valor'] ?? 0),
                         style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
-                    DataCell(Text(_formatDateTime(p['criadoEm']),
+                    DataCell(Text(formatDateTimeBR(p['criadoEm']),
                         style: GoogleFonts.inter(
                             fontSize: 12, color: AppColors.textSecondary))),
                     DataCell(

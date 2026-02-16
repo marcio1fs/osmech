@@ -21,6 +21,20 @@ import '../services/api_client.dart';
 /// }
 /// ```
 mixin AuthErrorMixin<T extends StatefulWidget> on State<T> {
+  /// Retorna o token de forma segura. Se for null, faz logout e lança exceção.
+  /// Use no lugar de `token!` para evitar crashes.
+  String get safeToken {
+    final token = Provider.of<AuthService>(context, listen: false).token;
+    if (token == null) {
+      if (mounted) {
+        final auth = Provider.of<AuthService>(context, listen: false);
+        auth.logout();
+      }
+      throw UnauthorizedException('Token nulo — redirecionando ao login.');
+    }
+    return token;
+  }
+
   /// Verifica se o erro é [UnauthorizedException] e faz logout automático.
   /// Retorna true se o erro foi tratado (401), false caso contrário.
   bool handleAuthError(Object error) {

@@ -125,6 +125,7 @@ public class StockService {
     }
 
     /** Listar itens da oficina */
+    @Transactional(readOnly = true)
     public List<StockItemResponse> listarItens(String emailUsuario, String categoria, String busca) {
         Usuario usuario = getUsuario(emailUsuario);
 
@@ -142,6 +143,7 @@ public class StockService {
     }
 
     /** Buscar item por ID */
+    @Transactional(readOnly = true)
     public StockItemResponse buscarItem(String emailUsuario, Long itemId) {
         Usuario usuario = getUsuario(emailUsuario);
         StockItem item = getItemDoUsuario(usuario.getId(), itemId);
@@ -236,6 +238,7 @@ public class StockService {
     }
 
     /** Listar movimentações de um item */
+    @Transactional(readOnly = true)
     public List<StockMovementResponse> listarMovimentacoes(String emailUsuario, Long stockItemId) {
         Usuario usuario = getUsuario(emailUsuario);
         // Validar que o item pertence ao usuário
@@ -246,6 +249,7 @@ public class StockService {
     }
 
     /** Listar todas as movimentações da oficina */
+    @Transactional(readOnly = true)
     public List<StockMovementResponse> listarTodasMovimentacoes(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         return movementRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
@@ -257,6 +261,7 @@ public class StockService {
     // ==========================================
 
     /** Retorna itens com estoque baixo ou zerado */
+    @Transactional(readOnly = true)
     public List<StockAlertResponse> getAlertas(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         List<StockItem> alertItems = itemRepository.findAlertItems(usuario.getId());

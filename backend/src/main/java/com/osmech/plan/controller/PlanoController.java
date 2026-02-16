@@ -7,7 +7,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Controller REST dos Planos.
@@ -32,11 +31,7 @@ public class PlanoController {
      * GET /api/planos/{codigo} - Busca plano por código
      */
     @GetMapping("/{codigo}")
-    public ResponseEntity<?> buscarPorCodigo(@PathVariable String codigo) {
-        try {
-            return ResponseEntity.ok(planoService.buscarPorCodigo(codigo));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
-        }
+    public ResponseEntity<PlanoResponse> buscarPorCodigo(@PathVariable String codigo) {
+        return ResponseEntity.ok(planoService.buscarPorCodigo(codigo));
     }
 }

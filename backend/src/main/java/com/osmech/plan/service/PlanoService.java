@@ -5,6 +5,7 @@ import com.osmech.plan.entity.Plano;
 import com.osmech.plan.repository.PlanoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,6 +21,7 @@ public class PlanoService {
     /**
      * Lista todos os planos ativos.
      */
+    @Transactional(readOnly = true)
     public List<PlanoResponse> listarAtivos() {
         return planoRepository.findByAtivoTrue().stream()
                 .map(this::toResponse)
@@ -29,6 +31,7 @@ public class PlanoService {
     /**
      * Busca um plano pelo código.
      */
+    @Transactional(readOnly = true)
     public PlanoResponse buscarPorCodigo(String codigo) {
         Plano plano = planoRepository.findByCodigo(codigo)
                 .orElseThrow(() -> new IllegalArgumentException("Plano não encontrado: " + codigo));

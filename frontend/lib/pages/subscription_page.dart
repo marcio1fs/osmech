@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Tela de assinatura — design moderno.
 class SubscriptionPage extends StatefulWidget {
@@ -32,8 +33,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = PaymentService(token: auth.token!);
+      final service = PaymentService(token: safeToken);
       final data = await service.getAssinaturaAtiva();
       setState(() {
         _assinatura = data;
@@ -74,8 +74,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     if (confirm != true) return;
 
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = PaymentService(token: auth.token!);
+      final service = PaymentService(token: safeToken);
       await service.cancelarAssinatura();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -121,16 +120,6 @@ class _SubscriptionPageState extends State<SubscriptionPage>
         return 'Cancelada';
       default:
         return 'Sem assinatura';
-    }
-  }
-
-  String _formatDate(String? dateStr) {
-    if (dateStr == null) return '-';
-    try {
-      final parts = dateStr.split('-');
-      return '${parts[2]}/${parts[1]}/${parts[0]}';
-    } catch (_) {
-      return dateStr;
     }
   }
 
@@ -258,7 +247,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                     ),
                                     const SizedBox(height: 16),
                                     Text(
-                                      'R\$ ${(_assinatura?['valorMensal'] ?? 0).toStringAsFixed(2)}/mês',
+                                      '${formatCurrency(_assinatura?['valorMensal'] ?? 0)}/mês',
                                       style: GoogleFonts.inter(
                                           fontSize: 28,
                                           fontWeight: FontWeight.w800,
@@ -291,20 +280,20 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                       _DetailItem(
                                           icon: Icons.calendar_today_rounded,
                                           label: 'Início',
-                                          value: _formatDate(
+                                          value: formatDateBR(
                                               _assinatura!['dataInicio'])),
                                     if (_assinatura?['proximaCobranca'] != null)
                                       _DetailItem(
                                           icon: Icons.event_rounded,
                                           label: 'Próxima cobrança',
-                                          value: _formatDate(
+                                          value: formatDateBR(
                                               _assinatura!['proximaCobranca'])),
                                     if (_assinatura?['dataCancelamento'] !=
                                         null)
                                       _DetailItem(
                                           icon: Icons.cancel_rounded,
                                           label: 'Cancelado em',
-                                          value: _formatDate(_assinatura![
+                                          value: formatDateBR(_assinatura![
                                               'dataCancelamento'])),
                                   ],
                                 ),

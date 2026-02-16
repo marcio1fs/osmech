@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Dashboard Financeiro completo — módulo financeiro.
 class FinancialDashboardPage extends StatefulWidget {
@@ -44,8 +45,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       final results = await Future.wait([
         service.getResumoFinanceiro(),
         service.listarTransacoes(),
@@ -64,11 +64,6 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
         });
       }
     }
-  }
-
-  String _formatCurrency(dynamic value) {
-    final v = (value is num) ? value.toDouble() : 0.0;
-    return 'R\$ ${v.toStringAsFixed(2)}';
   }
 
   @override
@@ -169,7 +164,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                                   children: [
                                     _MetricCard(
                                       label: 'Saldo Atual',
-                                      value: _formatCurrency(
+                                      value: formatCurrency(
                                           _resumo?['saldoAtual']),
                                       icon:
                                           Icons.account_balance_wallet_rounded,
@@ -180,7 +175,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                                     ),
                                     _MetricCard(
                                       label: 'Entradas do Mês',
-                                      value: _formatCurrency(
+                                      value: formatCurrency(
                                           _resumo?['entradasMes']),
                                       icon: Icons.trending_up_rounded,
                                       color: AppColors.success,
@@ -189,8 +184,8 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                                     ),
                                     _MetricCard(
                                       label: 'Saídas do Mês',
-                                      value: _formatCurrency(
-                                          _resumo?['saidasMes']),
+                                      value:
+                                          formatCurrency(_resumo?['saidasMes']),
                                       icon: Icons.trending_down_rounded,
                                       color: AppColors.error,
                                       subtitle: 'Despesas atuais',
@@ -198,7 +193,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                                     _MetricCard(
                                       label: 'Lucro do Mês',
                                       value:
-                                          _formatCurrency(_resumo?['lucroMes']),
+                                          formatCurrency(_resumo?['lucroMes']),
                                       icon: Icons.show_chart_rounded,
                                       color: (_resumo?['lucroMes'] ?? 0) >= 0
                                           ? const Color(0xFF14B8A6)
@@ -281,7 +276,8 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                 child: Column(
                   children: [
                     Icon(Icons.receipt_long_rounded,
-                        size: 48, color: AppColors.textMuted.withValues(alpha: 0.5)),
+                        size: 48,
+                        color: AppColors.textMuted.withValues(alpha: 0.5)),
                     const SizedBox(height: 8),
                     Text('Nenhuma transação registrada',
                         style: GoogleFonts.inter(
@@ -320,17 +316,17 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
               const SizedBox(height: 16),
               _IndicatorRow(
                   label: 'Total Entradas',
-                  value: _formatCurrency(_resumo?['totalEntradas']),
+                  value: formatCurrency(_resumo?['totalEntradas']),
                   valueColor: AppColors.success),
               const Divider(color: AppColors.border, height: 20),
               _IndicatorRow(
                   label: 'Total Saídas',
-                  value: _formatCurrency(_resumo?['totalSaidas']),
+                  value: formatCurrency(_resumo?['totalSaidas']),
                   valueColor: AppColors.error),
               const Divider(color: AppColors.border, height: 20),
               _IndicatorRow(
                   label: 'Lucro Total',
-                  value: _formatCurrency(_resumo?['lucroTotal']),
+                  value: formatCurrency(_resumo?['lucroTotal']),
                   valueColor: (_resumo?['lucroTotal'] ?? 0) >= 0
                       ? AppColors.success
                       : AppColors.error),
@@ -511,7 +507,7 @@ class _TransacaoItem extends StatelessWidget {
             ),
           ),
           Text(
-            '${isEntrada ? '+' : '-'} R\$ ${(tx['valor'] ?? 0).toStringAsFixed(2)}',
+            '${isEntrada ? '+' : '-'} ${formatCurrency(tx['valor'] ?? 0)}',
             style: GoogleFonts.inter(
                 fontSize: 14, fontWeight: FontWeight.w700, color: color),
           ),

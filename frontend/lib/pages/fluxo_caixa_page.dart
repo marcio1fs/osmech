@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../utils/formatters.dart';
 
 /// Tela de Fluxo de Caixa com visualização diária.
 class FluxoCaixaPage extends StatefulWidget {
@@ -34,24 +35,13 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
   String _formatDate(DateTime d) =>
       '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
-  String _formatDateBR(String? dateStr) {
-    if (dateStr == null) return '-';
-    try {
-      final parts = dateStr.split('-');
-      return '${parts[2]}/${parts[1]}/${parts[0]}';
-    } catch (_) {
-      return dateStr;
-    }
-  }
-
   Future<void> _loadFluxo() async {
     setState(() {
       _loading = true;
       _error = null;
     });
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = FinanceService(token: auth.token!);
+      final service = FinanceService(token: safeToken);
       final data =
           await service.getFluxoCaixa(_formatDate(_inicio), _formatDate(_fim));
       setState(() {
@@ -95,11 +85,6 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
     }
   }
 
-  String _formatCurrency(dynamic value) {
-    final v = (value is num) ? value.toDouble() : 0.0;
-    return 'R\$ ${v.toStringAsFixed(2)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     // Totais do período
@@ -135,7 +120,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
                     Text(
-                        '${_formatDateBR(_formatDate(_inicio))} a ${_formatDateBR(_formatDate(_fim))}',
+                        '${formatDateBR(_formatDate(_inicio))} a ${formatDateBR(_formatDate(_fim))}',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -190,7 +175,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                                 Expanded(
                                   child: _SummaryCard(
                                     label: 'Entradas',
-                                    value: _formatCurrency(totalEntradas),
+                                    value: formatCurrency(totalEntradas),
                                     color: AppColors.success,
                                     icon: Icons.arrow_downward_rounded,
                                   ),
@@ -199,7 +184,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                                 Expanded(
                                   child: _SummaryCard(
                                     label: 'Saídas',
-                                    value: _formatCurrency(totalSaidas),
+                                    value: formatCurrency(totalSaidas),
                                     color: AppColors.error,
                                     icon: Icons.arrow_upward_rounded,
                                   ),
@@ -208,7 +193,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                                 Expanded(
                                   child: _SummaryCard(
                                     label: 'Saldo do Período',
-                                    value: _formatCurrency(saldoPeriodo),
+                                    value: formatCurrency(saldoPeriodo),
                                     color: saldoPeriodo >= 0
                                         ? AppColors.success
                                         : AppColors.error,
@@ -276,7 +261,8 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
         4: FlexColumnWidth(2),
       },
       border: TableBorder(
-        horizontalInside: BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
+        horizontalInside:
+            BorderSide(color: AppColors.border.withValues(alpha: 0.5)),
       ),
       children: [
         // Header
@@ -299,22 +285,22 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
           final acumulado = (f['saldoAcumulado'] ?? 0).toDouble();
           return TableRow(
             children: [
-              _tableCell(_formatDateBR(f['data']?.toString())),
+              _tableCell(formatDateBR(f['data']?.toString())),
               _tableCell(
-                _formatCurrency(f['totalEntradas']),
+                formatCurrency(f['totalEntradas']),
                 color: AppColors.success,
               ),
               _tableCell(
-                _formatCurrency(f['totalSaidas']),
+                formatCurrency(f['totalSaidas']),
                 color: AppColors.error,
               ),
               _tableCell(
-                _formatCurrency(saldo),
+                formatCurrency(saldo),
                 color: saldo >= 0 ? AppColors.success : AppColors.error,
                 bold: true,
               ),
               _tableCell(
-                _formatCurrency(acumulado),
+                formatCurrency(acumulado),
                 color: acumulado >= 0 ? AppColors.textPrimary : AppColors.error,
                 bold: true,
               ),

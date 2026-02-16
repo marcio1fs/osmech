@@ -74,8 +74,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
   Future<void> _loadItem() async {
     setState(() => _loadingItem = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
       final item = await service.buscarItem(widget.editItemId!);
       setState(() {
         _codigoCtrl.text = item['codigo'] ?? '';
@@ -110,8 +109,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
 
     setState(() => _saving = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = StockService(token: auth.token!);
+      final service = StockService(token: safeToken);
 
       // Tratar vírgula como separador decimal (padrão brasileiro)
       double parsePreco(String text) {

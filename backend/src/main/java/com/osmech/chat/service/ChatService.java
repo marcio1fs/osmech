@@ -136,6 +136,7 @@ public class ChatService {
     }
 
     // ── Buscar histórico ────────────────────────────────────────────────
+    @Transactional(readOnly = true)
     public List<ChatResponse> getHistoricoSessao(String sessionId, Authentication auth) {
         Usuario user = getUsuario(auth);
         return chatRepository.findByUsuarioIdAndSessionIdOrderByCriadoEmAsc(user.getId(), sessionId)
@@ -145,6 +146,7 @@ public class ChatService {
     }
 
     // ── Listar sessões ──────────────────────────────────────────────────
+    @Transactional(readOnly = true)
     public List<String> getSessoes(Authentication auth) {
         Usuario user = getUsuario(auth);
         return chatRepository.findSessionsByUsuarioId(user.getId());

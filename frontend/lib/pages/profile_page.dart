@@ -58,8 +58,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
 
   Future<void> _loadProfile() async {
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = UserService(token: auth.token!);
+      final service = UserService(token: safeToken);
       final perfil = await service.getPerfil();
       setState(() {
         _nomeCtrl.text = perfil['nome'] ?? '';
@@ -91,7 +90,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     setState(() => _savingProfile = true);
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
-      final service = UserService(token: auth.token!);
+      final service = UserService(token: safeToken);
       await service.atualizarPerfil(
         nome: _nomeCtrl.text.trim(),
         telefone: _telefoneCtrl.text.trim().isEmpty
@@ -125,8 +124,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     if (!_passwordFormKey.currentState!.validate()) return;
     setState(() => _savingPassword = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final service = UserService(token: auth.token!);
+      final service = UserService(token: safeToken);
       await service.alterarSenha(
         senhaAtual: _senhaAtualCtrl.text,
         novaSenha: _novaSenhaCtrl.text,

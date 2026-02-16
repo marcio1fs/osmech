@@ -74,6 +74,7 @@ public class OrdemServicoService {
     /**
      * Lista todas as OS do usuário logado.
      */
+    @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listarPorUsuario(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         return osRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
@@ -85,6 +86,7 @@ public class OrdemServicoService {
     /**
      * Busca uma OS por ID (validando que pertence ao usuário).
      */
+    @Transactional(readOnly = true)
     public OrdemServicoResponse buscarPorId(String emailUsuario, Long osId) {
         Usuario usuario = getUsuario(emailUsuario);
         OrdemServico os = osRepository.findById(osId)
@@ -176,6 +178,7 @@ public class OrdemServicoService {
     /**
      * Retorna estatísticas do dashboard.
      */
+    @Transactional(readOnly = true)
     public DashboardStats getDashboardStats(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         Long uid = usuario.getId();

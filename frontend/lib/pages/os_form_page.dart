@@ -165,8 +165,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _loading = true);
     try {
-      final auth = Provider.of<AuthService>(context, listen: false);
-      final osService = OsService(token: auth.token!);
+      final osService = OsService(token: safeToken);
       final data = {
         'clienteNome': _clienteNome.text.trim(),
         'clienteTelefone': _clienteTelefone.text.trim(),

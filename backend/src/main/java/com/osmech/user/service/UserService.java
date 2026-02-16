@@ -26,6 +26,7 @@ public class UserService {
     /**
      * Retorna o perfil do usuário logado.
      */
+    @Transactional(readOnly = true)
     public UserProfileResponse getPerfil(String email) {
         Usuario usuario = getUsuario(email);
         return toResponse(usuario);
