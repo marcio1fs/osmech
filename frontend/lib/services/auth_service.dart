@@ -3,9 +3,11 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_config.dart';
+import '../utils/jwt_utils.dart';
 
 /// Serviço de autenticação.
 /// Gerencia login, cadastro, token JWT e estado do usuário.
+/// Valida expiração do JWT ao carregar do cache e antes de cada uso.
 class AuthService extends ChangeNotifier {
   String? _token;
   String? _email;
@@ -14,7 +16,8 @@ class AuthService extends ChangeNotifier {
   String? _plano;
   bool _initialized = false;
 
-  bool get isAuthenticated => _token != null;
+  /// Retorna true apenas se o token existe E não está expirado.
+  bool get isAuthenticated => _token != null && !isTokenExpired;
   bool get initialized => _initialized;
   String? get token => _token;
   String? get email => _email;
@@ -22,20 +25,54 @@ class AuthService extends ChangeNotifier {
   String? get role => _role;
   String? get plano => _plano;
 
+  /// Verifica se o token atual está expirado (com margem de 60s).
+  bool get isTokenExpired {
+    if (_token == null) return true;
+    return JwtUtils.isExpired(_token!, bufferSeconds: 60);
+  }
+
+  /// Segundos restantes até a expiração do token.
+  int get tokenSecondsRemaining {
+    if (_token == null) return 0;
+    return JwtUtils.secondsUntilExpiry(_token!);
+  }
+
   AuthService() {
     _loadFromPrefs();
   }
 
   /// Carrega token salvo no SharedPreferences.
+  /// Se o token estiver expirado, limpa automaticamente e redireciona ao login.
   Future<void> _loadFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('token');
-    _email = prefs.getString('email');
-    _nome = prefs.getString('nome');
-    _role = prefs.getString('role');
-    _plano = prefs.getString('plano');
+    final savedToken = prefs.getString('token');
+
+    // Verifica se o token salvo ainda é válido
+    if (savedToken != null &&
+        !JwtUtils.isExpired(savedToken, bufferSeconds: 60)) {
+      _token = savedToken;
+      _email = prefs.getString('email');
+      _nome = prefs.getString('nome');
+      _role = prefs.getString('role');
+      _plano = prefs.getString('plano');
+    } else if (savedToken != null) {
+      // Token expirado — limpar dados salvos
+      debugPrint(
+          '[AuthService] Token expirado detectado ao iniciar. Limpando cache.');
+      await _clearPrefs(prefs);
+    }
+
     _initialized = true;
     notifyListeners();
+  }
+
+  /// Limpa todos os dados de autenticação do SharedPreferences.
+  Future<void> _clearPrefs(SharedPreferences prefs) async {
+    await prefs.remove('token');
+    await prefs.remove('email');
+    await prefs.remove('nome');
+    await prefs.remove('role');
+    await prefs.remove('plano');
   }
 
   /// Salva dados do usuário no SharedPreferences.
@@ -122,7 +159,7 @@ class AuthService extends ChangeNotifier {
     }
   }
 
-  /// Faz logout e limpa apenas dados de autenticação.
+  /// Faz logout e limpa dados de autenticação.
   Future<void> logout() async {
     _token = null;
     _email = null;
@@ -130,11 +167,7 @@ class AuthService extends ChangeNotifier {
     _role = null;
     _plano = null;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('email');
-    await prefs.remove('nome');
-    await prefs.remove('role');
-    await prefs.remove('plano');
+    await _clearPrefs(prefs);
     notifyListeners();
   }
 

@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'api_config.dart';
+import '../utils/jwt_utils.dart';
 
 /// Exceção lançada quando o token JWT expirou ou é inválido (HTTP 401).
 class UnauthorizedException implements Exception {
@@ -40,6 +42,7 @@ class ApiTimeoutException implements Exception {
 
 /// Cliente HTTP centralizado com interceptor de autenticação.
 /// Garante timeout consistente, headers padrão e detecção de erros HTTP.
+/// Valida expiração do JWT ANTES de enviar cada requisição.
 class ApiClient {
   final String token;
 
@@ -51,6 +54,15 @@ class ApiClient {
       };
 
   Duration get _timeout => const Duration(seconds: ApiConfig.timeoutSeconds);
+
+  /// Valida se o token ainda é válido antes de fazer a requisição.
+  /// Lança [UnauthorizedException] se o token estiver expirado.
+  void _validateToken() {
+    if (JwtUtils.isExpired(token, bufferSeconds: 30)) {
+      debugPrint('[ApiClient] Token expirado detectado antes da requisição.');
+      throw UnauthorizedException('Sessão expirada. Faça login novamente.');
+    }
+  }
 
   /// Verifica códigos de erro HTTP e lança exceções específicas.
   void _checkResponse(http.Response response) {
@@ -77,6 +89,7 @@ class ApiClient {
   /// GET request com autenticação.
   Future<http.Response> get(String path,
       {Map<String, String>? queryParams}) async {
+    _validateToken();
     final uri = Uri.parse('${ApiConfig.baseUrl}$path').replace(
         queryParameters:
             queryParams != null && queryParams.isNotEmpty ? queryParams : null);
@@ -87,6 +100,7 @@ class ApiClient {
 
   /// POST request com autenticação.
   Future<http.Response> post(String path, {Object? body}) async {
+    _validateToken();
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
     final response = await _withTimeout(http.post(uri,
         headers: _headers, body: body != null ? jsonEncode(body) : null));
@@ -96,6 +110,7 @@ class ApiClient {
 
   /// PUT request com autenticação.
   Future<http.Response> put(String path, {Object? body}) async {
+    _validateToken();
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
     final response = await _withTimeout(http.put(uri,
         headers: _headers, body: body != null ? jsonEncode(body) : null));
@@ -105,6 +120,7 @@ class ApiClient {
 
   /// PATCH request com autenticação (atualizações parciais).
   Future<http.Response> patch(String path, {Object? body}) async {
+    _validateToken();
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
     final response = await _withTimeout(http.patch(uri,
         headers: _headers, body: body != null ? jsonEncode(body) : null));
@@ -114,6 +130,7 @@ class ApiClient {
 
   /// DELETE request com autenticação.
   Future<http.Response> delete(String path) async {
+    _validateToken();
     final uri = Uri.parse('${ApiConfig.baseUrl}$path');
     final response = await _withTimeout(http.delete(uri, headers: _headers));
     _checkResponse(response);

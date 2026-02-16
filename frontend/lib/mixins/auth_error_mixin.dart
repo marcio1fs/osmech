@@ -3,14 +3,19 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/api_client.dart';
 
-/// Mixin para tratamento centralizado de [UnauthorizedException] (401).
+/// Mixin para tratamento centralizado de erros de autenticação (401/403).
 /// Qualquer State que faz chamadas API deve usar este mixin.
+///
+/// Funcionalidades:
+/// - [safeToken]: retorna token validado (não expirado) ou faz logout
+/// - [handleAuthError]: intercepta UnauthorizedException/ForbiddenException
 ///
 /// Uso:
 /// ```dart
 /// class _MyPageState extends State<MyPage> with AuthErrorMixin {
 ///   Future<void> _loadData() async {
 ///     try {
+///       final api = ApiClient(token: safeToken);
 ///       // ...chamada API...
 ///     } catch (e) {
 ///       if (!handleAuthError(e)) {
@@ -21,16 +26,28 @@ import '../services/api_client.dart';
 /// }
 /// ```
 mixin AuthErrorMixin<T extends StatefulWidget> on State<T> {
-  /// Retorna o token de forma segura. Se for null, faz logout e lança exceção.
-  /// Use no lugar de `token!` para evitar crashes.
+  /// Retorna o token de forma segura.
+  /// Verifica se o token existe E se não está expirado.
+  /// Se o token for null ou expirado, faz logout e lança exceção.
   String get safeToken {
-    final token = Provider.of<AuthService>(context, listen: false).token;
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final token = auth.token;
     if (token == null) {
-      if (mounted) {
-        final auth = Provider.of<AuthService>(context, listen: false);
-        auth.logout();
-      }
+      if (mounted) auth.logout();
       throw UnauthorizedException('Token nulo — redirecionando ao login.');
+    }
+    if (auth.isTokenExpired) {
+      if (mounted) {
+        auth.logout();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Sessão expirada. Faça login novamente.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+      throw UnauthorizedException('Token expirado — redirecionando ao login.');
     }
     return token;
   }
