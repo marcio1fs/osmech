@@ -41,7 +41,8 @@ class FinanceService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.cast<Map<String, dynamic>>();
     }
-    throw Exception('Erro ao listar transações');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar transações');
   }
 
   /// Estorna uma transação.
@@ -68,7 +69,8 @@ class FinanceService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.cast<Map<String, dynamic>>();
     }
-    throw Exception('Erro ao listar categorias');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar categorias');
   }
 
   /// Cria uma nova categoria.
@@ -107,7 +109,8 @@ class FinanceService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.cast<Map<String, dynamic>>();
     }
-    throw Exception('Erro ao carregar fluxo de caixa');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao carregar fluxo de caixa');
   }
 
   // ==========================================
@@ -121,6 +124,7 @@ class FinanceService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    throw Exception('Erro ao carregar resumo financeiro');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao carregar resumo financeiro');
   }
 }

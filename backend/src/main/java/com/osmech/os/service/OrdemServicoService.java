@@ -177,11 +177,17 @@ public class OrdemServicoService {
         Usuario usuario = getUsuario(emailUsuario);
         Long uid = usuario.getId();
 
+        // Contagens mensais
+        YearMonth mesAtual = YearMonth.now();
+        LocalDateTime inicioMes = mesAtual.atDay(1).atStartOfDay();
+        LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(23, 59, 59);
+
         return new DashboardStats(
                 osRepository.countByUsuarioId(uid),
                 osRepository.countByUsuarioIdAndStatus(uid, "ABERTA"),
                 osRepository.countByUsuarioIdAndStatus(uid, "EM_ANDAMENTO"),
-                osRepository.countByUsuarioIdAndStatus(uid, "CONCLUIDA")
+                osRepository.countByUsuarioIdAndStatus(uid, "CONCLUIDA"),
+                osRepository.countByUsuarioIdAndCriadoEmBetween(uid, inicioMes, fimMes)
         );
     }
 
@@ -251,5 +257,5 @@ public class OrdemServicoService {
     /**
      * Record para estatísticas do dashboard.
      */
-    public record DashboardStats(long total, long abertas, long emAndamento, long concluidas) {}
+    public record DashboardStats(long total, long abertas, long emAndamento, long concluidas, long esteMes) {}
 }

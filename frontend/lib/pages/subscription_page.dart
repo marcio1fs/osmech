@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Tela de assinatura — design moderno.
 class SubscriptionPage extends StatefulWidget {
@@ -13,7 +14,8 @@ class SubscriptionPage extends StatefulWidget {
   State<SubscriptionPage> createState() => _SubscriptionPageState();
 }
 
-class _SubscriptionPageState extends State<SubscriptionPage> {
+class _SubscriptionPageState extends State<SubscriptionPage>
+    with AuthErrorMixin {
   Map<String, dynamic>? _assinatura;
   bool _loading = true;
   String? _error;
@@ -38,10 +40,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar assinatura';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar assinatura';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -82,7 +86,7 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
         _loadAssinatura();
       }
     } catch (e) {
-      if (mounted) {
+      if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
         );
@@ -314,11 +318,12 @@ class _SubscriptionPageState extends State<SubscriptionPage> {
                                   width: double.infinity,
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: AppColors.warning.withValues(alpha: 0.08),
+                                    color: AppColors.warning
+                                        .withValues(alpha: 0.08),
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                        color:
-                                            AppColors.warning.withValues(alpha: 0.3)),
+                                        color: AppColors.warning
+                                            .withValues(alpha: 0.3)),
                                   ),
                                   child: Row(
                                     children: [

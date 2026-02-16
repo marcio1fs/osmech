@@ -179,8 +179,8 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 12, vertical: 6),
                                           decoration: BoxDecoration(
-                                            color:
-                                                Colors.white.withValues(alpha: 0.15),
+                                            color: Colors.white
+                                                .withValues(alpha: 0.15),
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                           ),
@@ -200,7 +200,8 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
                                     width: 72,
                                     height: 72,
                                     decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.12),
+                                      color:
+                                          Colors.white.withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: const Icon(Icons.build_rounded,
@@ -242,8 +243,16 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
                                       value: '${_stats?['total'] ?? 0}',
                                       icon: Icons.assignment_rounded,
                                       color: AppColors.accent,
-                                      bgColor:
-                                          AppColors.accent.withValues(alpha: 0.08),
+                                      bgColor: AppColors.accent
+                                          .withValues(alpha: 0.08),
+                                    ),
+                                    _MetricCard(
+                                      label: 'Este Mês',
+                                      value: '${_stats?['esteMes'] ?? 0}',
+                                      icon: Icons.calendar_month_rounded,
+                                      color: const Color(0xFF06B6D4),
+                                      bgColor: const Color(0xFF06B6D4)
+                                          .withValues(alpha: 0.08),
                                     ),
                                     _MetricCard(
                                       label: 'Abertas',
@@ -266,8 +275,8 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
                                       value: '${_stats?['concluidas'] ?? 0}',
                                       icon: Icons.check_circle_rounded,
                                       color: AppColors.success,
-                                      bgColor:
-                                          AppColors.success.withValues(alpha: 0.08),
+                                      bgColor: AppColors.success
+                                          .withValues(alpha: 0.08),
                                     ),
                                   ],
                                 );

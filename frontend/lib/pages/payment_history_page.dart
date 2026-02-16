@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
+import '../mixins/auth_error_mixin.dart';
 
 /// Tela de histórico de pagamentos — design moderno com tabs.
 class PaymentHistoryPage extends StatefulWidget {
@@ -14,7 +15,7 @@ class PaymentHistoryPage extends StatefulWidget {
 }
 
 class _PaymentHistoryPageState extends State<PaymentHistoryPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AuthErrorMixin {
   late TabController _tabController;
   List<Map<String, dynamic>> _todos = [];
   List<Map<String, dynamic>> _assinatura = [];
@@ -51,14 +52,38 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         _loading = false;
       });
     } catch (e) {
-      setState(() {
-        _error = 'Erro ao carregar pagamentos';
-        _loading = false;
-      });
+      if (!handleAuthError(e)) {
+        setState(() {
+          _error = 'Erro ao carregar pagamentos';
+          _loading = false;
+        });
+      }
     }
   }
 
   Future<void> _confirmarPagamento(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Confirmar Pagamento',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Tem certeza que deseja confirmar este pagamento?',
+          style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Não')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sim, confirmar'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = PaymentService(token: auth.token!);
@@ -72,7 +97,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         _loadPagamentos();
       }
     } catch (e) {
-      if (mounted) {
+      if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Erro: $e'), backgroundColor: AppColors.error));
       }
@@ -80,6 +105,29 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
   }
 
   Future<void> _cancelarPagamento(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Cancelar Pagamento',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Tem certeza que deseja cancelar este pagamento? Essa ação não pode ser desfeita.',
+          style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Não')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Sim, cancelar'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
       final service = PaymentService(token: auth.token!);
@@ -93,7 +141,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         _loadPagamentos();
       }
     } catch (e) {
-      if (mounted) {
+      if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text('Erro: $e'), backgroundColor: AppColors.error));
       }

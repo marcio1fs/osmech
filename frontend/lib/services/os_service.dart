@@ -15,7 +15,8 @@ class OsService {
       final List<dynamic> data = jsonDecode(response.body);
       return data.cast<Map<String, dynamic>>();
     }
-    throw Exception('Erro ao listar ordens de serviço');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar ordens de serviço');
   }
 
   /// Busca uma OS por ID.
@@ -25,7 +26,8 @@ class OsService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    throw Exception('Erro ao buscar ordem de serviço');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao buscar ordem de serviço');
   }
 
   /// Cria uma nova OS.
@@ -58,7 +60,8 @@ class OsService {
     final response = await _api.delete('/os/$id');
 
     if (response.statusCode != 200) {
-      throw Exception('Erro ao excluir OS');
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Erro ao excluir OS');
     }
   }
 
@@ -69,6 +72,7 @@ class OsService {
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
-    throw Exception('Erro ao carregar dashboard');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao carregar dashboard');
   }
 }

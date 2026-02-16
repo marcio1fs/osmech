@@ -33,7 +33,8 @@ class StockService {
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
-    throw Exception('Erro ao listar itens');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar itens');
   }
 
   /// Buscar item por ID
@@ -81,7 +82,8 @@ class StockService {
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
-    throw Exception('Erro ao listar movimentações');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar movimentações');
   }
 
   /// Listar movimentações de um item específico
@@ -90,7 +92,8 @@ class StockService {
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
-    throw Exception('Erro ao listar movimentações do item');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar movimentações do item');
   }
 
   // ==========================================
@@ -103,6 +106,7 @@ class StockService {
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
-    throw Exception('Erro ao buscar alertas');
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao buscar alertas');
   }
 }

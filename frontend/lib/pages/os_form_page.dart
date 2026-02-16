@@ -31,8 +31,60 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   String _status = 'ABERTA';
   bool _notificarWhatsApp = false;
   bool _loading = false;
+  bool _saved = false;
 
   bool get _isEditing => widget.osData != null;
+
+  /// Detecta se o formulário foi modificado em relação aos valores originais.
+  bool get _isDirty {
+    if (_saved) return false;
+    final d = widget.osData;
+    if (d == null) {
+      // Novo formulário — dirty se algum campo principal foi preenchido
+      return _clienteNome.text.trim().isNotEmpty ||
+          _placa.text.trim().isNotEmpty ||
+          _modelo.text.trim().isNotEmpty ||
+          _descricao.text.trim().isNotEmpty ||
+          _valor.text.trim().isNotEmpty;
+    }
+    return _clienteNome.text.trim() != (d['clienteNome'] ?? '') ||
+        _clienteTelefone.text.trim() != (d['clienteTelefone'] ?? '') ||
+        _placa.text.trim() != (d['placa'] ?? '') ||
+        _modelo.text.trim() != (d['modelo'] ?? '') ||
+        _ano.text.trim() != (d['ano']?.toString() ?? '') ||
+        _km.text.trim() != (d['quilometragem']?.toString() ?? '') ||
+        _descricao.text.trim() != (d['descricao'] ?? '') ||
+        _diagnostico.text.trim() != (d['diagnostico'] ?? '') ||
+        _pecas.text.trim() != (d['pecas'] ?? '') ||
+        _valor.text.trim() != (d['valor']?.toString() ?? '') ||
+        _status != (d['status'] ?? 'ABERTA');
+  }
+
+  Future<bool> _confirmarSaida() async {
+    if (!_isDirty) return true;
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Descartar alterações?',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Você tem alterações não salvas. Deseja sair sem salvar?',
+          style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Continuar editando')),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Descartar'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
 
   /// Mapa de transições de status válidas (espelho do backend StatusOS).
   static const Map<String, List<String>> _transicoesValidas = {
@@ -138,6 +190,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
         await osService.criar(data);
       }
       if (mounted) {
+        _saved = true;
         if (widget.onSaved != null) {
           widget.onSaved!();
         } else {
@@ -160,249 +213,267 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Column(
-        children: [
-          // Header
-          Container(
-            height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-            ),
-            child: Row(
-              children: [
-                if (Navigator.canPop(context))
-                  Padding(
-                    padding: const EdgeInsets.only(right: 16),
-                    child: IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      onPressed: () => Navigator.pop(context),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (await _confirmarSaida()) {
+          if (context.mounted) Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Column(
+          children: [
+            // Header
+            Container(
+              height: 72,
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                border: Border(bottom: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  if (Navigator.canPop(context))
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16),
+                      child: IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                        onPressed: () async {
+                          if (await _confirmarSaida()) {
+                            if (context.mounted) Navigator.pop(context);
+                          }
+                        },
+                      ),
                     ),
-                  ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _isEditing ? 'Editar OS' : 'Nova Ordem de Serviço',
-                      style: GoogleFonts.inter(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary),
-                    ),
-                    Text(
-                      _isEditing
-                          ? 'Placa: ${widget.osData?['placa'] ?? ''}'
-                          : 'Preencha os dados da OS',
-                      style: GoogleFonts.inter(
-                          fontSize: 13, color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancelar'),
-                ),
-                const SizedBox(width: 12),
-                FilledButton.icon(
-                  onPressed: _loading ? null : _salvar,
-                  icon: _loading
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Icon(Icons.save_rounded, size: 18),
-                  label: Text(_isEditing ? 'Salvar Alterações' : 'Criar OS'),
-                ),
-              ],
-            ),
-          ),
-
-          // Form content
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: Form(
-                key: _formKey,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 900),
-                  child: Column(
+                  Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Section: Cliente
-                      _SectionHeader(
-                          icon: Icons.person_outline_rounded,
-                          title: 'Dados do Cliente'),
-                      const SizedBox(height: 16),
-                      _CardSection(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: _Field(
-                                    label: 'Nome do Cliente',
-                                    controller: _clienteNome,
-                                    required: true),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _Field(
-                                    label: 'Telefone (WhatsApp)',
-                                    controller: _clienteTelefone,
-                                    required: true,
-                                    keyboard: TextInputType.phone),
-                              ),
-                            ],
-                          ),
-                        ],
+                      Text(
+                        _isEditing ? 'Editar OS' : 'Nova Ordem de Serviço',
+                        style: GoogleFonts.inter(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary),
                       ),
-                      const SizedBox(height: 28),
-
-                      // Section: Veículo
-                      _SectionHeader(
-                          icon: Icons.directions_car_outlined,
-                          title: 'Dados do Veículo'),
-                      const SizedBox(height: 16),
-                      _CardSection(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: _Field(
-                                      label: 'Placa',
-                                      controller: _placa,
-                                      required: true)),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                  flex: 2,
-                                  child: _Field(
-                                      label: 'Modelo',
-                                      controller: _modelo,
-                                      required: true)),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                  child: _Field(
-                                      label: 'Ano',
-                                      controller: _ano,
-                                      keyboard: TextInputType.number)),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                  child: _Field(
-                                      label: 'Quilometragem',
-                                      controller: _km,
-                                      keyboard: TextInputType.number)),
-                            ],
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-
-                      // Section: Serviço
-                      _SectionHeader(
-                          icon: Icons.build_outlined, title: 'Serviço'),
-                      const SizedBox(height: 16),
-                      _CardSection(
-                        children: [
-                          _Field(
-                              label: 'Descrição do Problema',
-                              controller: _descricao,
-                              required: true,
-                              maxLines: 3),
-                          const SizedBox(height: 16),
-                          _Field(
-                              label: 'Diagnóstico',
-                              controller: _diagnostico,
-                              maxLines: 3),
-                          const SizedBox(height: 16),
-                          _Field(
-                              label: 'Peças Utilizadas',
-                              controller: _pecas,
-                              maxLines: 2),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _Field(
-                                    label: 'Valor (R\$)',
-                                    controller: _valor,
-                                    required: true,
-                                    keyboard: TextInputType.number),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Status',
-                                        style: GoogleFonts.inter(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textPrimary)),
-                                    const SizedBox(height: 8),
-                                    DropdownButtonFormField<String>(
-                                      value: _status,
-                                      decoration: const InputDecoration(),
-                                      items: _statusPermitidos
-                                          .map((s) => DropdownMenuItem(
-                                              value: s,
-                                              child:
-                                                  Text(_statusLabels[s] ?? s)))
-                                          .toList(),
-                                      onChanged: _isEditing
-                                          ? (v) => setState(
-                                              () => _status = v ?? _status)
-                                          : null,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // WhatsApp toggle
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceVariant,
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: SwitchListTile(
-                              value: _notificarWhatsApp,
-                              onChanged: (v) =>
-                                  setState(() => _notificarWhatsApp = v),
-                              title: Text('Notificar cliente via WhatsApp',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500)),
-                              subtitle: Text(
-                                  'Envia atualização de status ao cliente',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 12,
-                                      color: AppColors.textMuted)),
-                              contentPadding: EdgeInsets.zero,
-                              activeColor: AppColors.accent,
-                            ),
-                          ),
-                        ],
+                      Text(
+                        _isEditing
+                            ? 'Placa: ${widget.osData?['placa'] ?? ''}'
+                            : 'Preencha os dados da OS',
+                        style: GoogleFonts.inter(
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
                     ],
+                  ),
+                  const Spacer(),
+                  OutlinedButton(
+                    onPressed: () async {
+                      if (await _confirmarSaida()) {
+                        if (context.mounted) Navigator.pop(context);
+                      }
+                    },
+                    child: const Text('Cancelar'),
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.icon(
+                    onPressed: _loading ? null : _salvar,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : const Icon(Icons.save_rounded, size: 18),
+                    label: Text(_isEditing ? 'Salvar Alterações' : 'Criar OS'),
+                  ),
+                ],
+              ),
+            ),
+
+            // Form content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(32),
+                child: Form(
+                  key: _formKey,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Section: Cliente
+                        _SectionHeader(
+                            icon: Icons.person_outline_rounded,
+                            title: 'Dados do Cliente'),
+                        const SizedBox(height: 16),
+                        _CardSection(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  flex: 2,
+                                  child: _Field(
+                                      label: 'Nome do Cliente',
+                                      controller: _clienteNome,
+                                      required: true),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: _Field(
+                                      label: 'Telefone (WhatsApp)',
+                                      controller: _clienteTelefone,
+                                      required: true,
+                                      keyboard: TextInputType.phone),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Section: Veículo
+                        _SectionHeader(
+                            icon: Icons.directions_car_outlined,
+                            title: 'Dados do Veículo'),
+                        const SizedBox(height: 16),
+                        _CardSection(
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                    child: _Field(
+                                        label: 'Placa',
+                                        controller: _placa,
+                                        required: true)),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                    flex: 2,
+                                    child: _Field(
+                                        label: 'Modelo',
+                                        controller: _modelo,
+                                        required: true)),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                    child: _Field(
+                                        label: 'Ano',
+                                        controller: _ano,
+                                        keyboard: TextInputType.number)),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                    child: _Field(
+                                        label: 'Quilometragem',
+                                        controller: _km,
+                                        keyboard: TextInputType.number)),
+                              ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+
+                        // Section: Serviço
+                        _SectionHeader(
+                            icon: Icons.build_outlined, title: 'Serviço'),
+                        const SizedBox(height: 16),
+                        _CardSection(
+                          children: [
+                            _Field(
+                                label: 'Descrição do Problema',
+                                controller: _descricao,
+                                required: true,
+                                maxLines: 3),
+                            const SizedBox(height: 16),
+                            _Field(
+                                label: 'Diagnóstico',
+                                controller: _diagnostico,
+                                maxLines: 3),
+                            const SizedBox(height: 16),
+                            _Field(
+                                label: 'Peças Utilizadas',
+                                controller: _pecas,
+                                maxLines: 2),
+                            const SizedBox(height: 16),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _Field(
+                                      label: 'Valor (R\$)',
+                                      controller: _valor,
+                                      required: true,
+                                      keyboard: TextInputType.number),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Status',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.textPrimary)),
+                                      const SizedBox(height: 8),
+                                      DropdownButtonFormField<String>(
+                                        value: _status,
+                                        decoration: const InputDecoration(),
+                                        items: _statusPermitidos
+                                            .map((s) => DropdownMenuItem(
+                                                value: s,
+                                                child: Text(
+                                                    _statusLabels[s] ?? s)))
+                                            .toList(),
+                                        onChanged: _isEditing
+                                            ? (v) => setState(
+                                                () => _status = v ?? _status)
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            // WhatsApp toggle
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.surfaceVariant,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: SwitchListTile(
+                                value: _notificarWhatsApp,
+                                onChanged: (v) =>
+                                    setState(() => _notificarWhatsApp = v),
+                                title: Text('Notificar cliente via WhatsApp',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500)),
+                                subtitle: Text(
+                                    'Envia atualização de status ao cliente',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        color: AppColors.textMuted)),
+                                contentPadding: EdgeInsets.zero,
+                                activeColor: AppColors.accent,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
