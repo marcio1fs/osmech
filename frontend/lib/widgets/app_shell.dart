@@ -363,7 +363,7 @@ class _AppShellState extends State<AppShell> {
                               ],
                             ),
                           ),
-                          Icon(
+                          const Icon(
                             Icons.logout_rounded,
                             color: AppColors.sidebarText,
                             size: 18,
@@ -391,7 +391,7 @@ class _AppShellState extends State<AppShell> {
     return Scaffold(
       body: _getPage(_selectedIndex),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex > 4 ? 0 : _selectedIndex,
+        selectedIndex: _selectedIndex > 4 ? 4 : _selectedIndex,
         onDestinationSelected: (i) {
           if (i == 4) {
             _showMobileDrawer(auth);

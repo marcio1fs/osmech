@@ -4,12 +4,14 @@ import com.osmech.finance.entity.CategoriaFinanceira;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
 /**
  * Repositório de Categorias Financeiras.
  */
+@Repository
 public interface CategoriaFinanceiraRepository extends JpaRepository<CategoriaFinanceira, Long> {
 
     /** Categorias da oficina + categorias do sistema */

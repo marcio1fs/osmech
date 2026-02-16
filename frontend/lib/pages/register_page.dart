@@ -125,15 +125,15 @@ class _RegisterPageState extends State<RegisterPage> {
                           ),
                         ),
                         const SizedBox(height: 48),
-                        _FeatureChip(
+                        const _FeatureChip(
                             icon: Icons.rocket_launch_rounded,
                             text: 'Comece gratuitamente'),
                         const SizedBox(height: 12),
-                        _FeatureChip(
+                        const _FeatureChip(
                             icon: Icons.security_rounded,
                             text: 'Dados seguros na nuvem'),
                         const SizedBox(height: 12),
-                        _FeatureChip(
+                        const _FeatureChip(
                             icon: Icons.support_agent_rounded,
                             text: 'Suporte dedicado'),
                       ],
@@ -217,7 +217,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 32),
 
                         // Nome
-                        _FieldLabel('Nome completo'),
+                        const _FieldLabel('Nome completo'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _nomeController,
@@ -233,7 +233,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 18),
 
                         // Email
-                        _FieldLabel('Email'),
+                        const _FieldLabel('Email'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _emailController,
@@ -244,17 +244,20 @@ class _RegisterPageState extends State<RegisterPage> {
                                 Icon(Icons.mail_outline_rounded, size: 20),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Informe seu email';
+                            }
                             if (!RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$')
-                                .hasMatch(v)) return 'Email inválido';
+                                .hasMatch(v)) {
+                              return 'Email inválido';
+                            }
                             return null;
                           },
                         ),
                         const SizedBox(height: 18),
 
                         // Senha
-                        _FieldLabel('Senha'),
+                        const _FieldLabel('Senha'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _senhaController,
@@ -276,8 +279,9 @@ class _RegisterPageState extends State<RegisterPage> {
                             ),
                           ),
                           validator: (v) {
-                            if (v == null || v.isEmpty)
+                            if (v == null || v.isEmpty) {
                               return 'Informe uma senha';
+                            }
                             if (v.length < 6) return 'Mínimo 6 caracteres';
                             return null;
                           },
@@ -285,7 +289,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 18),
 
                         // Telefone
-                        _FieldLabel('Telefone (WhatsApp)'),
+                        const _FieldLabel('Telefone (WhatsApp)'),
                         const SizedBox(height: 8),
                         TextFormField(
                           controller: _telefoneController,
@@ -301,7 +305,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         const SizedBox(height: 18),
 
                         // Oficina
-                        _FieldLabel('Nome da Oficina'),
+                        const _FieldLabel('Nome da Oficina'),
                         const SizedBox(height: 4),
                         Text(
                           'Opcional — pode ser alterado depois',

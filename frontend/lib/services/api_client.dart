@@ -23,7 +23,7 @@ class ApiClient {
         'Authorization': 'Bearer $token',
       };
 
-  Duration get _timeout => Duration(seconds: ApiConfig.timeoutSeconds);
+  Duration get _timeout => const Duration(seconds: ApiConfig.timeoutSeconds);
 
   /// Verifica se a resposta é 401 e lança [UnauthorizedException].
   void _checkUnauthorized(http.Response response) {

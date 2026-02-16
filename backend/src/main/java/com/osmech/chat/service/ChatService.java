@@ -27,7 +27,7 @@ public class ChatService {
 
     private final ChatRepository chatRepository;
     private final UsuarioRepository userRepository;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${ai.enabled:false}")
     private boolean aiEnabled;

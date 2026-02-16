@@ -101,7 +101,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 64, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text('Erro ao carregar alertas',
@@ -131,7 +131,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.check_circle_outline_rounded,
+                                const Icon(Icons.check_circle_outline_rounded,
                                     size: 64, color: AppColors.success),
                                 const SizedBox(height: 12),
                                 Text('Estoque está em dia!',

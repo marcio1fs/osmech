@@ -281,7 +281,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text(_error!,
@@ -314,7 +314,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.receipt_long_outlined,
+            const Icon(Icons.receipt_long_outlined,
                 size: 56, color: AppColors.textMuted),
             const SizedBox(height: 12),
             Text('Nenhum pagamento encontrado',

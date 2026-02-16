@@ -304,7 +304,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Section: Cliente
-                        _SectionHeader(
+                        const _SectionHeader(
                             icon: Icons.person_outline_rounded,
                             title: 'Dados do Cliente'),
                         const SizedBox(height: 16),
@@ -334,7 +334,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                         const SizedBox(height: 28),
 
                         // Section: Veículo
-                        _SectionHeader(
+                        const _SectionHeader(
                             icon: Icons.directions_car_outlined,
                             title: 'Dados do Veículo'),
                         const SizedBox(height: 16),
@@ -377,7 +377,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                         const SizedBox(height: 28),
 
                         // Section: Serviço
-                        _SectionHeader(
+                        const _SectionHeader(
                             icon: Icons.build_outlined, title: 'Serviço'),
                         const SizedBox(height: 16),
                         _CardSection(

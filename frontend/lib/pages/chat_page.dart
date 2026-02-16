@@ -419,7 +419,7 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
               radius: 16,
               backgroundColor: AppColors.accent.withValues(alpha: 0.15),
               child:
-                  Icon(Icons.person_rounded, size: 16, color: AppColors.accent),
+                  const Icon(Icons.person_rounded, size: 16, color: AppColors.accent),
             ),
           ],
         ],
@@ -523,7 +523,7 @@ class _TypingDotState extends State<_TypingDot>
       child: Container(
         width: 8,
         height: 8,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppColors.textMuted,
           shape: BoxShape.circle,
         ),

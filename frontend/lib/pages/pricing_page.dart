@@ -36,7 +36,7 @@ class _PricingPageState extends State<PricingPage> {
       final response = await http.get(Uri.parse('${ApiConfig.baseUrl}/planos'),
           headers: {
             'Content-Type': 'application/json'
-          }).timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+          }).timeout(const Duration(seconds: ApiConfig.timeoutSeconds));
       if (response.statusCode == 200) {
         setState(() {
           _planos = jsonDecode(response.body);
@@ -200,7 +200,7 @@ class _PricingPageState extends State<PricingPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text(_error!,

@@ -308,7 +308,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text(_error!,
@@ -326,7 +326,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(Icons.inbox_rounded,
+                                const Icon(Icons.inbox_rounded,
                                     size: 56, color: AppColors.textMuted),
                                 const SizedBox(height: 12),
                                 Text('Nenhuma OS encontrada',

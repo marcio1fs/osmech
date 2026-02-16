@@ -208,10 +208,13 @@ class _LoginPageState extends State<LoginPage> {
                                 Icon(Icons.mail_outline_rounded, size: 20),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty)
+                            if (value == null || value.isEmpty) {
                               return 'Informe seu email';
+                            }
                             if (!RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$')
-                                .hasMatch(value)) return 'Email inválido';
+                                .hasMatch(value)) {
+                              return 'Email inválido';
+                            }
                             return null;
                           },
                         ),
@@ -247,8 +250,9 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           ),
                           validator: (value) {
-                            if (value == null || value.isEmpty)
+                            if (value == null || value.isEmpty) {
                               return 'Informe sua senha';
+                            }
                             return null;
                           },
                         ),

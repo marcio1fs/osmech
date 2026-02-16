@@ -184,7 +184,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text(_error!,
@@ -327,7 +327,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                   ),
                                   child: Row(
                                     children: [
-                                      Icon(Icons.warning_amber_rounded,
+                                      const Icon(Icons.warning_amber_rounded,
                                           color: AppColors.warning),
                                       const SizedBox(width: 12),
                                       Expanded(

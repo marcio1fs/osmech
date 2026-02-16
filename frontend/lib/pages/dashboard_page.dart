@@ -116,7 +116,7 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
                           mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 16),
                             Text(_error!,

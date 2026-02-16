@@ -193,7 +193,7 @@ class _StockMovementPageState extends State<StockMovementPage>
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.error_outline_rounded,
+                            const Icon(Icons.error_outline_rounded,
                                 size: 64, color: AppColors.error),
                             const SizedBox(height: 12),
                             Text('Erro ao carregar dados',

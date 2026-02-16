@@ -324,8 +324,8 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                               children: [
                                 Icon(Icons.inventory_2_outlined,
                                     size: 64,
-                                    color:
-                                        AppColors.textMuted.withValues(alpha: 0.4)),
+                                    color: AppColors.textMuted
+                                        .withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),
                                 Text('Nenhuma peça cadastrada',
                                     style: GoogleFonts.inter(
@@ -342,7 +342,14 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                           )
                         : SingleChildScrollView(
                             padding: const EdgeInsets.all(32),
-                            child: _buildTable(),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              child: ConstrainedBox(
+                                constraints:
+                                    const BoxConstraints(minWidth: 800),
+                                child: _buildTable(),
+                              ),
+                            ),
                           ),
           ),
         ],

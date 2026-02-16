@@ -21,8 +21,7 @@ public class PlanoService {
      * Lista todos os planos ativos.
      */
     public List<PlanoResponse> listarAtivos() {
-        return planoRepository.findAll().stream()
-                .filter(Plano::getAtivo)
+        return planoRepository.findByAtivoTrue().stream()
                 .map(this::toResponse)
                 .toList();
     }

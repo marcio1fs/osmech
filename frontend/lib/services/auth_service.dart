@@ -59,7 +59,7 @@ class AuthService extends ChangeNotifier {
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'email': email, 'senha': senha}),
           )
-          .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+          .timeout(const Duration(seconds: ApiConfig.timeoutSeconds));
 
       final body = jsonDecode(response.body);
 
@@ -101,7 +101,7 @@ class AuthService extends ChangeNotifier {
               'nomeOficina': nomeOficina,
             }),
           )
-          .timeout(Duration(seconds: ApiConfig.timeoutSeconds));
+          .timeout(const Duration(seconds: ApiConfig.timeoutSeconds));
 
       final body = jsonDecode(response.body);
 

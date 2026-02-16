@@ -15,6 +15,10 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
+  // Form keys
+  final _profileFormKey = GlobalKey<FormState>();
+  final _passwordFormKey = GlobalKey<FormState>();
+
   // Perfil
   final _nomeCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
@@ -83,13 +87,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   }
 
   Future<void> _salvarPerfil() async {
-    if (_nomeCtrl.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Nome é obrigatório', style: GoogleFonts.inter()),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
+    if (!_profileFormKey.currentState!.validate()) return;
     setState(() => _savingProfile = true);
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
@@ -124,31 +122,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   }
 
   Future<void> _alterarSenha() async {
-    if (_senhaAtualCtrl.text.isEmpty ||
-        _novaSenhaCtrl.text.isEmpty ||
-        _confirmaSenhaCtrl.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Preencha todos os campos de senha',
-            style: GoogleFonts.inter()),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
-    if (_novaSenhaCtrl.text.length < 8) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Nova senha deve ter no mínimo 8 caracteres',
-            style: GoogleFonts.inter()),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
-    if (_novaSenhaCtrl.text != _confirmaSenhaCtrl.text) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('As senhas não coincidem', style: GoogleFonts.inter()),
-        backgroundColor: AppColors.error,
-      ));
-      return;
-    }
+    if (!_passwordFormKey.currentState!.validate()) return;
     setState(() => _savingPassword = true);
     try {
       final auth = Provider.of<AuthService>(context, listen: false);
@@ -248,11 +222,15 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                 _buildCard(
                   title: 'Dados Pessoais',
                   icon: Icons.person_rounded,
+                  formKey: _profileFormKey,
                   children: [
                     _inputField('Email', null,
                         initialValue: _email, readOnly: true),
                     const SizedBox(height: 16),
-                    _inputField('Nome', _nomeCtrl),
+                    _inputField('Nome', _nomeCtrl,
+                        validator: (v) => v == null || v.trim().isEmpty
+                            ? 'Nome é obrigatório'
+                            : null),
                     const SizedBox(height: 16),
                     _inputField('Telefone', _telefoneCtrl,
                         hint: '(11) 99999-9999'),
@@ -284,19 +262,38 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                 _buildCard(
                   title: 'Alterar Senha',
                   icon: Icons.lock_rounded,
+                  formKey: _passwordFormKey,
                   children: [
                     _passwordField('Senha Atual', _senhaAtualCtrl,
                         show: _showSenhaAtual,
                         onToggle: () =>
-                            setState(() => _showSenhaAtual = !_showSenhaAtual)),
+                            setState(() => _showSenhaAtual = !_showSenhaAtual),
+                        validator: (v) => v == null || v.isEmpty
+                            ? 'Senha atual é obrigatória'
+                            : null),
                     const SizedBox(height: 16),
                     _passwordField('Nova Senha', _novaSenhaCtrl,
                         show: _showNovaSenha,
                         onToggle: () =>
-                            setState(() => _showNovaSenha = !_showNovaSenha)),
+                            setState(() => _showNovaSenha = !_showNovaSenha),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) {
+                            return 'Nova senha é obrigatória';
+                          }
+                          if (v.length < 8) return 'Mínimo de 8 caracteres';
+                          return null;
+                        }),
                     const SizedBox(height: 16),
                     _passwordField('Confirmar Nova Senha', _confirmaSenhaCtrl,
-                        show: _showNovaSenha, onToggle: null),
+                        show: _showNovaSenha, onToggle: null, validator: (v) {
+                      if (v == null || v.isEmpty) {
+                        return 'Confirme a nova senha';
+                      }
+                      if (v != _novaSenhaCtrl.text) {
+                        return 'As senhas não coincidem';
+                      }
+                      return null;
+                    }),
                     const SizedBox(height: 8),
                     Text('Mínimo de 8 caracteres',
                         style: GoogleFonts.inter(
@@ -347,7 +344,26 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     required String title,
     required IconData icon,
     required List<Widget> children,
+    GlobalKey<FormState>? formKey,
   }) {
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, size: 20, color: AppColors.accent),
+            const SizedBox(width: 8),
+            Text(title,
+                style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ...children,
+      ],
+    );
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -355,29 +371,15 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 20, color: AppColors.accent),
-              const SizedBox(width: 8),
-              Text(title,
-                  style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary)),
-            ],
-          ),
-          const SizedBox(height: 20),
-          ...children,
-        ],
-      ),
+      child: formKey != null ? Form(key: formKey, child: content) : content,
     );
   }
 
   Widget _inputField(String label, TextEditingController? controller,
-      {String? hint, String? initialValue, bool readOnly = false}) {
+      {String? hint,
+      String? initialValue,
+      bool readOnly = false,
+      String? Function(String?)? validator}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -391,6 +393,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
           controller: controller,
           initialValue: controller == null ? initialValue : null,
           readOnly: readOnly,
+          validator: validator,
           style: GoogleFonts.inter(
               fontSize: 14,
               color:
@@ -401,11 +404,11 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
             fillColor: readOnly ? AppColors.background : AppColors.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -416,7 +419,9 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   }
 
   Widget _passwordField(String label, TextEditingController controller,
-      {required bool show, VoidCallback? onToggle}) {
+      {required bool show,
+      VoidCallback? onToggle,
+      String? Function(String?)? validator}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -429,17 +434,18 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
         TextFormField(
           controller: controller,
           obscureText: !show,
+          validator: validator,
           style: GoogleFonts.inter(fontSize: 14, color: AppColors.textPrimary),
           decoration: InputDecoration(
             filled: true,
             fillColor: AppColors.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(10),
-              borderSide: BorderSide(color: AppColors.border),
+              borderSide: const BorderSide(color: AppColors.border),
             ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 12),

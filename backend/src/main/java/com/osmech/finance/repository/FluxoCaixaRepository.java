@@ -2,6 +2,7 @@ package com.osmech.finance.repository;
 
 import com.osmech.finance.entity.FluxoCaixa;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -10,6 +11,7 @@ import java.util.Optional;
 /**
  * Repositório de Fluxo de Caixa.
  */
+@Repository
 public interface FluxoCaixaRepository extends JpaRepository<FluxoCaixa, Long> {
 
     /** Fluxo de caixa de um dia específico */
