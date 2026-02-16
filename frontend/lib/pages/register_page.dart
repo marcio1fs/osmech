@@ -246,7 +246,8 @@ class _RegisterPageState extends State<RegisterPage> {
                           validator: (v) {
                             if (v == null || v.isEmpty)
                               return 'Informe seu email';
-                            if (!v.contains('@')) return 'Email inválido';
+                            if (!RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$')
+                                .hasMatch(v)) return 'Email inválido';
                             return null;
                           },
                         ),

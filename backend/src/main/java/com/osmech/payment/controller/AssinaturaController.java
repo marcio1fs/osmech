@@ -6,6 +6,7 @@ import com.osmech.payment.service.AssinaturaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -80,8 +81,9 @@ public class AssinaturaController {
 
     /**
      * POST /api/assinatura/verificar-inadimplencia - Verifica e aplica regras de inadimplência
-     * (Rota administrativa - em produção deveria ser protegida por role ADMIN)
+     * Somente usuários com role ADMIN podem acessar.
      */
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/verificar-inadimplencia")
     public ResponseEntity<?> verificarInadimplencia() {
         assinaturaService.verificarInadimplencia();

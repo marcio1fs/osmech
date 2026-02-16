@@ -210,7 +210,8 @@ class _LoginPageState extends State<LoginPage> {
                           validator: (value) {
                             if (value == null || value.isEmpty)
                               return 'Informe seu email';
-                            if (!value.contains('@')) return 'Email inválido';
+                            if (!RegExp(r'^[\w\.-]+@[\w\.-]+\.\w{2,}$')
+                                .hasMatch(value)) return 'Email inválido';
                             return null;
                           },
                         ),

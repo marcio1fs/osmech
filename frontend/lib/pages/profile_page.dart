@@ -168,6 +168,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
         ));
       }
     } catch (e) {
+      if (handleAuthError(e)) return;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('$e', style: GoogleFonts.inter()),

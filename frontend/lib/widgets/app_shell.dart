@@ -268,8 +268,8 @@ class _AppShellState extends State<AppShell> {
                                   style: GoogleFonts.inter(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w600,
-                                    color:
-                                        AppColors.sidebarText.withValues(alpha: 0.5),
+                                    color: AppColors.sidebarText
+                                        .withValues(alpha: 0.5),
                                     letterSpacing: 1.5,
                                   ),
                                 ),
@@ -327,7 +327,8 @@ class _AppShellState extends State<AppShell> {
                       children: [
                         CircleAvatar(
                           radius: 18,
-                          backgroundColor: AppColors.accent.withValues(alpha: 0.2),
+                          backgroundColor:
+                              AppColors.accent.withValues(alpha: 0.2),
                           child: Text(
                             (auth.nome ?? 'U')[0].toUpperCase(),
                             style: GoogleFonts.inter(
@@ -353,7 +354,7 @@ class _AppShellState extends State<AppShell> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  auth.plano ?? 'PRO',
+                                  auth.plano ?? 'FREE',
                                   style: GoogleFonts.inter(
                                     color: AppColors.sidebarText,
                                     fontSize: 11,

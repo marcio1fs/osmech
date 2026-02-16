@@ -279,6 +279,9 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                               value: 'AGUARDANDO_PECA',
                               child: Text('Ag. Peça')),
                           DropdownMenuItem(
+                              value: 'AGUARDANDO_APROVACAO',
+                              child: Text('Ag. Aprovação')),
+                          DropdownMenuItem(
                               value: 'CONCLUIDA', child: Text('Concluída')),
                           DropdownMenuItem(
                               value: 'CANCELADA', child: Text('Cancelada')),

@@ -35,7 +35,7 @@ public class UserController {
      */
     @PutMapping("/perfil")
     public ResponseEntity<?> atualizarPerfil(Authentication auth,
-                                              @RequestBody UserProfileRequest request) {
+                                              @Valid @RequestBody UserProfileRequest request) {
         try {
             UserProfileResponse response = userService.atualizarPerfil(auth.getName(), request);
             return ResponseEntity.ok(response);

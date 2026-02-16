@@ -335,79 +335,83 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(14),
-          child: DataTable(
-            headingRowColor: WidgetStateProperty.all(AppColors.surfaceVariant),
-            headingTextStyle: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textSecondary),
-            dataTextStyle:
-                GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary),
-            columnSpacing: 20,
-            horizontalMargin: 20,
-            columns: const [
-              DataColumn(label: Text('DESCRIÇÃO')),
-              DataColumn(label: Text('TIPO')),
-              DataColumn(label: Text('MÉTODO')),
-              DataColumn(label: Text('STATUS')),
-              DataColumn(label: Text('VALOR'), numeric: true),
-              DataColumn(label: Text('DATA')),
-              DataColumn(label: Text('AÇÕES')),
-            ],
-            rows: pagamentos.map((p) {
-              final status = p['status'] as String?;
-              final color = _statusColor(status);
-              return DataRow(
-                cells: [
-                  DataCell(Text(p['descricao'] ?? p['tipo'] ?? 'Pagamento',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
-                  DataCell(Text(p['tipo'] ?? '-')),
-                  DataCell(Text(_metodoPagamentoLabel(p['metodoPagamento']))),
-                  DataCell(
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20)),
-                      child: Text(_statusLabel(status),
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: color)),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: DataTable(
+              headingRowColor:
+                  WidgetStateProperty.all(AppColors.surfaceVariant),
+              headingTextStyle: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary),
+              dataTextStyle:
+                  GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary),
+              columnSpacing: 20,
+              horizontalMargin: 20,
+              columns: const [
+                DataColumn(label: Text('DESCRIÇÃO')),
+                DataColumn(label: Text('TIPO')),
+                DataColumn(label: Text('MÉTODO')),
+                DataColumn(label: Text('STATUS')),
+                DataColumn(label: Text('VALOR'), numeric: true),
+                DataColumn(label: Text('DATA')),
+                DataColumn(label: Text('AÇÕES')),
+              ],
+              rows: pagamentos.map((p) {
+                final status = p['status'] as String?;
+                final color = _statusColor(status);
+                return DataRow(
+                  cells: [
+                    DataCell(Text(p['descricao'] ?? p['tipo'] ?? 'Pagamento',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
+                    DataCell(Text(p['tipo'] ?? '-')),
+                    DataCell(Text(_metodoPagamentoLabel(p['metodoPagamento']))),
+                    DataCell(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20)),
+                        child: Text(_statusLabel(status),
+                            style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: color)),
+                      ),
                     ),
-                  ),
-                  DataCell(Text('R\$ ${(p['valor'] ?? 0).toStringAsFixed(2)}',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
-                  DataCell(Text(_formatDateTime(p['criadoEm']),
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: AppColors.textSecondary))),
-                  DataCell(
-                    status == 'PENDENTE'
-                        ? Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(
-                                    Icons.check_circle_outline_rounded,
-                                    size: 18,
-                                    color: AppColors.success),
-                                onPressed: () => _confirmarPagamento(p['id']),
-                                tooltip: 'Confirmar',
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.cancel_outlined,
-                                    size: 18, color: AppColors.error),
-                                onPressed: () => _cancelarPagamento(p['id']),
-                                tooltip: 'Cancelar',
-                              ),
-                            ],
-                          )
-                        : const SizedBox.shrink(),
-                  ),
-                ],
-              );
-            }).toList(),
+                    DataCell(Text('R\$ ${(p['valor'] ?? 0).toStringAsFixed(2)}',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
+                    DataCell(Text(_formatDateTime(p['criadoEm']),
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: AppColors.textSecondary))),
+                    DataCell(
+                      status == 'PENDENTE'
+                          ? Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(
+                                      Icons.check_circle_outline_rounded,
+                                      size: 18,
+                                      color: AppColors.success),
+                                  onPressed: () => _confirmarPagamento(p['id']),
+                                  tooltip: 'Confirmar',
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.cancel_outlined,
+                                      size: 18, color: AppColors.error),
+                                  onPressed: () => _cancelarPagamento(p['id']),
+                                  tooltip: 'Cancelar',
+                                ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
           ),
         ),
       ),

@@ -9,6 +9,7 @@ import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Serviço responsável por autenticação e cadastro de usuários.
@@ -26,6 +27,7 @@ public class AuthService {
      *
      * @throws IllegalArgumentException se o email já estiver em uso
      */
+    @Transactional
     public AuthResponse register(RegisterRequest request) {
         // Verifica se email já existe
         if (usuarioRepository.existsByEmail(request.getEmail())) {
