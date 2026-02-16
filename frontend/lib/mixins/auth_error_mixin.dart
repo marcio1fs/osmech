@@ -35,18 +35,22 @@ mixin AuthErrorMixin<T extends StatefulWidget> on State<T> {
     return token;
   }
 
-  /// Verifica se o erro é [UnauthorizedException] e faz logout automático.
-  /// Retorna true se o erro foi tratado (401), false caso contrário.
+  /// Verifica se o erro é [UnauthorizedException] (401) ou [ForbiddenException] (403)
+  /// e faz logout automático. Retorna true se o erro foi tratado, false caso contrário.
   bool handleAuthError(Object error) {
-    if (error is UnauthorizedException) {
+    if (error is UnauthorizedException || error is ForbiddenException) {
       if (mounted) {
         final auth = Provider.of<AuthService>(context, listen: false);
         auth.logout();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Sessão expirada. Faça login novamente.'),
+          SnackBar(
+            content: Text(
+              error is ForbiddenException
+                  ? 'Acesso negado. Faça login novamente.'
+                  : 'Sessão expirada. Faça login novamente.',
+            ),
             backgroundColor: Colors.red,
-            duration: Duration(seconds: 4),
+            duration: const Duration(seconds: 4),
           ),
         );
       }

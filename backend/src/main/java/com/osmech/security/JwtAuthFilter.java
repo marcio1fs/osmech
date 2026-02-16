@@ -16,12 +16,17 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Filtro que intercepta requisições HTTP e valida o token JWT no header Authorization.
  */
 @Component
 @RequiredArgsConstructor
 public class JwtAuthFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtAuthFilter.class);
 
     private final JwtUtil jwtUtil;
     private final UsuarioRepository usuarioRepository;
@@ -47,7 +52,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
                     var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                } else {
+                    log.warn("JWT válido mas usuário não encontrado ou inativo: {}", email);
                 }
+            } else {
+                log.debug("Token JWT inválido ou expirado para {} {}", request.getMethod(), request.getRequestURI());
             }
         }
 

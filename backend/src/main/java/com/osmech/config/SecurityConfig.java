@@ -18,6 +18,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -27,6 +29,7 @@ import java.util.List;
  * - CSRF desabilitado (API stateless)
  * - Sessão stateless (JWT)
  * - Rotas públicas: /api/auth/**, /api/planos/**
+ * - AuthenticationEntryPoint retorna 401 (não 403) para requests não autenticados
  */
 @Configuration
 @EnableWebSecurity
@@ -45,6 +48,20 @@ public class SecurityConfig {
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             .csrf(csrf -> csrf.disable())
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex
+                // 401 para requests sem autenticação (token ausente/expirado)
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Sessão expirada ou token inválido. Faça login novamente.\"}");
+                })
+                // 403 para requests autenticados mas sem permissão
+                .accessDeniedHandler((request, response, accessDeniedException) -> {
+                    response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    response.setContentType("application/json");
+                    response.getWriter().write("{\"error\":\"Acesso negado. Permissão insuficiente.\"}");
+                })
+            )
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/planos/**").permitAll()
