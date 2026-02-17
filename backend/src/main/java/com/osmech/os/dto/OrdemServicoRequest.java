@@ -1,5 +1,6 @@
 package com.osmech.os.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -7,9 +8,11 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * DTO para criação/atualização de Ordem de Serviço.
+ * Suporta múltiplos serviços e itens de estoque.
  */
 @Data
 public class OrdemServicoRequest {
@@ -32,17 +35,27 @@ public class OrdemServicoRequest {
     @Min(value = 0, message = "Quilometragem não pode ser negativa")
     private Integer quilometragem;
 
-    @NotBlank(message = "Descrição é obrigatória")
+    /** Descrição geral (campo legado, opcional se enviar servicos[]) */
     private String descricao;
 
     private String diagnostico;
 
+    /** Peças (campo legado, opcional se enviar itens[]) */
     private String pecas;
 
+    /** Valor total (campo legado, calculado automaticamente se servicos/itens presentes) */
     @DecimalMin(value = "0.0", message = "Valor não pode ser negativo")
     private BigDecimal valor;
 
     private String status;
 
     private Boolean whatsappConsentimento;
+
+    /** Lista de serviços da OS */
+    @Valid
+    private List<ServicoOSRequest> servicos;
+
+    /** Lista de itens de estoque para a OS */
+    @Valid
+    private List<ItemOSRequest> itens;
 }

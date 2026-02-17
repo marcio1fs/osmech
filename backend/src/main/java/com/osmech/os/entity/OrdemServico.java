@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Entidade que representa uma Ordem de Serviço.
@@ -76,6 +78,16 @@ public class OrdemServico {
     @Column(name = "whatsapp_consentimento")
     @Builder.Default
     private Boolean whatsappConsentimento = false;
+
+    /** Serviços da OS (descrição, quantidade, valor) */
+    @OneToMany(mappedBy = "ordemServico", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ServicoOS> servicos = new ArrayList<>();
+
+    /** Itens de estoque utilizados na OS */
+    @OneToMany(mappedBy = "ordemServico", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<ItemOS> itens = new ArrayList<>();
 
     @Column(name = "criado_em", nullable = false, updatable = false)
     @Builder.Default

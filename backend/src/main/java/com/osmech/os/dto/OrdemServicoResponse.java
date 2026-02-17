@@ -6,9 +6,11 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * DTO de resposta da Ordem de Serviço.
+ * Inclui serviços e itens de estoque associados.
  */
 @Data
 @AllArgsConstructor
@@ -31,4 +33,10 @@ public class OrdemServicoResponse {
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
     private LocalDateTime concluidoEm;
+
+    /** Serviços detalhados da OS */
+    private List<ServicoOSResponse> servicos;
+
+    /** Itens de estoque utilizados na OS */
+    private List<ItemOSResponse> itens;
 }
