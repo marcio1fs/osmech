@@ -10,10 +10,11 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 
 /**
  * Popula dados iniciais no banco (planos de assinatura e categorias financeiras).
- * Só insere se os dados ainda não existirem.
+ * Garante que dados essenciais existam.
  */
 @Component
 @RequiredArgsConstructor
@@ -25,9 +26,9 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        if (planoRepository.count() == 0) {
-            log.info("Inserindo planos de assinatura...");
-
+        // Garante que o plano FREE exista (cria se não existir)
+        if (planoRepository.findByCodigo("FREE").isEmpty()) {
+            log.info("Inserindo plano FREE...");
             planoRepository.save(Plano.builder()
                     .codigo("FREE")
                     .nome("GRATUITO")
@@ -38,15 +39,22 @@ public class DataSeeder implements CommandLineRunner {
                     .descricao("Até 10 OS/mês. Ideal para começar. Sem custo.")
                     .ativo(true)
                     .build());
+        }
+
+        // Seed outros planos apenas se não existirem (para não duplicar)
+        if (planoRepository.count() <= 1) {
+            log.info("Inserindo planos de assinatura...");
+
+            // FREE já foi criado acima se não existia
 
             planoRepository.save(Plano.builder()
                     .codigo("PRO")
                     .nome("PRO")
                     .preco(new BigDecimal("49.90"))
-                    .limiteOs(50)
+                    .limiteOs(30)
                     .whatsappHabilitado(false)
                     .iaHabilitada(false)
-                    .descricao("Até 50 OS/mês. Gestão básica de ordens de serviço.")
+                    .descricao("Até 30 OS/mês. Gestão básica de ordens de serviço.")
                     .ativo(true)
                     .build());
 
@@ -54,10 +62,10 @@ public class DataSeeder implements CommandLineRunner {
                     .codigo("PRO_PLUS")
                     .nome("PRO+")
                     .preco(new BigDecimal("79.90"))
-                    .limiteOs(200)
+                    .limiteOs(80)
                     .whatsappHabilitado(true)
                     .iaHabilitada(false)
-                    .descricao("Até 200 OS/mês. WhatsApp automático incluso.")
+                    .descricao("Até 80 OS/mês. WhatsApp automático incluso.")
                     .ativo(true)
                     .build());
 
@@ -74,6 +82,13 @@ public class DataSeeder implements CommandLineRunner {
 
             log.info("Planos inseridos com sucesso!");
         }
+
+        // Ajusta limites/descrições em bancos que já tinham planos cadastrados
+        atualizarPlanoSeNecessario("PRO", 30,
+                "Até 30 OS/mês. Gestão básica de ordens de serviço.");
+        atualizarPlanoSeNecessario("PRO_PLUS", 80,
+                "Até 80 OS/mês. WhatsApp automático incluso.");
+        // PREMIUM permanece inalterado
 
         // Seed categorias financeiras do sistema
         if (categoriaRepository.count() == 0) {
@@ -98,6 +113,27 @@ public class DataSeeder implements CommandLineRunner {
 
             log.info("Categorias financeiras inseridas com sucesso!");
         }
+    }
+
+    private void atualizarPlanoSeNecessario(String codigo, int novoLimite, String novaDescricao) {
+        planoRepository.findByCodigo(codigo).ifPresent(plano -> {
+            boolean alterado = false;
+
+            if (!Objects.equals(plano.getLimiteOs(), novoLimite)) {
+                plano.setLimiteOs(novoLimite);
+                alterado = true;
+            }
+
+            if (!Objects.equals(plano.getDescricao(), novaDescricao)) {
+                plano.setDescricao(novaDescricao);
+                alterado = true;
+            }
+
+            if (alterado) {
+                planoRepository.save(plano);
+                log.info("Plano {} atualizado: limiteOs={}", codigo, novoLimite);
+            }
+        });
     }
 
     private void criarCategoriaSistema(String nome, String tipo, String icone) {

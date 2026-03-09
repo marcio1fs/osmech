@@ -1,0 +1,10 @@
+ALTER TABLE usuarios
+    ADD COLUMN IF NOT EXISTS cnpj_oficina VARCHAR(18),
+    ADD COLUMN IF NOT EXISTS endereco_logradouro VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS endereco_numero VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS endereco_complemento VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS endereco_bairro VARCHAR(80),
+    ADD COLUMN IF NOT EXISTS endereco_cidade VARCHAR(80),
+    ADD COLUMN IF NOT EXISTS endereco_estado VARCHAR(2),
+    ADD COLUMN IF NOT EXISTS endereco_cep VARCHAR(10),
+    ADD COLUMN IF NOT EXISTS site_oficina VARCHAR(120);

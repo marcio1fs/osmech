@@ -68,6 +68,12 @@ public class StockItem {
     /** Localização no estoque (prateleira, gaveta, etc.) */
     private String localizacao;
 
+    /** Referência do fabricante/código original da peça */
+    private String referencia;
+
+    /** Marca do fabricante da peça */
+    private String marca;
+
     /** Se o item está ativo (soft delete) */
     @Column(nullable = false)
     @Builder.Default

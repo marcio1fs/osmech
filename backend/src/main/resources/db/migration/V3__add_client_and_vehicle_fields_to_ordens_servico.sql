@@ -1,0 +1,5 @@
+ALTER TABLE ordens_servico
+    ADD COLUMN IF NOT EXISTS cliente_cpf VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS cliente_cnpj VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS montadora VARCHAR(120),
+    ADD COLUMN IF NOT EXISTS cor_veiculo VARCHAR(60);

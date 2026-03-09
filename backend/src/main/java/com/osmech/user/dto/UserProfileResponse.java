@@ -16,6 +16,15 @@ public class UserProfileResponse {
     private String email;
     private String telefone;
     private String nomeOficina;
+    private String cnpjOficina;
+    private String enderecoLogradouro;
+    private String enderecoNumero;
+    private String enderecoComplemento;
+    private String enderecoBairro;
+    private String enderecoCidade;
+    private String enderecoEstado;
+    private String enderecoCep;
+    private String siteOficina;
     private String role;
     private String plano;
     private Boolean ativo;

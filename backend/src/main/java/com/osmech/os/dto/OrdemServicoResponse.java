@@ -19,13 +19,18 @@ public class OrdemServicoResponse {
 
     private Long id;
     private String clienteNome;
+    private String clienteCpf;
+    private String clienteCnpj;
     private String clienteTelefone;
     private String placa;
     private String modelo;
+    private String montadora;
+    private String corVeiculo;
     private Integer ano;
     private Integer quilometragem;
     private String descricao;
     private String diagnostico;
+    private String mecanicoResponsavel;
     private String pecas;
     private BigDecimal valor;
     private String status;

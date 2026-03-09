@@ -6,6 +6,11 @@ backend/target/
 backend/.mvn/
 backend/*.iml
 backend/.idea/
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/logs/
+backend/*.log
 
 # === Frontend (Flutter/Dart) ===
 frontend/.dart_tool/
@@ -34,3 +39,6 @@ frontend/analysis_options.yaml
 # === OS ===
 .DS_Store
 Thumbs.db
+
+# === Logs ===
+*.log

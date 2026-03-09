@@ -31,6 +31,12 @@ public class OrdemServico {
     @Column(name = "cliente_nome", nullable = false)
     private String clienteNome;
 
+    @Column(name = "cliente_cpf")
+    private String clienteCpf;
+
+    @Column(name = "cliente_cnpj")
+    private String clienteCnpj;
+
     /** Telefone do cliente (para WhatsApp) */
     @Column(name = "cliente_telefone")
     private String clienteTelefone;
@@ -42,6 +48,12 @@ public class OrdemServico {
     /** Modelo do veículo */
     @Column(nullable = false)
     private String modelo;
+
+    @Column(name = "montadora")
+    private String montadora;
+
+    @Column(name = "cor_veiculo")
+    private String corVeiculo;
 
     /** Ano do veículo */
     private Integer ano;
@@ -56,6 +68,9 @@ public class OrdemServico {
     /** Diagnóstico do mecânico */
     @Column(columnDefinition = "TEXT")
     private String diagnostico;
+
+    @Column(name = "mecanico_responsavel")
+    private String mecanicoResponsavel;
 
     /** Peças utilizadas */
     @Column(columnDefinition = "TEXT")

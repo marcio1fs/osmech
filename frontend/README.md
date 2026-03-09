@@ -1,16 +1,52 @@
-# osmech
+# OSMECH Frontend (Flutter Web)
 
-A new Flutter project.
+Frontend web do OSMECH.
 
-## Getting Started
+## Requisitos
 
-This project is a starting point for a Flutter application.
+- Flutter 3.16+
+- Chrome (para `flutter run -d chrome`)
 
-A few resources to get you started if this is your first Flutter project:
+## Executar em desenvolvimento
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```powershell
+cd frontend
+flutter pub get
+flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:8081/api
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Build de producao
+
+```powershell
+cd frontend
+flutter pub get
+flutter build web --release --dart-define=API_URL=https://SEU_BACKEND/api
+```
+
+Artefato gerado em:
+
+- `frontend/build/web`
+
+## Configuracao de API
+
+A URL da API e controlada por `--dart-define`:
+
+- chave: `API_URL`
+- fallback no codigo: `http://localhost:8081/api`
+
+Arquivo relacionado:
+
+- `frontend/lib/services/api_config.dart`
+- `frontend/.env.example` (referencia de valores)
+
+## Comandos uteis
+
+```powershell
+flutter analyze
+flutter test
+```
+
+## Observacoes
+
+- Para deploy, publique apenas o conteudo de `build/web`.
+- Garanta que o backend permita o dominio do frontend em `CORS_ORIGINS`.

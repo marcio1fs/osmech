@@ -1,10 +1,11 @@
 package com.osmech.payment.service;
 
+import com.mercadopago.resources.preference.Preference;
 import com.osmech.config.ResourceNotFoundException;
-import com.osmech.payment.dto.AssinaturaRequest;
 import com.osmech.payment.dto.AssinaturaResponse;
 import com.osmech.payment.entity.Assinatura;
 import com.osmech.payment.entity.Pagamento;
+import com.osmech.payment.entity.StatusPagamento;
 import com.osmech.payment.repository.AssinaturaRepository;
 import com.osmech.payment.repository.PagamentoRepository;
 import com.osmech.plan.entity.Plano;
@@ -12,226 +13,212 @@ import com.osmech.plan.repository.PlanoRepository;
 import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
-/**
- * Serviço responsável pelas regras de negócio de Assinaturas.
- */
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class AssinaturaService {
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_PAST_DUE = "PAST_DUE";
+    private static final String STATUS_SUSPENDED = "SUSPENDED";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_CANCELED = "CANCELED";
+    private static final String METODO_MERCADO_PAGO_CHECKOUT = "MERCADO_PAGO_CHECKOUT";
 
+    private static final List<String> STATUS_ASSINATURA_EM_ABERTO = List.of(
+            STATUS_ACTIVE, STATUS_PAST_DUE, STATUS_SUSPENDED, STATUS_PENDING
+    );
+
+    private final UsuarioRepository usuarioRepository;
+    private final PlanoRepository planoRepository;
     private final AssinaturaRepository assinaturaRepository;
     private final PagamentoRepository pagamentoRepository;
-    private final PlanoRepository planoRepository;
-    private final UsuarioRepository usuarioRepository;
+    private final MercadoPagoService mercadoPagoService;
 
-    /**
-     * Cria ou atualiza uma assinatura para o usuário.
-     * Se já existe assinatura ativa, faz upgrade/downgrade do plano.
-     */
     @Transactional
-    public AssinaturaResponse assinar(String emailUsuario, AssinaturaRequest request) {
-        Usuario usuario = getUsuario(emailUsuario);
-        Plano plano = planoRepository.findByCodigo(request.getPlanoCodigo())
-                .orElseThrow(() -> new ResourceNotFoundException("Plano não encontrado: " + request.getPlanoCodigo()));
-
-        // Verifica se já tem assinatura ativa
-        var assinaturaAtiva = assinaturaRepository
-                .findByUsuarioIdAndStatusIn(usuario.getId(), List.of("ACTIVE", "PAST_DUE"));
-
-        Assinatura assinatura;
-
-        if (assinaturaAtiva.isPresent()) {
-            // Upgrade/Downgrade: atualiza plano da assinatura existente
-            assinatura = assinaturaAtiva.get();
-            assinatura.setPlanoId(plano.getId());
-            assinatura.setPlanoCodigo(plano.getCodigo());
-            assinatura.setValorMensal(plano.getPreco());
-            assinatura.setStatus("ACTIVE");
-            log.info("Upgrade/Downgrade de plano para {} - usuário {}", plano.getCodigo(), usuario.getEmail());
-        } else {
-            // Nova assinatura
-            assinatura = Assinatura.builder()
-                    .usuarioId(usuario.getId())
-                    .planoId(plano.getId())
-                    .planoCodigo(plano.getCodigo())
-                    .valorMensal(plano.getPreco())
-                    .status("ACTIVE")
-                    .dataInicio(LocalDate.now())
-                    .proximaCobranca(LocalDate.now().plusMonths(1))
-                    .build();
-            log.info("Nova assinatura {} criada para usuário {}", plano.getCodigo(), usuario.getEmail());
+    public AssinaturaResponse iniciarAssinatura(String email, String planoCodigo) {
+        if (!StringUtils.hasText(planoCodigo)) {
+            throw new IllegalArgumentException("planoCodigo e obrigatorio");
         }
+
+        String planoCodigoNormalizado = planoCodigo.trim().toUpperCase();
+
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
+
+        Plano plano = planoRepository.findByCodigo(planoCodigoNormalizado)
+                .orElseThrow(() -> new ResourceNotFoundException("Plano nao encontrado: " + planoCodigoNormalizado));
+
+        Assinatura assinaturaPendente = assinaturaRepository
+                .findFirstByUsuarioIdAndStatusOrderByCriadoEmDesc(usuario.getId(), STATUS_PENDING)
+                .orElse(null);
+
+        if (assinaturaPendente != null) {
+            Pagamento pagamentoPendente = pagamentoRepository
+                    .findFirstByUsuarioIdAndTipoAndReferenciaIdAndStatusOrderByCriadoEmDesc(
+                            usuario.getId(), "ASSINATURA", assinaturaPendente.getId(), StatusPagamento.PENDENTE
+                    )
+                    .orElse(null);
+
+            if (planoCodigoNormalizado.equals(assinaturaPendente.getPlanoCodigo())) {
+                String preferenceId = pagamentoPendente != null ? pagamentoPendente.getTransacaoExternaId() : null;
+                String checkoutUrl = mercadoPagoService.resolverCheckoutUrlPorPreferenciaId(preferenceId);
+                if (checkoutUrl != null) {
+                    return toResponse(assinaturaPendente, checkoutUrl, preferenceId);
+                }
+                throw new IllegalStateException(
+                        "Ja existe um pagamento pendente para este plano. Aguarde a confirmacao ou cancele antes de tentar novamente."
+                );
+            }
+
+            throw new IllegalStateException(
+                    "Existe uma assinatura pendente em processamento para outro plano. Finalize ou cancele antes de iniciar nova assinatura."
+            );
+        }
+
+        Assinatura assinatura = Assinatura.builder()
+                .usuarioId(usuario.getId())
+                .planoId(plano.getId())
+                .planoCodigo(plano.getCodigo())
+                .status(STATUS_PENDING)
+                .valorMensal(plano.getPreco())
+                .dataInicio(LocalDate.now())
+                .proximaCobranca(LocalDate.now().plusMonths(1))
+                .build();
 
         assinatura = assinaturaRepository.save(assinatura);
 
-        // Atualiza o plano do usuário
-        usuario.setPlano(plano.getCodigo());
-        usuario.setAtivo(true);
-        usuarioRepository.save(usuario);
-
-        // Cria pagamento inicial da assinatura
         Pagamento pagamento = Pagamento.builder()
                 .usuarioId(usuario.getId())
                 .tipo("ASSINATURA")
                 .referenciaId(assinatura.getId())
-                .descricao("Assinatura " + plano.getNome() + " - " + plano.getCodigo())
-                .metodoPagamento(request.getMetodoPagamento())
+                .descricao("Assinatura Plano " + plano.getNome())
+                .metodoPagamento(METODO_MERCADO_PAGO_CHECKOUT)
                 .valor(plano.getPreco())
-                .status("PENDENTE")
+                .status(StatusPagamento.PENDENTE)
+                .criadoEm(LocalDateTime.now())
                 .build();
+
+        pagamento = pagamentoRepository.save(pagamento);
+
+        Preference preference = mercadoPagoService.criarPreferenciaAssinatura(usuario, plano, assinatura, pagamento);
+
+        pagamento.setTransacaoExternaId(preference.getId());
         pagamentoRepository.save(pagamento);
 
-        return toResponse(assinatura, plano.getNome());
+        String checkoutUrl = mercadoPagoService.resolverCheckoutUrl(preference);
+        return toResponse(assinatura, checkoutUrl, preference.getId());
     }
 
-    /**
-     * Busca a assinatura ativa do usuário.
-     */
     @Transactional(readOnly = true)
-    public AssinaturaResponse buscarAtiva(String emailUsuario) {
-        Usuario usuario = getUsuario(emailUsuario);
+    public AssinaturaResponse buscarAssinaturaAtiva(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
         Assinatura assinatura = assinaturaRepository
-                .findByUsuarioIdAndStatusIn(usuario.getId(), List.of("ACTIVE", "PAST_DUE", "SUSPENDED"))
-                .or(() -> assinaturaRepository.findFirstByUsuarioIdOrderByCriadoEmDesc(usuario.getId()))
-                .orElse(null);
+                .findByUsuarioIdAndStatusIn(usuario.getId(), STATUS_ASSINATURA_EM_ABERTO)
+                .orElseGet(() -> assinaturaRepository.findFirstByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Nenhuma assinatura encontrada")));
 
-        if (assinatura == null) {
-            // Retorna assinatura "virtual" baseada no plano do usuário
-            Plano plano = planoRepository.findByCodigo(usuario.getPlano()).orElse(null);
-            return AssinaturaResponse.builder()
-                    .usuarioId(usuario.getId())
-                    .planoCodigo(usuario.getPlano())
-                    .planoNome(plano != null ? plano.getNome() : usuario.getPlano())
-                    .valorMensal(plano != null ? plano.getPreco() : java.math.BigDecimal.ZERO)
-                    .status(usuario.getAtivo() ? "ACTIVE" : "SUSPENDED")
-                    .build();
-        }
-
-        Plano plano = planoRepository.findByCodigo(assinatura.getPlanoCodigo()).orElse(null);
-        return toResponse(assinatura, plano != null ? plano.getNome() : assinatura.getPlanoCodigo());
+        return toResponse(assinatura);
     }
 
-    /**
-     * Lista histórico de assinaturas do usuário.
-     */
-    @Transactional(readOnly = true)
-    public List<AssinaturaResponse> listarHistorico(String emailUsuario) {
-        Usuario usuario = getUsuario(emailUsuario);
-        return assinaturaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
-                .stream()
-                .map(a -> {
-                    Plano plano = planoRepository.findByCodigo(a.getPlanoCodigo()).orElse(null);
-                    return toResponse(a, plano != null ? plano.getNome() : a.getPlanoCodigo());
-                })
-                .toList();
-    }
-
-    /**
-     * Cancela a assinatura ativa.
-     */
     @Transactional
-    public AssinaturaResponse cancelar(String emailUsuario) {
-        Usuario usuario = getUsuario(emailUsuario);
+    public AssinaturaResponse cancelarAssinatura(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
         Assinatura assinatura = assinaturaRepository
-                .findByUsuarioIdAndStatusIn(usuario.getId(), List.of("ACTIVE", "PAST_DUE"))
-                .orElseThrow(() -> new ResourceNotFoundException("Nenhuma assinatura ativa encontrada"));
+                .findByUsuarioIdAndStatusIn(usuario.getId(), STATUS_ASSINATURA_EM_ABERTO)
+                .orElseThrow(() -> new ResourceNotFoundException("Assinatura ativa nao encontrada"));
 
-        assinatura.setStatus("CANCELED");
+        assinatura.setStatus(STATUS_CANCELED);
         assinatura.setDataCancelamento(LocalDate.now());
         assinatura = assinaturaRepository.save(assinatura);
 
-        // Downgrade para plano FREE após cancelamento
+        // Cancelar assinatura nao deve bloquear login da conta.
         usuario.setPlano("FREE");
+        usuario.setAtivo(true);
         usuarioRepository.save(usuario);
 
-        log.info("Assinatura cancelada para usuário {}", usuario.getEmail());
-
-        Plano plano = planoRepository.findByCodigo(assinatura.getPlanoCodigo()).orElse(null);
-        return toResponse(assinatura, plano != null ? plano.getNome() : assinatura.getPlanoCodigo());
+        return toResponse(assinatura);
     }
 
-    /**
-     * Verifica assinaturas vencidas e aplica regras de inadimplência.
-     * Deve ser chamado por um scheduler ou manualmente.
-     */
-    @Scheduled(cron = "0 0 2 * * *") // 2h da manhã diariamente
-    @Transactional
-    public void verificarInadimplencia() {
-        LocalDate hoje = LocalDate.now();
-
-        // Assinaturas ativas com cobrança vencida → marca como PAST_DUE
-        List<Assinatura> vencidas = assinaturaRepository
-                .findByStatusAndProximaCobrancaBefore("ACTIVE", hoje);
-        for (Assinatura a : vencidas) {
-            a.setStatus("PAST_DUE");
-            assinaturaRepository.save(a);
-            log.warn("Assinatura {} marcada como PAST_DUE (vencida em {})", a.getId(), a.getProximaCobranca());
-        }
-
-        // Assinaturas PAST_DUE com carência expirada → suspende
-        List<Assinatura> pastDue = assinaturaRepository.findByStatus("PAST_DUE");
-        for (Assinatura a : pastDue) {
-            LocalDate limiteCarencia = a.getProximaCobranca().plusDays(a.getDiasCarencia());
-            if (hoje.isAfter(limiteCarencia)) {
-                a.setStatus("SUSPENDED");
-                assinaturaRepository.save(a);
-
-                // Desativa o usuário
-                usuarioRepository.findById(a.getUsuarioId()).ifPresent(u -> {
-                    u.setAtivo(false);
-                    usuarioRepository.save(u);
-                });
-
-                log.warn("Assinatura {} SUSPENSA por inadimplência", a.getId());
-            }
-        }
-    }
-
-    /**
-     * Verifica se o usuário está com a assinatura em dia.
-     */
     @Transactional(readOnly = true)
-    public boolean isAssinaturaAtiva(String emailUsuario) {
-        Usuario usuario = getUsuario(emailUsuario);
-        return assinaturaRepository
-                .findByUsuarioIdAndStatusIn(usuario.getId(), List.of("ACTIVE"))
+    public List<AssinaturaResponse> listarHistorico(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
+
+        return assinaturaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean isAssinaturaAtiva(String email) {
+        Usuario usuario = usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
+
+        return assinaturaRepository.findByUsuarioIdAndStatusIn(usuario.getId(), List.of(STATUS_ACTIVE))
                 .isPresent();
     }
 
-    // --- Helpers ---
+    private AssinaturaResponse toResponse(Assinatura assinatura) {
+        String planoCodigo = assinatura.getPlanoCodigo();
+        String planoNome = StringUtils.hasText(planoCodigo)
+                ? planoRepository.findByCodigo(planoCodigo)
+                    .map(Plano::getNome)
+                    .orElse(planoCodigo)
+                : "PLANO_NAO_DEFINIDO";
 
-    private Usuario getUsuario(String email) {
-        return usuarioRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        return AssinaturaResponse.builder()
+                .id(assinatura.getId())
+                .usuarioId(assinatura.getUsuarioId())
+                .planoId(assinatura.getPlanoId())
+                .planoCodigo(planoCodigo)
+                .planoNome(planoNome)
+                .valorMensal(assinatura.getValorMensal())
+                .status(assinatura.getStatus())
+                .dataInicio(assinatura.getDataInicio())
+                .proximaCobranca(assinatura.getProximaCobranca())
+                .dataCancelamento(assinatura.getDataCancelamento())
+                .diasCarencia(assinatura.getDiasCarencia())
+                .criadoEm(assinatura.getCriadoEm())
+                .atualizadoEm(assinatura.getAtualizadoEm())
+                .build();
     }
 
-    private AssinaturaResponse toResponse(Assinatura a, String planoNome) {
+    private AssinaturaResponse toResponse(Assinatura assinatura, String checkoutUrl, String preferenceId) {
+        String planoCodigo = assinatura.getPlanoCodigo();
+        String planoNome = StringUtils.hasText(planoCodigo)
+                ? planoRepository.findByCodigo(planoCodigo)
+                    .map(Plano::getNome)
+                    .orElse(planoCodigo)
+                : "PLANO_NAO_DEFINIDO";
+
         return AssinaturaResponse.builder()
-                .id(a.getId())
-                .usuarioId(a.getUsuarioId())
-                .planoId(a.getPlanoId())
-                .planoCodigo(a.getPlanoCodigo())
+                .id(assinatura.getId())
+                .usuarioId(assinatura.getUsuarioId())
+                .planoId(assinatura.getPlanoId())
+                .planoCodigo(planoCodigo)
                 .planoNome(planoNome)
-                .valorMensal(a.getValorMensal())
-                .status(a.getStatus())
-                .dataInicio(a.getDataInicio())
-                .proximaCobranca(a.getProximaCobranca())
-                .dataCancelamento(a.getDataCancelamento())
-                .diasCarencia(a.getDiasCarencia())
-                .criadoEm(a.getCriadoEm())
-                .atualizadoEm(a.getAtualizadoEm())
+                .valorMensal(assinatura.getValorMensal())
+                .status(assinatura.getStatus())
+                .dataInicio(assinatura.getDataInicio())
+                .proximaCobranca(assinatura.getProximaCobranca())
+                .dataCancelamento(assinatura.getDataCancelamento())
+                .diasCarencia(assinatura.getDiasCarencia())
+                .criadoEm(assinatura.getCriadoEm())
+                .atualizadoEm(assinatura.getAtualizadoEm())
+                .checkoutUrl(checkoutUrl)
+                .preferenceId(preferenceId)
                 .build();
     }
 }

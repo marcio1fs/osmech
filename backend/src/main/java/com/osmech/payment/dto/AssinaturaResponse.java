@@ -28,4 +28,12 @@ public class AssinaturaResponse {
     private Integer diasCarencia;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
+
+    /**
+     * Dados opcionais de pagamento via Mercado Pago (Checkout Pro).
+     * - checkoutUrl: URL para redirecionar o usuário ao checkout.
+     * - preferenceId: identificador da preferência criada no Mercado Pago.
+     */
+    private String checkoutUrl;
+    private String preferenceId;
 }

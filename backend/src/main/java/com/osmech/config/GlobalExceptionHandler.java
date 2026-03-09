@@ -15,7 +15,10 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,6 +30,9 @@ import java.util.Map;
 @RestControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+
+    @Value("${spring.profiles.active:}")
+    private String activeProfile;
 
     /**
      * Trata recurso não encontrado — 404.
@@ -70,6 +76,38 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
         return ResponseEntity.badRequest()
                 .body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Trata estado inválido (ex: config não definida) — 503.
+     */
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
+        log.warn("Estado inválido: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Trata falhas de comunicação com serviços externos via RestTemplate — 502.
+     * Ex: API do Mercado Pago ou WhatsApp está fora do ar.
+     */
+    @ExceptionHandler(RestClientException.class)
+    public ResponseEntity<Map<String, String>> handleRestClient(RestClientException ex) {
+        log.error("Erro de comunicação com serviço externo: ", ex);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body(Map.of("error", "Falha de comunicação com um serviço externo. Tente novamente mais tarde."));
+    }
+
+    /**
+     * Trata RuntimeException genérica (ex: bug inesperado) — 500.
+     * Este é um "catch-all" para erros de programação não previstos.
+     */
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
+        log.error("Erro de execução não esperado: ", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(Map.of("error", "Ocorreu um erro inesperado no servidor."));
     }
 
     /**
@@ -147,11 +185,17 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata exceções genéricas não previstas — 500.
+     * Em perfil dev, inclui a mensagem da exceção para facilitar debug.
      */
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
+    public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         log.error("Erro interno não tratado: ", ex);
-        return ResponseEntity.internalServerError()
-                .body(Map.of("error", "Erro interno do servidor"));
+        Map<String, Object> body = new HashMap<>();
+        body.put("error", "Erro interno do servidor");
+        if (activeProfile != null && activeProfile.contains("dev")) {
+            body.put("detail", ex.getMessage());
+            body.put("type", ex.getClass().getSimpleName());
+        }
+        return ResponseEntity.internalServerError().body(body);
     }
 }

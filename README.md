@@ -1,126 +1,96 @@
-# OSMECH - Sistema de Ordens de Serviço para Oficinas Mecânicas
+# OSMECH - Sistema de Ordens de Servico para Oficinas Mecanicas
 
-Sistema SaaS de controle de Ordens de Serviço para oficinas mecânicas, com automação via WhatsApp, inteligência artificial e modelo de assinatura mensal.
+Sistema SaaS para controle de Ordens de Servico, estoque, financeiro e assinaturas.
 
-## Tecnologias
+## Stack
 
-| Camada    | Tecnologia           |
-|-----------|---------------------|
-| Frontend  | Flutter (mobile-first) |
-| Backend   | Spring Boot 3.2      |
-| Banco     | PostgreSQL           |
-| Auth      | JWT (JJWT)           |
-| Segurança | Spring Security      |
+- Backend: Spring Boot 3.2 (Java 17)
+- Frontend: Flutter Web
+- Banco: PostgreSQL
+- Auth: JWT
+- Pagamentos: Mercado Pago (Checkout Pro)
 
-## Estrutura do Projeto
+## Estrutura
 
-```
+```text
 osmech/
-├── backend/           → API Spring Boot
-│   ├── pom.xml
-│   └── src/main/java/com/osmech/
-│       ├── auth/      → Autenticação (login/cadastro)
-│       ├── config/    → Segurança, CORS, DataSeeder
-│       ├── os/        → Ordens de Serviço (CRUD)
-│       ├── plan/      → Planos de assinatura
-│       ├── security/  → JWT (filtro, utilidades)
-│       └── user/      → Entidade Usuário
-│
-└── frontend/          → App Flutter
-    └── lib/
-        ├── pages/     → Telas (Login, Cadastro, Dashboard, OS, Planos)
-        ├── services/  → Serviços HTTP (auth, OS)
-        └── main.dart  → Entrada do app
+|- backend/    # API Spring Boot
+|- frontend/   # App Flutter Web
+|- DEPLOY_CHECKLIST.md
 ```
 
-## Configuração
+## Portas padrao
 
-### Pré-requisitos
-- Java 17+
-- Maven 3.8+
-- PostgreSQL 14+
-- Flutter 3.16+
+- Backend: `8081`
+- Frontend Web (dev): `8083`
 
-### Banco de Dados
+## Backend local (dev)
 
-1. Crie o banco no PostgreSQL:
-```sql
-CREATE DATABASE oficina_db;
-```
-
-2. Configuração em `backend/src/main/resources/application.yml`:
-- Host: `localhost`
-- Porta: `5432`
-- Banco: `oficina_db`
-- Usuário: `postgres`
-- Senha: `3782`
-
-### Backend
-
-```bash
+```powershell
 cd backend
-mvn clean install
+$env:SPRING_PROFILES_ACTIVE="dev"
 mvn spring-boot:run
 ```
 
-O servidor inicia na porta **8080**.
+Atalho com `.env`:
+
+```powershell
+cd backend
+.\run-dev.ps1
+```
+
+## Frontend local (dev)
+
+```powershell
+cd frontend
+flutter pub get
+flutter run -d web-server --web-port 8083 --dart-define=API_URL=http://localhost:8081/api
+```
+
+Opcional (debug no Chrome):
+
+```powershell
+flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:8081/api
+```
+
+## Build de producao
+
+### Backend
+
+```powershell
+cd backend
+mvn clean package
+```
 
 ### Frontend
 
-```bash
+```powershell
 cd frontend
-flutter pub get
-flutter run
+flutter build web --release --dart-define=API_URL=https://SEU_BACKEND/api
 ```
 
-> Para emulador Android, a API aponta para `10.0.2.2:8080`.
-> Para dispositivo físico, altere o IP em `lib/services/api_config.dart`.
+## Perfis de ambiente
 
-## API Endpoints
+- `application.yml`: base
+- `application-dev.yml`: defaults locais para desenvolvimento
+- `application-prod.yml`: configuracao segura para producao
 
-### Autenticação (público)
-| Método | Rota               | Descrição       |
-|--------|-------------------|-----------------|
-| POST   | /api/auth/register | Cadastro        |
-| POST   | /api/auth/login    | Login           |
+## Deploy
 
-### Ordens de Serviço (JWT obrigatório)
-| Método | Rota              | Descrição       |
-|--------|------------------|-----------------|
-| GET    | /api/os           | Listar OS       |
-| GET    | /api/os/{id}      | Buscar OS       |
-| POST   | /api/os           | Criar OS        |
-| PUT    | /api/os/{id}      | Atualizar OS    |
-| DELETE | /api/os/{id}      | Excluir OS      |
-| GET    | /api/os/dashboard | Dashboard stats |
+Use o checklist completo em:
 
-### Planos (público)
-| Método | Rota                | Descrição            |
-|--------|--------------------|--------------------- |
-| GET    | /api/planos         | Listar planos        |
-| GET    | /api/planos/{codigo}| Buscar por código    |
+- `DEPLOY_CHECKLIST.md`
+- `backend/.env.example`
+- `frontend/.env.example`
 
-## Planos de Assinatura
+Ele inclui:
+- variaveis obrigatorias
+- regras de seguranca
+- comandos de subida
+- validacoes pre-publicacao
 
-| Plano   | Preço      | OS/mês | WhatsApp | IA  |
-|---------|-----------|--------|----------|-----|
-| PRO     | R$ 49,90  | 50     | Não      | Não |
-| PRO+    | R$ 79,90  | 200    | Sim      | Não |
-| PREMIUM | R$ 149,90 | Ilimitado | Sim   | Sim |
+## Observacoes
 
-## Roadmap
-
-- [x] Autenticação JWT (login/cadastro)
-- [x] CRUD de Ordens de Serviço
-- [x] Dashboard com estatísticas
-- [x] Tela de Planos (pricing)
-- [x] Seed automático de planos
-- [ ] Integração WhatsApp (Twilio / Meta)
-- [ ] IA para diagnóstico e atendimento
-- [ ] Pagamento (PIX / Cartão)
-- [ ] Controle de limites por plano
-- [ ] Painel Admin
-
-## Licença
-
-Projeto proprietário — todos os direitos reservados.
+- Nao versionar segredos.
+- Em producao, usar `SPRING_PROFILES_ACTIVE=prod`.
+- Em producao, manter schema via Flyway e `ddl-auto=validate`.

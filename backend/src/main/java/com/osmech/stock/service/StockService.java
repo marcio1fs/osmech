@@ -75,6 +75,8 @@ public class StockService {
                 .precoCusto(request.getPrecoCusto())
                 .precoVenda(request.getPrecoVenda())
                 .localizacao(request.getLocalizacao())
+                .referencia(request.getReferencia())
+                .marca(request.getMarca())
                 .build();
 
         item = itemRepository.save(item);
@@ -109,6 +111,8 @@ public class StockService {
         if (request.getPrecoCusto() != null) item.setPrecoCusto(request.getPrecoCusto());
         if (request.getPrecoVenda() != null) item.setPrecoVenda(request.getPrecoVenda());
         if (request.getLocalizacao() != null) item.setLocalizacao(request.getLocalizacao());
+        if (request.getReferencia() != null) item.setReferencia(request.getReferencia());
+        if (request.getMarca() != null) item.setMarca(request.getMarca());
 
         // Se a quantidade mudou, gerar movimentação de ajuste
         if (request.getQuantidade() != null && !request.getQuantidade().equals(item.getQuantidade())) {

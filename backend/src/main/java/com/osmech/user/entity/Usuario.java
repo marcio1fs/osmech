@@ -35,6 +35,35 @@ public class Usuario {
     /** Nome da oficina do usuário */
     @Column(name = "nome_oficina")
     private String nomeOficina;
+    /** CNPJ da oficina */
+    @Column(name = "cnpj_oficina")
+    private String cnpjOficina;
+
+    /** Endereco da oficina */
+    @Column(name = "endereco_logradouro")
+    private String enderecoLogradouro;
+
+    @Column(name = "endereco_numero")
+    private String enderecoNumero;
+
+    @Column(name = "endereco_complemento")
+    private String enderecoComplemento;
+
+    @Column(name = "endereco_bairro")
+    private String enderecoBairro;
+
+    @Column(name = "endereco_cidade")
+    private String enderecoCidade;
+
+    @Column(name = "endereco_estado")
+    private String enderecoEstado;
+
+    @Column(name = "endereco_cep")
+    private String enderecoCep;
+
+    /** Site da oficina */
+    @Column(name = "site_oficina")
+    private String siteOficina;
 
     /** Role do usuário: ADMIN ou OFICINA */
     @Column(nullable = false)
@@ -63,3 +92,5 @@ public class Usuario {
         this.atualizadoEm = LocalDateTime.now();
     }
 }
+
+

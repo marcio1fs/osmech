@@ -47,7 +47,8 @@ public class FinanceiroService {
 
         CategoriaFinanceira categoria = null;
         if (request.getCategoriaId() != null) {
-            categoria = categoriaRepository.findById(request.getCategoriaId())
+            categoria = categoriaRepository.findByIdAndUsuarioIdOrSistemaTrue(
+                            request.getCategoriaId(), usuario.getId())
                     .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
         }
 

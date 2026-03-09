@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../pages/dashboard_page.dart';
 import '../pages/os_list_page.dart';
 import '../pages/os_form_page.dart';
+import '../pages/mecanicos_page.dart';
 import '../pages/pricing_page.dart';
 import '../pages/subscription_page.dart';
 import '../pages/payment_history_page.dart';
@@ -20,20 +21,29 @@ import '../pages/stock_movement_page.dart';
 import '../pages/stock_alerts_page.dart';
 import '../pages/chat_page.dart';
 import '../pages/profile_page.dart';
+import '../pages/relatorios_page.dart';
 
 /// Shell principal com sidebar persistente para navegação web.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  final int initialIndex;
+
+  const AppShell({super.key, this.initialIndex = 0});
 
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
   bool _sidebarExpanded = true;
   int? _editStockItemId;
   int? _movimentacaoItemId;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.initialIndex;
+  }
 
   final List<_NavItem> _navItems = const [
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
@@ -41,6 +51,8 @@ class _AppShellState extends State<AppShell> {
     _NavItem(icon: Icons.add_circle_outline_rounded, label: 'Nova OS'),
     _NavItem(icon: Icons.payments_rounded, label: 'Pagamentos'),
     _NavItem(icon: Icons.card_membership_rounded, label: 'Assinatura'),
+    _NavItem(
+        icon: Icons.engineering_rounded, label: 'Mecânicos', section: 'EQUIPE'),
     _NavItem(
         icon: Icons.bar_chart_rounded,
         label: 'Financeiro',
@@ -60,6 +72,7 @@ class _AppShellState extends State<AppShell> {
         section: 'ASSISTENTE'),
     _NavItem(icon: Icons.person_rounded, label: 'Meu Perfil', section: 'CONTA'),
     _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos'),
+    _NavItem(icon: Icons.assessment_rounded, label: 'Relatórios', section: 'RELATORIOS'),
   ];
 
   Widget _getPage(int index) {
@@ -78,71 +91,75 @@ class _AppShellState extends State<AppShell> {
       case 4:
         return const SubscriptionPage();
       case 5:
-        return FinancialDashboardPage(
-          onNavigateTransacoes: () => setState(() => _selectedIndex = 9),
-          onNavigateNovaTransacao: () => setState(() => _selectedIndex = 6),
-          onNavigateFluxoCaixa: () => setState(() => _selectedIndex = 8),
-          onNavigateCategorias: () => setState(() => _selectedIndex = 7),
-        );
+        return const MecanicosPage();
       case 6:
-        return TransacaoFormPage(
-          onSaved: () => setState(() => _selectedIndex = 9),
+        return FinancialDashboardPage(
+          onNavigateTransacoes: () => setState(() => _selectedIndex = 10),
+          onNavigateNovaTransacao: () => setState(() => _selectedIndex = 7),
+          onNavigateFluxoCaixa: () => setState(() => _selectedIndex = 9),
+          onNavigateCategorias: () => setState(() => _selectedIndex = 8),
         );
       case 7:
-        return const CategoriasPage();
+        return TransacaoFormPage(
+          onSaved: () => setState(() => _selectedIndex = 10),
+        );
       case 8:
-        return const FluxoCaixaPage();
+        return const CategoriasPage();
       case 9:
-        return const TransacoesHistoricoPage();
+        return const FluxoCaixaPage();
       case 10:
+        return const TransacoesHistoricoPage();
+      case 11:
         return StockListPage(
-          onNavigateNovaPeca: () => setState(() => _selectedIndex = 11),
-          onNavigateMovimentacao: () => setState(() => _selectedIndex = 12),
-          onNavigateAlertas: () => setState(() => _selectedIndex = 13),
+          onNavigateNovaPeca: () => setState(() => _selectedIndex = 12),
+          onNavigateMovimentacao: () => setState(() => _selectedIndex = 13),
+          onNavigateAlertas: () => setState(() => _selectedIndex = 14),
           onEditarItem: (id) {
             setState(() {
               _editStockItemId = id;
-              _selectedIndex = 11;
+              _selectedIndex = 12;
             });
           },
         );
-      case 11:
+      case 12:
         final editId = _editStockItemId;
         return StockFormPage(
           editItemId: editId,
           onSaved: () => setState(() {
             _editStockItemId = null;
-            _selectedIndex = 10;
+            _selectedIndex = 11;
           }),
           onCancel: () => setState(() {
             _editStockItemId = null;
-            _selectedIndex = 10;
+            _selectedIndex = 11;
           }),
         );
-      case 12:
+      case 13:
         final movItemId = _movimentacaoItemId;
         return StockMovementPage(
           preSelectedItemId: movItemId,
           onSaved: () => setState(() {
             _movimentacaoItemId = null;
-            _selectedIndex = 10;
+            _selectedIndex = 11;
           }),
         );
-      case 13:
+      case 14:
         return StockAlertsPage(
           onEntradaEstoque: (id) {
             setState(() {
               _movimentacaoItemId = id;
-              _selectedIndex = 12;
+              _selectedIndex = 13;
             });
           },
         );
-      case 14:
-        return const ChatPage();
       case 15:
-        return const ProfilePage();
+        return const ChatPage();
       case 16:
+        return const ProfilePage();
+      case 17:
         return const PricingPage();
+      case 18:
+        return const RelatoriosPage();
       default:
         return DashboardPage(
             onNavigate: (i) => setState(() => _selectedIndex = i));
@@ -640,15 +657,20 @@ class _SidebarItemState extends State<_SidebarItem> {
                 ),
                 if (widget.expanded) ...[
                   const SizedBox(width: 12),
-                  Text(
-                    widget.label,
-                    style: GoogleFonts.inter(
-                      color: widget.selected
-                          ? Colors.white
-                          : AppColors.sidebarText,
-                      fontSize: 13,
-                      fontWeight:
-                          widget.selected ? FontWeight.w600 : FontWeight.w400,
+                  Expanded(
+                    child: Text(
+                      widget.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        color: widget.selected
+                            ? Colors.white
+                            : AppColors.sidebarText,
+                        fontSize: 13,
+                        fontWeight: widget.selected
+                            ? FontWeight.w600
+                            : FontWeight.w400,
+                      ),
                     ),
                   ),
                 ],

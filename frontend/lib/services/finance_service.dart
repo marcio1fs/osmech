@@ -14,7 +14,7 @@ class FinanceService {
   /// Cria uma nova transação financeira.
   Future<Map<String, dynamic>> criarTransacao(
       Map<String, dynamic> dados) async {
-    final response = await _api.post('/finance/transaction', body: dados);
+    final response = await _api.post('/api/finance/transaction', body: dados);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -34,7 +34,7 @@ class FinanceService {
     if (dataFim != null) params['dataFim'] = dataFim;
     if (tipo != null) params['tipo'] = tipo;
 
-    final response = await _api.get('/finance/transaction',
+    final response = await _api.get('/api/finance/transaction',
         queryParams: params.isNotEmpty ? params : null);
 
     if (response.statusCode == 200) {
@@ -48,7 +48,7 @@ class FinanceService {
   /// Estorna uma transação.
   Future<Map<String, dynamic>> estornarTransacao(int transacaoId) async {
     final response =
-        await _api.post('/finance/transaction/$transacaoId/estorno');
+        await _api.post('/api/finance/transaction/$transacaoId/estorno');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -63,7 +63,7 @@ class FinanceService {
 
   /// Lista todas as categorias (usuário + sistema).
   Future<List<Map<String, dynamic>>> listarCategorias() async {
-    final response = await _api.get('/finance/category');
+    final response = await _api.get('/api/finance/category');
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -76,7 +76,7 @@ class FinanceService {
   /// Cria uma nova categoria.
   Future<Map<String, dynamic>> criarCategoria(
       Map<String, dynamic> dados) async {
-    final response = await _api.post('/finance/category', body: dados);
+    final response = await _api.post('/api/finance/category', body: dados);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -87,7 +87,7 @@ class FinanceService {
 
   /// Exclui uma categoria.
   Future<void> excluirCategoria(int categoriaId) async {
-    final response = await _api.delete('/finance/category/$categoriaId');
+    final response = await _api.delete('/api/finance/category/$categoriaId');
 
     if (response.statusCode != 200) {
       final body = jsonDecode(response.body);
@@ -103,7 +103,7 @@ class FinanceService {
   Future<List<Map<String, dynamic>>> getFluxoCaixa(
       String inicio, String fim) async {
     final response = await _api
-        .get('/finance/cashflow', queryParams: {'inicio': inicio, 'fim': fim});
+        .get('/api/finance/cashflow', queryParams: {'inicio': inicio, 'fim': fim});
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
@@ -119,7 +119,7 @@ class FinanceService {
 
   /// Retorna o resumo financeiro para o dashboard.
   Future<Map<String, dynamic>> getResumoFinanceiro() async {
-    final response = await _api.get('/finance/summary');
+    final response = await _api.get('/api/finance/summary');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);

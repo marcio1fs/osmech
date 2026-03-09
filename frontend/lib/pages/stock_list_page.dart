@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
@@ -61,6 +59,30 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
     'OUTROS': 'Outros',
   };
 
+  static const double _colCodigoWidth = 110;
+  static const double _colNomeWidth = 240;
+  static const double _colCategoriaWidth = 150;
+  static const double _colMarcaWidth = 140;
+  static const double _colQtdWidth = 90;
+  static const double _colMinWidth = 90;
+  static const double _colCustoWidth = 120;
+  static const double _colVendaWidth = 120;
+  static const double _colAcoesWidth = 120;
+
+  double get _tableContentWidth =>
+      _colCodigoWidth +
+      _colNomeWidth +
+      _colCategoriaWidth +
+      _colMarcaWidth +
+      _colQtdWidth +
+      _colMinWidth +
+      _colCustoWidth +
+      _colVendaWidth +
+      _colAcoesWidth;
+
+  // Soma padding horizontal (20 + 20) + bordas (1 + 1) do container da tabela.
+  double get _tableWidth => _tableContentWidth + 42;
+
   @override
   void initState() {
     super.initState();
@@ -79,16 +101,23 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
       _error = null;
     });
     try {
-      final service = StockService(token: safeToken);
+      final token = safeToken;
+      final tokenPreview =
+          token.length <= 20 ? token : token.substring(0, 20);
+      debugPrint('[StockList] Carregando itens com token: $tokenPreview...');
+      final service = StockService(token: token);
+      debugPrint('[StockList] Chamando API /api/stock');
       final data = await service.listarItens(
         categoria: _filtroCategoria,
         busca: _buscaCtrl.text.isNotEmpty ? _buscaCtrl.text : null,
       );
+      debugPrint('[StockList] Recebeu ${data.length} itens do backend');
       setState(() {
         _itens = data;
         _loading = false;
       });
     } catch (e) {
+      debugPrint('[StockList] ERRO: $e');
       if (!handleAuthError(e)) {
         setState(() {
           _error = 'Erro ao carregar estoque';
@@ -160,8 +189,10 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
               color: AppColors.surface,
               border: Border(bottom: BorderSide(color: AppColors.border)),
             ),
-            child: Row(
-              children: [
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -206,7 +237,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                     ),
                   ),
                 ],
-                const Spacer(),
+                const SizedBox(width: 24),
 
                 // Busca
                 SizedBox(
@@ -279,12 +310,30 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                 ],
                 const SizedBox(width: 12),
 
+                // Botão atualizar
+                IconButton(
+                  onPressed: _loading ? null : _loadItens,
+                  icon: _loading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.accent,
+                          ),
+                        )
+                      : const Icon(Icons.refresh_rounded, size: 20),
+                  tooltip: 'Atualizar lista',
+                ),
+                const SizedBox(width: 8),
+
                 FilledButton.icon(
                   onPressed: widget.onNavigateNovaPeca,
                   icon: const Icon(Icons.add_rounded, size: 18),
                   label: const Text('Nova Peça'),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -338,9 +387,8 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                             padding: const EdgeInsets.all(32),
                             child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
-                              child: ConstrainedBox(
-                                constraints:
-                                    const BoxConstraints(minWidth: 800),
+                              child: SizedBox(
+                                width: _tableWidth,
                                 child: _buildTable(),
                               ),
                             ),
@@ -360,27 +408,34 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
       ),
       child: Column(
         children: [
-          // Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             decoration: const BoxDecoration(
               color: AppColors.surfaceVariant,
               borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
             ),
-            child: Row(
-              children: [
-                _colHeader('Código', flex: 1),
-                _colHeader('Nome', flex: 2),
-                _colHeader('Categoria', flex: 1),
-                _colHeader('Qtd', flex: 1),
-                _colHeader('Mín', flex: 1),
-                _colHeader('Custo', flex: 1),
-                _colHeader('Venda', flex: 1),
-                _colHeader('Ações', flex: 1),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Row(
+                    children: [
+                _colHeader('Codigo', width: _colCodigoWidth),
+                _colHeader('Nome', width: _colNomeWidth),
+                _colHeader('Categoria', width: _colCategoriaWidth),
+                _colHeader('Marca', width: _colMarcaWidth),
+                _colHeader('Qtd', width: _colQtdWidth),
+                _colHeader('Min', width: _colMinWidth),
+                _colHeader('Custo', width: _colCustoWidth),
+                _colHeader('Venda', width: _colVendaWidth),
+                _colHeader('Acoes', width: _colAcoesWidth),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
-          // Rows
           ...List.generate(_itens.length, (i) {
             final item = _itens[i];
             final estoqueBaixo = item['estoqueBaixo'] == true;
@@ -395,37 +450,31 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                         ? AppColors.warning.withValues(alpha: 0.04)
                         : Colors.transparent,
                 border: Border(
-                    bottom: BorderSide(
-                        color: i < _itens.length - 1
-                            ? AppColors.border
-                            : Colors.transparent)),
+                  bottom: BorderSide(
+                    color: i < _itens.length - 1
+                        ? AppColors.border
+                        : Colors.transparent,
+                  ),
+                ),
               ),
               child: Row(
                 children: [
-                  _colCell(item['codigo'] ?? '', flex: 1, bold: true),
-                  _colCell(item['nome'] ?? '', flex: 2),
-                  Expanded(
-                    flex: 1,
-                    child: Text(
-                      _categoriaLabels[item['categoria']] ??
-                          item['categoria'] ??
-                          '',
-                      style: GoogleFonts.inter(
-                          fontSize: 13, color: AppColors.textSecondary),
-                    ),
+                  _colCell(item['codigo'] ?? '', width: _colCodigoWidth, bold: true),
+                  _colCell(item['nome'] ?? '', width: _colNomeWidth),
+                  _colCell(
+                    _categoriaLabels[item['categoria']] ?? item['categoria'] ?? '',
+                    width: _colCategoriaWidth,
                   ),
-                  Expanded(
-                    flex: 1,
+                  _colCell(item['marca'] ?? '', width: _colMarcaWidth),
+                  SizedBox(
+                    width: _colQtdWidth,
                     child: Row(
                       children: [
                         if (estoqueZerado)
-                          const Icon(Icons.error_rounded,
-                              size: 14, color: AppColors.error)
+                          const Icon(Icons.error_rounded, size: 14, color: AppColors.error)
                         else if (estoqueBaixo)
-                          const Icon(Icons.warning_rounded,
-                              size: 14, color: AppColors.warning),
-                        if (estoqueBaixo || estoqueZerado)
-                          const SizedBox(width: 4),
+                          const Icon(Icons.warning_rounded, size: 14, color: AppColors.warning),
+                        if (estoqueBaixo || estoqueZerado) const SizedBox(width: 4),
                         Text(
                           '${item['quantidade']}',
                           style: GoogleFonts.inter(
@@ -441,26 +490,22 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                       ],
                     ),
                   ),
-                  _colCell('${item['quantidadeMinima']}', flex: 1),
-                  _colCell(formatCurrency(item['precoCusto']), flex: 1),
-                  _colCell(formatCurrency(item['precoVenda']), flex: 1),
-                  Expanded(
-                    flex: 1,
+                  _colCell('${item['quantidadeMinima']}', width: _colMinWidth),
+                  _colCell(formatCurrency(item['precoCusto']), width: _colCustoWidth),
+                  _colCell(formatCurrency(item['precoVenda']), width: _colVendaWidth),
+                  SizedBox(
+                    width: _colAcoesWidth,
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.edit_rounded,
-                              size: 18, color: AppColors.accent),
+                          icon: const Icon(Icons.edit_rounded, size: 18, color: AppColors.accent),
                           tooltip: 'Editar',
-                          onPressed: () =>
-                              widget.onEditarItem?.call(item['id'] as int),
+                          onPressed: () => widget.onEditarItem?.call(item['id'] as int),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.delete_outline_rounded,
-                              size: 18, color: AppColors.error),
+                          icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColors.error),
                           tooltip: 'Desativar',
-                          onPressed: () => _desativarItem(
-                              item['id'] as int, item['nome'] ?? ''),
+                          onPressed: () => _desativarItem(item['id'] as int, item['nome'] ?? ''),
                         ),
                       ],
                     ),
@@ -474,27 +519,34 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
     );
   }
 
-  Widget _colHeader(String text, {int flex = 1}) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textMuted,
-              letterSpacing: 0.5)),
+  Widget _colHeader(String text, {required double width}) {
+    return SizedBox(
+      width: width,
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: AppColors.textMuted,
+          letterSpacing: 0.5,
+        ),
+      ),
     );
   }
 
-  Widget _colCell(String text, {int flex = 1, bool bold = false}) {
-    return Expanded(
-      flex: flex,
-      child: Text(text,
-          style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
-              color: AppColors.textPrimary),
-          overflow: TextOverflow.ellipsis),
+  Widget _colCell(String text, {required double width, bool bold = false}) {
+    return SizedBox(
+      width: width,
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 13,
+          fontWeight: bold ? FontWeight.w600 : FontWeight.w400,
+          color: AppColors.textPrimary,
+        ),
+        overflow: TextOverflow.ellipsis,
+      ),
     );
   }
 }
+

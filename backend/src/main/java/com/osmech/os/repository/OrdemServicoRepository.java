@@ -30,4 +30,7 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long
 
     /** Conta OS de um usuário criadas em um período (para limite mensal do plano) */
     long countByUsuarioIdAndCriadoEmBetween(Long usuarioId, LocalDateTime inicio, LocalDateTime fim);
+
+    /** Busca OS por usuário e período */
+    List<OrdemServico> findByUsuarioIdAndCriadoEmBetweenOrderByCriadoEmDesc(Long usuarioId, LocalDateTime inicio, LocalDateTime fim);
 }

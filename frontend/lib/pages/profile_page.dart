@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../mixins/auth_error_mixin.dart';
@@ -6,7 +7,7 @@ import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
 
-/// Página de perfil do usuário — exibe e permite editar dados pessoais e senha.
+/// PÃ¡gina de perfil do usuÃ¡rio â€” exibe e permite editar dados pessoais e senha.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -23,6 +24,15 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   final _nomeCtrl = TextEditingController();
   final _telefoneCtrl = TextEditingController();
   final _oficinaCtrl = TextEditingController();
+  final _cnpjCtrl = TextEditingController();
+  final _logradouroCtrl = TextEditingController();
+  final _numeroCtrl = TextEditingController();
+  final _complementoCtrl = TextEditingController();
+  final _bairroCtrl = TextEditingController();
+  final _cidadeCtrl = TextEditingController();
+  final _estadoCtrl = TextEditingController();
+  final _cepCtrl = TextEditingController();
+  final _siteCtrl = TextEditingController();
   String _email = '';
   String _plano = '';
   String _role = '';
@@ -38,18 +48,102 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   bool _savingPassword = false;
   bool _showSenhaAtual = false;
   bool _showNovaSenha = false;
+  bool _applyingMask = false;
 
   @override
   void initState() {
     super.initState();
+    _cnpjCtrl.addListener(_onCnpjChanged);
+    _cepCtrl.addListener(_onCepChanged);
     _loadProfile();
+  }
+
+  String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'[^0-9]'), '');
+
+  void _setMaskedText(TextEditingController controller, String value) {
+    _applyingMask = true;
+    controller.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    _applyingMask = false;
+  }
+
+  String _formatCnpj(String value) {
+    final digits = _digitsOnly(value);
+    if (digits.isEmpty) return '';
+    final d = digits.length > 14 ? digits.substring(0, 14) : digits;
+    if (d.length <= 2) return d;
+    if (d.length <= 5) return '${d.substring(0, 2)}.${d.substring(2)}';
+    if (d.length <= 8)
+      return '${d.substring(0, 2)}.${d.substring(2, 5)}.${d.substring(5)}';
+    if (d.length <= 12) {
+      return '${d.substring(0, 2)}.${d.substring(2, 5)}.${d.substring(5, 8)}/${d.substring(8)}';
+    }
+    return '${d.substring(0, 2)}.${d.substring(2, 5)}.${d.substring(5, 8)}/${d.substring(8, 12)}-${d.substring(12)}';
+  }
+
+  String _formatCep(String value) {
+    final digits = _digitsOnly(value);
+    if (digits.isEmpty) return '';
+    final d = digits.length > 8 ? digits.substring(0, 8) : digits;
+    if (d.length <= 5) return d;
+    return '${d.substring(0, 5)}-${d.substring(5)}';
+  }
+
+  void _onCnpjChanged() {
+    if (_applyingMask) return;
+    final masked = _formatCnpj(_cnpjCtrl.text);
+    if (_cnpjCtrl.text != masked) {
+      _setMaskedText(_cnpjCtrl, masked);
+    }
+  }
+
+  void _onCepChanged() {
+    if (_applyingMask) return;
+    final masked = _formatCep(_cepCtrl.text);
+    if (_cepCtrl.text != masked) {
+      _setMaskedText(_cepCtrl, masked);
+    }
+  }
+
+  bool _isValidCnpj(String cnpj) {
+    final digits = _digitsOnly(cnpj);
+    if (digits.length != 14) return false;
+    if (RegExp(r'^(\d)\1{13}$').hasMatch(digits)) return false;
+
+    int calcDigit(String base, List<int> weights) {
+      int sum = 0;
+      for (int i = 0; i < weights.length; i++) {
+        sum += int.parse(base[i]) * weights[i];
+      }
+      final mod = sum % 11;
+      return mod < 2 ? 0 : 11 - mod;
+    }
+
+    final d1 = calcDigit(
+        digits.substring(0, 12), [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+    final d2 = calcDigit(
+        digits.substring(0, 13), [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+    return digits[12] == d1.toString() && digits[13] == d2.toString();
   }
 
   @override
   void dispose() {
+    _cnpjCtrl.removeListener(_onCnpjChanged);
+    _cepCtrl.removeListener(_onCepChanged);
     _nomeCtrl.dispose();
     _telefoneCtrl.dispose();
     _oficinaCtrl.dispose();
+    _cnpjCtrl.dispose();
+    _logradouroCtrl.dispose();
+    _numeroCtrl.dispose();
+    _complementoCtrl.dispose();
+    _bairroCtrl.dispose();
+    _cidadeCtrl.dispose();
+    _estadoCtrl.dispose();
+    _cepCtrl.dispose();
+    _siteCtrl.dispose();
     _senhaAtualCtrl.dispose();
     _novaSenhaCtrl.dispose();
     _confirmaSenhaCtrl.dispose();
@@ -64,6 +158,16 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
         _nomeCtrl.text = perfil['nome'] ?? '';
         _telefoneCtrl.text = perfil['telefone'] ?? '';
         _oficinaCtrl.text = perfil['nomeOficina'] ?? '';
+        _cnpjCtrl.text = perfil['cnpjOficina'] ?? '';
+        _logradouroCtrl.text = perfil['enderecoLogradouro'] ?? '';
+        _numeroCtrl.text = perfil['enderecoNumero'] ?? '';
+        _complementoCtrl.text = perfil['enderecoComplemento'] ?? '';
+        _bairroCtrl.text = perfil['enderecoBairro'] ?? '';
+        _cidadeCtrl.text = perfil['enderecoCidade'] ?? '';
+        _estadoCtrl.text =
+            (perfil['enderecoEstado'] ?? '').toString().toUpperCase();
+        _cepCtrl.text = perfil['enderecoCep'] ?? '';
+        _siteCtrl.text = perfil['siteOficina'] ?? '';
         _email = perfil['email'] ?? '';
         _plano = perfil['plano'] ?? 'FREE';
         _role = perfil['role'] ?? 'USER';
@@ -98,6 +202,26 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
             : _telefoneCtrl.text.trim(),
         nomeOficina:
             _oficinaCtrl.text.trim().isEmpty ? null : _oficinaCtrl.text.trim(),
+        cnpjOficina:
+            _cnpjCtrl.text.trim().isEmpty ? null : _cnpjCtrl.text.trim(),
+        enderecoLogradouro: _logradouroCtrl.text.trim().isEmpty
+            ? null
+            : _logradouroCtrl.text.trim(),
+        enderecoNumero:
+            _numeroCtrl.text.trim().isEmpty ? null : _numeroCtrl.text.trim(),
+        enderecoComplemento: _complementoCtrl.text.trim().isEmpty
+            ? null
+            : _complementoCtrl.text.trim(),
+        enderecoBairro:
+            _bairroCtrl.text.trim().isEmpty ? null : _bairroCtrl.text.trim(),
+        enderecoCidade:
+            _cidadeCtrl.text.trim().isEmpty ? null : _cidadeCtrl.text.trim(),
+        enderecoEstado: _estadoCtrl.text.trim().isEmpty
+            ? null
+            : _estadoCtrl.text.trim().toUpperCase(),
+        enderecoCep: _cepCtrl.text.trim().isEmpty ? null : _cepCtrl.text.trim(),
+        siteOficina:
+            _siteCtrl.text.trim().isEmpty ? null : _siteCtrl.text.trim(),
       );
       // Sincronizar nome no AuthService para atualizar sidebar
       await auth.updateNome(_nomeCtrl.text.trim());
@@ -227,14 +351,106 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                     const SizedBox(height: 16),
                     _inputField('Nome', _nomeCtrl,
                         validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Nome é obrigatório'
+                            ? 'Nome Ã© obrigatÃ³rio'
                             : null),
                     const SizedBox(height: 16),
                     _inputField('Telefone', _telefoneCtrl,
                         hint: '(11) 99999-9999'),
                     const SizedBox(height: 16),
                     _inputField('Nome da Oficina', _oficinaCtrl,
-                        hint: 'Ex: Auto Mecânica Silva'),
+                        hint: 'Ex: Auto MecÃ¢nica Silva'),
+                    const SizedBox(height: 16),
+                    _inputField(
+                      'CNPJ da Oficina',
+                      _cnpjCtrl,
+                      hint: '00.000.000/0000-00',
+                      keyboardType: TextInputType.number,
+                      validator: (v) {
+                        final value = (v ?? '').trim();
+                        if (value.isEmpty) return null;
+                        return _isValidCnpj(value) ? null : 'CNPJ inválido';
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    _inputField('Logradouro', _logradouroCtrl,
+                        hint: 'Ex: Av. Brasil'),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _inputField(
+                            'Número',
+                            _numeroCtrl,
+                            hint: 'Ex: 123',
+                            keyboardType: TextInputType.number,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: _inputField('Complemento', _complementoCtrl,
+                              hint: 'Sala, bloco, referência'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _inputField('Bairro', _bairroCtrl,
+                              hint: 'Ex: Centro'),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _inputField('Cidade', _cidadeCtrl,
+                              hint: 'Ex: São Paulo'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _inputField(
+                            'UF',
+                            _estadoCtrl,
+                            hint: 'SP',
+                            textCapitalization: TextCapitalization.characters,
+                            inputFormatters: [
+                              LengthLimitingTextInputFormatter(2),
+                              FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-Z]')),
+                            ],
+                            validator: (v) {
+                              final value = (v ?? '').trim();
+                              if (value.isEmpty) return null;
+                              return value.length == 2
+                                  ? null
+                                  : 'Informe UF com 2 letras';
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _inputField(
+                            'CEP',
+                            _cepCtrl,
+                            hint: '00000-000',
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              final value = (v ?? '').trim();
+                              if (value.isEmpty) return null;
+                              return _digitsOnly(value).length == 8
+                                  ? null
+                                  : 'CEP inválido';
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    _inputField('Site da Oficina', _siteCtrl,
+                        hint: 'https://suaoficina.com.br'),
                     const SizedBox(height: 20),
                     Align(
                       alignment: Alignment.centerRight,
@@ -267,7 +483,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                         onToggle: () =>
                             setState(() => _showSenhaAtual = !_showSenhaAtual),
                         validator: (v) => v == null || v.isEmpty
-                            ? 'Senha atual é obrigatória'
+                            ? 'Senha atual Ã© obrigatÃ³ria'
                             : null),
                     const SizedBox(height: 16),
                     _passwordField('Nova Senha', _novaSenhaCtrl,
@@ -276,9 +492,9 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                             setState(() => _showNovaSenha = !_showNovaSenha),
                         validator: (v) {
                           if (v == null || v.isEmpty) {
-                            return 'Nova senha é obrigatória';
+                            return 'Nova senha Ã© obrigatÃ³ria';
                           }
-                          if (v.length < 8) return 'Mínimo de 8 caracteres';
+                          if (v.length < 8) return 'MÃ­nimo de 8 caracteres';
                           return null;
                         }),
                     const SizedBox(height: 16),
@@ -288,12 +504,12 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                         return 'Confirme a nova senha';
                       }
                       if (v != _novaSenhaCtrl.text) {
-                        return 'As senhas não coincidem';
+                        return 'As senhas nÃ£o coincidem';
                       }
                       return null;
                     }),
                     const SizedBox(height: 8),
-                    Text('Mínimo de 8 caracteres',
+                    Text('MÃ­nimo de 8 caracteres',
                         style: GoogleFonts.inter(
                             fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 20),
@@ -377,6 +593,9 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
       {String? hint,
       String? initialValue,
       bool readOnly = false,
+      TextInputType? keyboardType,
+      List<TextInputFormatter>? inputFormatters,
+      TextCapitalization textCapitalization = TextCapitalization.none,
       String? Function(String?)? validator}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,6 +610,9 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
           controller: controller,
           initialValue: controller == null ? initialValue : null,
           readOnly: readOnly,
+          keyboardType: keyboardType,
+          inputFormatters: inputFormatters,
+          textCapitalization: textCapitalization,
           validator: validator,
           style: GoogleFonts.inter(
               fontSize: 14,

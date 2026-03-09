@@ -53,17 +53,11 @@ public class Pagamento {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal valor;
 
-    /**
-     * Status do pagamento:
-     * PENDENTE - Aguardando pagamento
-     * PAGO - Pagamento confirmado
-     * FALHOU - Pagamento rejeitado/falhou
-     * CANCELADO - Pagamento cancelado
-     * REEMBOLSADO - Pagamento estornado
-     */
+    /** Status do pagamento - usa enum StatusPagamento */
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     @Builder.Default
-    private String status = "PENDENTE";
+    private StatusPagamento status = StatusPagamento.PENDENTE;
 
     /** Data/hora do pagamento efetivo (quando foi confirmado) */
     @Column(name = "pago_em")
@@ -87,7 +81,7 @@ public class Pagamento {
     @PreUpdate
     protected void onUpdate() {
         this.atualizadoEm = LocalDateTime.now();
-        if ("PAGO".equals(this.status) && this.pagoEm == null) {
+        if (StatusPagamento.PAGO.equals(this.status) && this.pagoEm == null) {
             this.pagoEm = LocalDateTime.now();
         }
     }

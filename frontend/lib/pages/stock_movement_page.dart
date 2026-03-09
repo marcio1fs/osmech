@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
@@ -300,6 +298,7 @@ class _StockMovementPageState extends State<StockMovementPage>
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
             value: _selectedItemId,
+            isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Peça / Item *',
               prefixIcon: Icon(Icons.build_rounded),
@@ -309,6 +308,8 @@ class _StockMovementPageState extends State<StockMovementPage>
                     value: i['id'] as int,
                     child: Text(
                         '${i['codigo']} - ${i['nome']} (${i['quantidade']} un)',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(fontSize: 13))))
                 .toList(),
             onChanged: (v) => setState(() => _selectedItemId = v),

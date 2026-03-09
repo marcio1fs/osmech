@@ -48,6 +48,34 @@ public class UserService {
         if (request.getNomeOficina() != null) {
             usuario.setNomeOficina(request.getNomeOficina());
         }
+        if (request.getCnpjOficina() != null) {
+            usuario.setCnpjOficina(normalizarOpcional(request.getCnpjOficina()));
+        }
+        if (request.getEnderecoLogradouro() != null) {
+            usuario.setEnderecoLogradouro(normalizarOpcional(request.getEnderecoLogradouro()));
+        }
+        if (request.getEnderecoNumero() != null) {
+            usuario.setEnderecoNumero(normalizarOpcional(request.getEnderecoNumero()));
+        }
+        if (request.getEnderecoComplemento() != null) {
+            usuario.setEnderecoComplemento(normalizarOpcional(request.getEnderecoComplemento()));
+        }
+        if (request.getEnderecoBairro() != null) {
+            usuario.setEnderecoBairro(normalizarOpcional(request.getEnderecoBairro()));
+        }
+        if (request.getEnderecoCidade() != null) {
+            usuario.setEnderecoCidade(normalizarOpcional(request.getEnderecoCidade()));
+        }
+        if (request.getEnderecoEstado() != null) {
+            final String uf = normalizarOpcional(request.getEnderecoEstado());
+            usuario.setEnderecoEstado(uf == null ? null : uf.toUpperCase());
+        }
+        if (request.getEnderecoCep() != null) {
+            usuario.setEnderecoCep(normalizarOpcional(request.getEnderecoCep()));
+        }
+        if (request.getSiteOficina() != null) {
+            usuario.setSiteOficina(normalizarOpcional(request.getSiteOficina()));
+        }
 
         usuarioRepository.save(usuario);
         log.info("Perfil atualizado para usuário: {}", email);
@@ -88,10 +116,24 @@ public class UserService {
                 .email(usuario.getEmail())
                 .telefone(usuario.getTelefone())
                 .nomeOficina(usuario.getNomeOficina())
+                .cnpjOficina(usuario.getCnpjOficina())
+                .enderecoLogradouro(usuario.getEnderecoLogradouro())
+                .enderecoNumero(usuario.getEnderecoNumero())
+                .enderecoComplemento(usuario.getEnderecoComplemento())
+                .enderecoBairro(usuario.getEnderecoBairro())
+                .enderecoCidade(usuario.getEnderecoCidade())
+                .enderecoEstado(usuario.getEnderecoEstado())
+                .enderecoCep(usuario.getEnderecoCep())
+                .siteOficina(usuario.getSiteOficina())
                 .role(usuario.getRole())
                 .plano(usuario.getPlano())
                 .ativo(usuario.getAtivo())
                 .criadoEm(usuario.getCriadoEm())
                 .build();
+    }
+
+    private String normalizarOpcional(String valor) {
+        final String trimmed = valor == null ? "" : valor.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 }

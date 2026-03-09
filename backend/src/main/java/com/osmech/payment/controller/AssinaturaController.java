@@ -6,60 +6,53 @@ import com.osmech.payment.service.AssinaturaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
 
-/**
- * Controller REST para Assinaturas.
- */
 @RestController
-@RequestMapping("/api/assinatura")
+@RequestMapping("/api/v1/assinaturas")
 @RequiredArgsConstructor
 public class AssinaturaController {
 
     private final AssinaturaService assinaturaService;
 
-    /** POST /api/assinatura - Criar/atualizar assinatura (assinar plano) */
-    @PostMapping
-    public ResponseEntity<AssinaturaResponse> assinar(Authentication auth,
-                                                        @Valid @RequestBody AssinaturaRequest request) {
-        return ResponseEntity.ok(assinaturaService.assinar(auth.getName(), request));
+    @PostMapping("/iniciar")
+    public ResponseEntity<AssinaturaResponse> iniciarAssinatura(Authentication authentication,
+                                                                @Valid @RequestBody AssinaturaRequest request) {
+        AssinaturaResponse response = assinaturaService.iniciarAssinatura(
+                authentication.getName(),
+                request.getPlanoCodigo()
+        );
+
+        return ResponseEntity.ok(response);
     }
 
-    /** GET /api/assinatura - Buscar assinatura ativa */
-    @GetMapping
-    public ResponseEntity<AssinaturaResponse> buscarAtiva(Authentication auth) {
-        return ResponseEntity.ok(assinaturaService.buscarAtiva(auth.getName()));
+    @GetMapping("/ativa")
+    public ResponseEntity<AssinaturaResponse> getAssinaturaAtiva(Authentication authentication) {
+        return ResponseEntity.ok(assinaturaService.buscarAssinaturaAtiva(authentication.getName()));
     }
 
-    /** GET /api/assinatura/historico - Histórico de assinaturas */
-    @GetMapping("/historico")
-    public ResponseEntity<List<AssinaturaResponse>> historico(Authentication auth) {
-        return ResponseEntity.ok(assinaturaService.listarHistorico(auth.getName()));
+    @DeleteMapping("/cancelar")
+    public ResponseEntity<AssinaturaResponse> cancelar(Authentication authentication) {
+        return ResponseEntity.ok(assinaturaService.cancelarAssinatura(authentication.getName()));
     }
 
-    /** DELETE /api/assinatura - Cancelar assinatura */
-    @DeleteMapping
-    public ResponseEntity<AssinaturaResponse> cancelar(Authentication auth) {
-        return ResponseEntity.ok(assinaturaService.cancelar(auth.getName()));
-    }
-
-    /** GET /api/assinatura/status - Verifica se assinatura está ativa */
     @GetMapping("/status")
-    public ResponseEntity<Map<String, Boolean>> verificarStatus(Authentication auth) {
-        boolean ativa = assinaturaService.isAssinaturaAtiva(auth.getName());
+    public ResponseEntity<Map<String, Boolean>> status(Authentication authentication) {
+        boolean ativa = assinaturaService.isAssinaturaAtiva(authentication.getName());
         return ResponseEntity.ok(Map.of("ativa", ativa));
     }
 
-    /** POST /api/assinatura/verificar-inadimplencia - Verificar inadimplência (ADMIN) */
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping("/verificar-inadimplencia")
-    public ResponseEntity<Map<String, String>> verificarInadimplencia() {
-        assinaturaService.verificarInadimplencia();
-        return ResponseEntity.ok(Map.of("message", "Verificação de inadimplência executada"));
+    @GetMapping("/historico")
+    public ResponseEntity<List<AssinaturaResponse>> historico(Authentication authentication) {
+        return ResponseEntity.ok(assinaturaService.listarHistorico(authentication.getName()));
     }
 }

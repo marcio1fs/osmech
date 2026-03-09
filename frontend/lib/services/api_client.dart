@@ -73,7 +73,18 @@ class ApiClient {
       throw ForbiddenException();
     }
     if (response.statusCode >= 500) {
-      throw ServerException();
+      String detail = 'Erro interno do servidor. Tente novamente.';
+      if (response.body.isNotEmpty) {
+        try {
+          final body = jsonDecode(response.body);
+          if (body is Map && body['detail'] != null) {
+            detail = body['detail'].toString();
+          } else if (body is Map && body['error'] != null) {
+            detail = body['error'].toString();
+          }
+        } catch (_) {}
+      }
+      throw ServerException(detail);
     }
   }
 

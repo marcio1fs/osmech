@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
@@ -28,6 +26,8 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
   final _precoCustoCtrl = TextEditingController(text: '0.00');
   final _precoVendaCtrl = TextEditingController(text: '0.00');
   final _localizacaoCtrl = TextEditingController();
+  final _referenciaCtrl = TextEditingController();
+  final _marcaCtrl = TextEditingController();
 
   String _categoria = 'OUTROS';
   bool _saving = false;
@@ -68,6 +68,8 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
     _precoCustoCtrl.dispose();
     _precoVendaCtrl.dispose();
     _localizacaoCtrl.dispose();
+    _referenciaCtrl.dispose();
+    _marcaCtrl.dispose();
     super.dispose();
   }
 
@@ -87,6 +89,8 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
         _precoVendaCtrl.text =
             (item['precoVenda'] as num?)?.toStringAsFixed(2) ?? '0.00';
         _localizacaoCtrl.text = item['localizacao'] ?? '';
+        _referenciaCtrl.text = item['referencia'] ?? '';
+        _marcaCtrl.text = item['marca'] ?? '';
         _loadingItem = false;
       });
     } catch (e) {
@@ -126,6 +130,12 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
         'precoVenda': parsePreco(_precoVendaCtrl.text),
         'localizacao': _localizacaoCtrl.text.trim().isNotEmpty
             ? _localizacaoCtrl.text.trim()
+            : null,
+        'referencia': _referenciaCtrl.text.trim().isNotEmpty
+            ? _referenciaCtrl.text.trim()
+            : null,
+        'marca': _marcaCtrl.text.trim().isNotEmpty
+            ? _marcaCtrl.text.trim()
             : null,
       };
 
@@ -398,6 +408,26 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                                   labelText: 'Localização no estoque',
                                   hintText: 'Ex: Prateleira A3, Gaveta 2',
                                   prefixIcon: Icon(Icons.location_on_rounded),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              TextFormField(
+                                controller: _referenciaCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Referência do fabricante',
+                                  hintText: 'Ex: ABC-1234, OEM-5678',
+                                  prefixIcon: Icon(Icons.qr_code_rounded),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+
+                              TextFormField(
+                                controller: _marcaCtrl,
+                                decoration: const InputDecoration(
+                                  labelText: 'Marca do fabricante',
+                                  hintText: 'Ex: Bosch, NGK, Valeo',
+                                  prefixIcon: Icon(Icons.business_rounded),
                                 ),
                               ),
                             ],

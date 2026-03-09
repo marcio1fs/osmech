@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
 import '../services/os_service.dart';
 import '../theme/app_theme.dart';
 import 'os_form_page.dart';
+import 'os_detail_page.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
 
@@ -249,9 +248,10 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      flex: 1,
+                      flex: 2,
                       child: DropdownButtonFormField<String>(
                         value: _statusFilter,
+                        isExpanded: true,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 12),
@@ -284,6 +284,22 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                               value: 'CONCLUIDA', child: Text('Concluída')),
                           DropdownMenuItem(
                               value: 'CANCELADA', child: Text('Cancelada')),
+                        ],
+                        selectedItemBuilder: (context) => const [
+                          Text('Todos',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('Aberta',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('Em Andamento',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('Ag. Peca',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('Ag. Aprovacao',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('Concluida',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
+                          Text('Cancelada',
+                              maxLines: 1, overflow: TextOverflow.ellipsis),
                         ],
                         onChanged: (v) => setState(() {
                           _statusFilter = v ?? 'TODOS';
@@ -415,6 +431,26 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                             Row(
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
+                                                IconButton(
+                                                  icon: const Icon(
+                                                      Icons.visibility_outlined,
+                                                      size: 18,
+                                                      color: AppColors
+                                                          .accent),
+                                                  onPressed: () async {
+                                                    final result = await Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                            builder: (_) =>
+                                                                OsDetailPage(
+                                                                    osData:
+                                                                        os)));
+                                                    if (result != null) {
+                                                      _loadOrdens();
+                                                    }
+                                                  },
+                                                  tooltip: 'Ver Detalhes',
+                                                ),
                                                 IconButton(
                                                   icon: const Icon(
                                                       Icons.edit_outlined,

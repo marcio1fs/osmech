@@ -35,4 +35,10 @@ public class StockItemRequest {
     private BigDecimal precoVenda;
 
     private String localizacao;
+
+    /** Referência do fabricante/código original da peça */
+    private String referencia;
+
+    /** Marca do fabricante da peça */
+    private String marca;
 }

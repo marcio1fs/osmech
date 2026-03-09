@@ -24,6 +24,8 @@ public class StockItemResponse {
     private BigDecimal precoCusto;
     private BigDecimal precoVenda;
     private String localizacao;
+    private String referencia;
+    private String marca;
     private Boolean ativo;
     private Boolean estoqueBaixo;
     private Boolean estoqueZerado;
@@ -41,6 +43,8 @@ public class StockItemResponse {
                 .precoCusto(item.getPrecoCusto())
                 .precoVenda(item.getPrecoVenda())
                 .localizacao(item.getLocalizacao())
+                .referencia(item.getReferencia())
+                .marca(item.getMarca())
                 .ativo(item.getAtivo())
                 .estoqueBaixo(item.isEstoqueBaixo())
                 .estoqueZerado(item.isEstoqueZerado())

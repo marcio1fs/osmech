@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
+import 'package:url_launcher/url_launcher.dart'; // Requer: flutter pub add url_launcher
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
@@ -20,6 +19,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
   Map<String, dynamic>? _assinatura;
   bool _loading = true;
   String? _error;
+  bool _processingPayment = false;
 
   @override
   void initState() {
@@ -90,6 +90,48 @@ class _SubscriptionPageState extends State<SubscriptionPage>
           SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
         );
       }
+    }
+  }
+
+  /// Inicia o fluxo de pagamento no Mercado Pago
+  Future<void> _assinarPlano(String planoCodigo) async {
+    if (planoCodigo == 'FREE') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'O plano Gratuito nao usa checkout. Para voltar ao FREE, cancele a assinatura atual.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _processingPayment = true);
+
+    try {
+      final service = PaymentService(token: safeToken);
+      final assinatura = await service.iniciarAssinatura(
+        planoCodigo: planoCodigo,
+      );
+
+      final checkoutUrl = assinatura.checkoutUrl;
+      if (checkoutUrl.trim().isEmpty) {
+        throw Exception('Link de pagamento não retornado pelo servidor.');
+      }
+
+      final uri = Uri.parse(checkoutUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw Exception('Não foi possível abrir o link de pagamento.');
+      }
+    } catch (e) {
+      if (!handleAuthError(e) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _processingPayment = false);
     }
   }
 
@@ -355,6 +397,18 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                   ),
                                 ),
                               ],
+
+                              const SizedBox(height: 40),
+                              const Divider(),
+                              const SizedBox(height: 24),
+
+                              Text('Planos Disponíveis',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary)),
+                              const SizedBox(height: 16),
+                              _buildPlansList(),
                             ],
                           ),
                         ),
@@ -362,6 +416,103 @@ class _SubscriptionPageState extends State<SubscriptionPage>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPlansList() {
+    // Lista mockada de planos (idealmente viria da API /planos)
+    final planos = [
+      {
+        'codigo': 'FREE',
+        'nome': 'Gratuito',
+        'preco': 0.00,
+        'recursos': ['Até 10 OS/mês', 'Ideal para começar']
+      },
+      {
+        'codigo': 'PRO',
+        'nome': 'Profissional',
+        'preco': 49.90,
+        'recursos': ['Até 30 OS/mês', 'Financeiro Completo', 'Estoque']
+      },
+      {
+        'codigo': 'PRO_PLUS',
+        'nome': 'PRO+',
+        'preco': 79.90,
+        'recursos': ['Até 80 OS/mês', 'WhatsApp automático', 'IA (Básico)']
+      },
+      {
+        'codigo': 'PREMIUM',
+        'nome': 'Premium',
+        'preco': 149.90,
+        'recursos': ['Tudo do PRO+', 'OS ilimitadas', 'IA (Avançado)']
+      },
+    ];
+
+    return Column(
+      children: planos.map((plano) {
+        final isCurrent = _assinatura?['planoCodigo'] == plano['codigo'] &&
+            _assinatura?['status'] == 'ACTIVE';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+                color: isCurrent ? AppColors.success : AppColors.border,
+                width: isCurrent ? 2 : 1),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(plano['nome'] as String,
+                        style: GoogleFonts.inter(
+                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    Text(formatCurrency(plano['preco']),
+                        style: GoogleFonts.inter(
+                            fontSize: 14, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              if (isCurrent)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text('Atual',
+                      style: GoogleFonts.inter(
+                          color: AppColors.success,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12)),
+                )
+              else
+                FilledButton(
+                  onPressed: _processingPayment || plano['codigo'] == 'FREE'
+                      ? null
+                      : () => _assinarPlano(plano['codigo'] as String),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.accent,
+                  ),
+                  child: _processingPayment
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : Text(
+                          plano['codigo'] == 'FREE' ? 'Plano base' : 'Assinar'),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
     );
   }
 }

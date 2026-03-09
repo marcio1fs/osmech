@@ -20,6 +20,9 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.springframework.core.env.Environment;
+
+import java.util.Collections;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,8 +41,9 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final Environment environment;
 
-    @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:8083}")
+    @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:8083,http://localhost:3000}")
     private String allowedOrigins;
 
     @Bean
@@ -63,10 +67,10 @@ public class SecurityConfig {
                 })
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/planos/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/planos/**", "/api/mercadopago/webhook").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
-                .anyRequest().authenticated()
+                .requestMatchers("/api/**").authenticated()
+                .anyRequest().permitAll()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -76,10 +80,18 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+
+        boolean isDev = Arrays.asList(environment.getActiveProfiles()).contains("dev");
+
+        if (isDev) {
+            config.setAllowedOriginPatterns(Collections.singletonList("http://localhost:*"));
+        } else {
+            config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        }
+
         config.setAllowCredentials(true);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        config.setAllowedHeaders(List.of("*"));
+        config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

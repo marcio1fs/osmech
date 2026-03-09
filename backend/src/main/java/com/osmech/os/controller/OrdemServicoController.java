@@ -2,6 +2,8 @@ package com.osmech.os.controller;
 
 import com.osmech.os.dto.OrdemServicoRequest;
 import com.osmech.os.dto.OrdemServicoResponse;
+import com.osmech.os.dto.EncerrarOsRequest;
+import com.osmech.os.dto.EncerrarOsResponse;
 import com.osmech.os.service.OrdemServicoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -48,6 +50,14 @@ public class OrdemServicoController {
                                                            @PathVariable Long id,
                                                            @Valid @RequestBody OrdemServicoRequest request) {
         return ResponseEntity.ok(osService.atualizar(auth.getName(), id, request));
+    }
+
+    /** POST /api/os/{id}/encerrar - Encerrar OS com recebimento e recibo */
+    @PostMapping("/{id}/encerrar")
+    public ResponseEntity<EncerrarOsResponse> encerrar(Authentication auth,
+                                                       @PathVariable Long id,
+                                                       @Valid @RequestBody EncerrarOsRequest request) {
+        return ResponseEntity.ok(osService.encerrar(auth.getName(), id, request));
     }
 
     /** DELETE /api/os/{id} - Excluir OS */

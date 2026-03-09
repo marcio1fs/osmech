@@ -1,7 +1,11 @@
 package com.osmech.os.service;
 
 import com.osmech.config.ResourceNotFoundException;
+import com.osmech.finance.dto.TransacaoRequest;
+import com.osmech.finance.dto.TransacaoResponse;
+import com.osmech.finance.repository.TransacaoFinanceiraRepository;
 import com.osmech.finance.service.FinanceiroService;
+import com.osmech.notification.service.WhatsAppService;
 import com.osmech.os.dto.*;
 import com.osmech.os.entity.ItemOS;
 import com.osmech.os.entity.OrdemServico;
@@ -25,11 +29,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 /**
@@ -48,6 +54,8 @@ public class OrdemServicoService {
     private final ItemOSRepository itemOSRepository;
     private final StockItemRepository stockItemRepository;
     private final StockService stockService;
+    private final TransacaoFinanceiraRepository transacaoFinanceiraRepository;
+    private final WhatsAppService whatsAppService;
 
     /**
      * Cria uma nova Ordem de Serviço.
@@ -80,13 +88,18 @@ public class OrdemServicoService {
         OrdemServico os = OrdemServico.builder()
                 .usuarioId(usuario.getId())
                 .clienteNome(request.getClienteNome())
+                .clienteCpf(request.getClienteCpf())
+                .clienteCnpj(request.getClienteCnpj())
                 .clienteTelefone(request.getClienteTelefone())
                 .placa(request.getPlaca().toUpperCase())
                 .modelo(request.getModelo())
+                .montadora(request.getMontadora())
+                .corVeiculo(request.getCorVeiculo())
                 .ano(request.getAno())
                 .quilometragem(request.getQuilometragem())
                 .descricao(descricao)
                 .diagnostico(request.getDiagnostico())
+                .mecanicoResponsavel(resolverMecanicoResponsavel(request.getMecanicoResponsavel(), usuario))
                 .pecas(request.getPecas())
                 .valor(request.getValor() != null ? request.getValor() : BigDecimal.ZERO)
                 .status("ABERTA")
@@ -161,13 +174,20 @@ public class OrdemServicoService {
 
         // Atualiza campos básicos
         if (request.getClienteNome() != null) os.setClienteNome(request.getClienteNome());
+        if (request.getClienteCpf() != null) os.setClienteCpf(request.getClienteCpf());
+        if (request.getClienteCnpj() != null) os.setClienteCnpj(request.getClienteCnpj());
         if (request.getClienteTelefone() != null) os.setClienteTelefone(request.getClienteTelefone());
         if (request.getPlaca() != null) os.setPlaca(request.getPlaca().toUpperCase());
         if (request.getModelo() != null) os.setModelo(request.getModelo());
+        if (request.getMontadora() != null) os.setMontadora(request.getMontadora());
+        if (request.getCorVeiculo() != null) os.setCorVeiculo(request.getCorVeiculo());
         if (request.getAno() != null) os.setAno(request.getAno());
         if (request.getQuilometragem() != null) os.setQuilometragem(request.getQuilometragem());
         if (request.getDescricao() != null) os.setDescricao(request.getDescricao());
         if (request.getDiagnostico() != null) os.setDiagnostico(request.getDiagnostico());
+        if (request.getMecanicoResponsavel() != null) {
+            os.setMecanicoResponsavel(resolverMecanicoResponsavel(request.getMecanicoResponsavel(), usuario));
+        }
         if (request.getPecas() != null) os.setPecas(request.getPecas());
         if (request.getValor() != null) os.setValor(request.getValor());
         if (request.getWhatsappConsentimento() != null) os.setWhatsappConsentimento(request.getWhatsappConsentimento());
@@ -239,6 +259,90 @@ public class OrdemServicoService {
         }
 
         return toResponse(os, servicos, itens);
+    }
+
+    /**
+     * Encerra a OS, registra recebimento com metodo de pagamento e envia recibo por WhatsApp.
+     */
+    @Transactional
+    public EncerrarOsResponse encerrar(String emailUsuario, Long osId, EncerrarOsRequest request) {
+        Usuario usuario = getUsuario(emailUsuario);
+        OrdemServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordem de Servico nao encontrada"));
+
+        if (!os.getUsuarioId().equals(usuario.getId())) {
+            throw new AccessDeniedException("Acesso negado a esta Ordem de Servico");
+        }
+        if ("CONCLUIDA".equalsIgnoreCase(os.getStatus())) {
+            throw new IllegalArgumentException("OS ja esta encerrada");
+        }
+        if ("CANCELADA".equalsIgnoreCase(os.getStatus())) {
+            throw new IllegalArgumentException("OS cancelada nao pode ser encerrada");
+        }
+
+        os.setStatus("CONCLUIDA");
+        os = osRepository.save(os);
+
+        List<ServicoOS> servicos = servicoOSRepository.findByOrdemServicoId(os.getId());
+        List<ItemOS> itens = itemOSRepository.findByOrdemServicoId(os.getId());
+
+        String metodoPagamento = request.getMetodoPagamento();
+        if (metodoPagamento == null || metodoPagamento.isBlank()) {
+            throw new IllegalArgumentException("Método de pagamento é obrigatório para encerrar a OS");
+        }
+        metodoPagamento = metodoPagamento.trim().toUpperCase();
+        TransacaoResponse transacao = null;
+
+        boolean jaTemTransacaoOs = transacaoFinanceiraRepository
+                .existsByUsuarioIdAndReferenciaTipoAndReferenciaIdAndEstornoFalse(usuario.getId(), "OS", os.getId());
+
+        if (!jaTemTransacaoOs && os.getValor() != null && os.getValor().signum() > 0) {
+            TransacaoRequest transacaoRequest = new TransacaoRequest();
+            transacaoRequest.setTipo("ENTRADA");
+            transacaoRequest.setDescricao("Recebimento OS #" + os.getId() + " - " + os.getClienteNome());
+            transacaoRequest.setValor(os.getValor());
+            transacaoRequest.setReferenciaTipo("OS");
+            transacaoRequest.setReferenciaId(os.getId());
+            transacaoRequest.setMetodoPagamento(metodoPagamento);
+            transacaoRequest.setObservacoes(request.getObservacoesPagamento());
+            transacao = financeiroService.criarTransacao(emailUsuario, transacaoRequest);
+        }
+
+        String recibo = montarReciboExtrato(usuario, os, servicos, itens, metodoPagamento, transacao);
+
+        boolean enviarWhatsapp = request.getEnviarReciboWhatsapp() == null || request.getEnviarReciboWhatsapp();
+        boolean whatsappEnviado = false;
+        String whatsappDestino = null;
+        String whatsappDetalhe = "Envio nao solicitado";
+
+        if (enviarWhatsapp) {
+            if (!Boolean.TRUE.equals(os.getWhatsappConsentimento())) {
+                whatsappDetalhe = "Cliente sem consentimento de WhatsApp nesta OS";
+            } else {
+                whatsappDestino = request.getTelefoneWhatsapp() != null && !request.getTelefoneWhatsapp().isBlank()
+                        ? request.getTelefoneWhatsapp()
+                        : os.getClienteTelefone();
+
+                if (whatsappDestino == null || whatsappDestino.isBlank()) {
+                    whatsappDetalhe = "Telefone do cliente nao informado";
+                } else {
+                    WhatsAppService.ResultadoEnvio resultado = whatsAppService.enviarMensagem(whatsappDestino, recibo);
+                    whatsappEnviado = resultado.enviado();
+                    whatsappDestino = resultado.destino();
+                    whatsappDetalhe = resultado.detalhe();
+                }
+            }
+        }
+
+        return EncerrarOsResponse.builder()
+                .os(toResponse(os, servicos, itens))
+                .metodoPagamento(metodoPagamento)
+                .transacaoFinanceiraId(transacao != null ? transacao.getId() : null)
+                .recibo(recibo)
+                .whatsappEnviado(whatsappEnviado)
+                .whatsappDestino(whatsappDestino)
+                .whatsappDetalhe(whatsappDetalhe)
+                .build();
     }
 
     /**
@@ -356,13 +460,18 @@ public class OrdemServicoService {
         return OrdemServicoResponse.builder()
                 .id(os.getId())
                 .clienteNome(os.getClienteNome())
+                .clienteCpf(os.getClienteCpf())
+                .clienteCnpj(os.getClienteCnpj())
                 .clienteTelefone(os.getClienteTelefone())
                 .placa(os.getPlaca())
                 .modelo(os.getModelo())
+                .montadora(os.getMontadora())
+                .corVeiculo(os.getCorVeiculo())
                 .ano(os.getAno())
                 .quilometragem(os.getQuilometragem())
                 .descricao(os.getDescricao())
                 .diagnostico(os.getDiagnostico())
+                .mecanicoResponsavel(os.getMecanicoResponsavel())
                 .pecas(os.getPecas())
                 .valor(os.getValor())
                 .status(os.getStatus())
@@ -373,6 +482,136 @@ public class OrdemServicoService {
                 .servicos(servicoResponses)
                 .itens(itemResponses)
                 .build();
+    }
+
+    private String montarReciboExtrato(Usuario usuario, OrdemServico os,
+                                       List<ServicoOS> servicos, List<ItemOS> itens,
+                                       String metodoPagamento, TransacaoResponse transacao) {
+        NumberFormat moeda = NumberFormat.getCurrencyInstance(new Locale("pt", "BR"));
+        String oficinaNome = usuario.getNomeOficina() != null && !usuario.getNomeOficina().isBlank()
+                ? usuario.getNomeOficina()
+                : usuario.getNome();
+        String dataHora = LocalDateTime.now().toString().replace("T", " ");
+        StringBuilder sb = new StringBuilder();
+
+        sb.append("EXTRATO DE RECEBIMENTO - OSMECH").append("\n");
+        sb.append("====================================").append("\n");
+        sb.append("OFICINA: ").append(oficinaNome).append("\n");
+        sb.append("CNPJ OFICINA: ").append(defaultText(usuario.getCnpjOficina())).append("\n");
+        sb.append("RESPONSAVEL: ").append(usuario.getNome()).append("\n");
+        sb.append("EMAIL: ").append(usuario.getEmail()).append("\n");
+        sb.append("TELEFONE: ").append(usuario.getTelefone()).append("\n");
+        sb.append("ENDERECO: ").append(defaultText(montarEnderecoOficina(usuario))).append("\n");
+        sb.append("SITE: ").append(defaultText(usuario.getSiteOficina())).append("\n");
+        sb.append("------------------------------------").append("\n");
+        sb.append("CLIENTE: ").append(defaultText(os.getClienteNome())).append("\n");
+        sb.append("CPF: ").append(defaultText(os.getClienteCpf())).append("\n");
+        sb.append("CNPJ: ").append(defaultText(os.getClienteCnpj())).append("\n");
+        sb.append("TEL CLIENTE: ").append(defaultText(os.getClienteTelefone())).append("\n");
+        sb.append("VEICULO: ").append(defaultText(os.getModelo())).append("\n");
+        sb.append("MONTADORA: ").append(defaultText(os.getMontadora())).append("\n");
+        sb.append("COR: ").append(defaultText(os.getCorVeiculo())).append("\n");
+        sb.append("PLACA: ").append(defaultText(os.getPlaca())).append("\n");
+        sb.append("ANO: ").append(os.getAno() != null ? os.getAno() : "-").append("\n");
+        sb.append("KM: ").append(os.getQuilometragem() != null ? os.getQuilometragem() : "-").append("\n");
+        sb.append("------------------------------------").append("\n");
+        sb.append("LANCAMENTOS (SERVICOS)").append("\n");
+
+        BigDecimal totalServicos = BigDecimal.ZERO;
+        if (servicos != null && !servicos.isEmpty()) {
+            for (ServicoOS servico : servicos) {
+                BigDecimal total = servico.getValorTotal() != null ? servico.getValorTotal() : BigDecimal.ZERO;
+                totalServicos = totalServicos.add(total);
+                sb.append("+ ").append(defaultText(servico.getDescricao()))
+                        .append(" | QTD ").append(servico.getQuantidade() != null ? servico.getQuantidade() : 1)
+                        .append(" | ").append(moeda.format(total))
+                        .append("\n");
+            }
+        } else {
+            sb.append("+ ").append(defaultText(os.getDescricao())).append("\n");
+        }
+
+        sb.append("LANCAMENTOS (PECAS)").append("\n");
+        BigDecimal totalPecas = BigDecimal.ZERO;
+        if (itens != null && !itens.isEmpty()) {
+            for (ItemOS item : itens) {
+                BigDecimal total = item.getValorTotal() != null ? item.getValorTotal() : BigDecimal.ZERO;
+                totalPecas = totalPecas.add(total);
+                sb.append("+ ").append(defaultText(item.getNomeItem()))
+                        .append(" | QTD ").append(item.getQuantidade() != null ? item.getQuantidade() : 1)
+                        .append(" | ").append(moeda.format(total))
+                        .append("\n");
+            }
+        } else {
+            sb.append("+ ").append(defaultText(os.getPecas())).append("\n");
+        }
+
+        BigDecimal valorTotal = os.getValor() != null ? os.getValor() : totalServicos.add(totalPecas);
+
+        sb.append("------------------------------------").append("\n");
+        sb.append("RESUMO FINANCEIRO").append("\n");
+        sb.append("SERVICOS: ").append(moeda.format(totalServicos)).append("\n");
+        sb.append("PECAS: ").append(moeda.format(totalPecas)).append("\n");
+        sb.append("TOTAL RECEBIDO: ").append(moeda.format(valorTotal)).append("\n");
+        sb.append("METODO: ").append(defaultText(metodoPagamento)).append("\n");
+        sb.append("OS: #").append(os.getId()).append("\n");
+        if (transacao != null) {
+            sb.append("TRANSACAO: #").append(transacao.getId()).append("\n");
+        }
+        sb.append("STATUS OS: ").append(defaultText(os.getStatus())).append("\n");
+        sb.append("DATA/HORA: ").append(dataHora).append("\n");
+        sb.append("====================================").append("\n");
+        sb.append("Comprovante gerado automaticamente.");
+
+        return sb.toString();
+    }
+
+    private String defaultText(String value) {
+        return (value == null || value.isBlank()) ? "-" : value.trim();
+    }
+
+    private String resolverMecanicoResponsavel(String mecanicoResponsavel, Usuario usuario) {
+        if (mecanicoResponsavel != null && !mecanicoResponsavel.isBlank()) {
+            return mecanicoResponsavel.trim();
+        }
+        return usuario.getNome();
+    }
+
+    private String montarEnderecoOficina(Usuario usuario) {
+        List<String> partes = new ArrayList<>();
+        String logradouro = defaultText(usuario.getEnderecoLogradouro());
+        String numero = defaultText(usuario.getEnderecoNumero());
+        if (!"-".equals(logradouro)) {
+            if (!"-".equals(numero)) {
+                partes.add(logradouro + ", " + numero);
+            } else {
+                partes.add(logradouro);
+            }
+        }
+
+        String complemento = defaultText(usuario.getEnderecoComplemento());
+        if (!"-".equals(complemento)) partes.add(complemento);
+
+        String bairro = defaultText(usuario.getEnderecoBairro());
+        if (!"-".equals(bairro)) partes.add(bairro);
+
+        String cidade = defaultText(usuario.getEnderecoCidade());
+        String estado = defaultText(usuario.getEnderecoEstado());
+        if (!"-".equals(cidade) || !"-".equals(estado)) {
+            if (!"-".equals(cidade) && !"-".equals(estado)) {
+                partes.add(cidade + " - " + estado);
+            } else if (!"-".equals(cidade)) {
+                partes.add(cidade);
+            } else {
+                partes.add(estado);
+            }
+        }
+
+        String cep = defaultText(usuario.getEnderecoCep());
+        if (!"-".equals(cep)) partes.add("CEP " + cep);
+
+        if (partes.isEmpty()) return "-";
+        return String.join(" | ", partes);
     }
 
     /**

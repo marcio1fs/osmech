@@ -14,7 +14,7 @@ class ChatService {
       'message': message,
       if (sessionId != null) 'sessionId': sessionId,
     };
-    final resp = await _api.post('/chat', body: body);
+    final resp = await _api.post('/api/chat', body: body);
     if (resp.statusCode == 200) {
       return jsonDecode(resp.body);
     }
@@ -24,7 +24,7 @@ class ChatService {
 
   /// Buscar histórico de uma sessão
   Future<List<Map<String, dynamic>>> getHistorico(String sessionId) async {
-    final resp = await _api.get('/chat/session/$sessionId');
+    final resp = await _api.get('/api/chat/session/$sessionId');
     if (resp.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(resp.body));
     }
@@ -33,7 +33,7 @@ class ChatService {
 
   /// Listar sessões
   Future<List<String>> getSessoes() async {
-    final resp = await _api.get('/chat/sessions');
+    final resp = await _api.get('/api/chat/sessions');
     if (resp.statusCode == 200) {
       return List<String>.from(jsonDecode(resp.body));
     }
@@ -42,7 +42,7 @@ class ChatService {
 
   /// Deletar sessão
   Future<void> deletarSessao(String sessionId) async {
-    final resp = await _api.delete('/chat/session/$sessionId');
+    final resp = await _api.delete('/api/chat/session/$sessionId');
     if (resp.statusCode != 200) {
       throw Exception('Erro ao deletar sessão');
     }

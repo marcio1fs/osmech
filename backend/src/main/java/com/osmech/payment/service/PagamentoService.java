@@ -6,6 +6,7 @@ import com.osmech.payment.dto.PagamentoResponse;
 import com.osmech.payment.dto.ResumoFinanceiroResponse;
 import com.osmech.payment.entity.Assinatura;
 import com.osmech.payment.entity.Pagamento;
+import com.osmech.payment.entity.StatusPagamento;
 import com.osmech.payment.repository.AssinaturaRepository;
 import com.osmech.payment.repository.PagamentoRepository;
 import com.osmech.user.entity.Usuario;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Serviço responsável pelas regras de negócio de Pagamentos.
@@ -49,7 +51,7 @@ public class PagamentoService {
                 .descricao(request.getDescricao())
                 .metodoPagamento(request.getMetodoPagamento())
                 .valor(request.getValor())
-                .status("PENDENTE")
+                .status(StatusPagamento.PENDENTE)
                 .observacoes(request.getObservacoes())
                 .build();
 
@@ -72,28 +74,18 @@ public class PagamentoService {
             throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
-        if (!"PENDENTE".equals(pagamento.getStatus())) {
+        if (!Objects.equals(pagamento.getStatus(), StatusPagamento.PENDENTE)) {
             throw new IllegalArgumentException("Pagamento não está pendente");
         }
 
-        pagamento.setStatus("PAGO");
+        if ("ASSINATURA".equalsIgnoreCase(pagamento.getTipo())) {
+            throw new IllegalArgumentException(
+                    "Confirmacao manual nao permitida para ASSINATURA. Aguarde confirmacao pelo gateway.");
+        }
+
+        pagamento.setStatus(StatusPagamento.PAGO);
         pagamento.setPagoEm(LocalDateTime.now());
         pagamento = pagamentoRepository.save(pagamento);
-
-        // Se for pagamento de assinatura, atualiza a próxima cobrança
-        if ("ASSINATURA".equals(pagamento.getTipo()) && pagamento.getReferenciaId() != null) {
-            assinaturaRepository.findById(pagamento.getReferenciaId()).ifPresent(assinatura -> {
-                assinatura.setStatus("ACTIVE");
-                assinatura.setProximaCobranca(LocalDate.now().plusMonths(1));
-                assinaturaRepository.save(assinatura);
-
-                // Reativa o usuário se estava suspenso
-                usuario.setAtivo(true);
-                usuarioRepository.save(usuario);
-
-                log.info("Assinatura {} reativada após pagamento", assinatura.getId());
-            });
-        }
 
         log.info("Pagamento {} confirmado", pagamentoId);
         return toResponse(pagamento);
@@ -112,11 +104,11 @@ public class PagamentoService {
             throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
-        if (!"PENDENTE".equals(pagamento.getStatus())) {
+        if (!Objects.equals(pagamento.getStatus(), StatusPagamento.PENDENTE)) {
             throw new IllegalArgumentException("Apenas pagamentos pendentes podem ser cancelados");
         }
 
-        pagamento.setStatus("CANCELADO");
+        pagamento.setStatus(StatusPagamento.CANCELADO);
         pagamento = pagamentoRepository.save(pagamento);
 
         log.info("Pagamento {} cancelado", pagamentoId);
@@ -179,9 +171,9 @@ public class PagamentoService {
         BigDecimal receitaTotal = pagamentoRepository.somaReceitaTotal(uid);
         BigDecimal receitaMes = pagamentoRepository.somaReceitaPeriodo(uid, inicioMes, fimMes);
         BigDecimal totalPendente = pagamentoRepository.somaPendentes(uid);
-        long qtdPendentes = pagamentoRepository.countByUsuarioIdAndStatus(uid, "PENDENTE");
+        long qtdPendentes = pagamentoRepository.countByUsuarioIdAndStatus(uid, StatusPagamento.PENDENTE);
         long qtdPagamentosMes = pagamentoRepository.countByUsuarioIdAndTipoAndStatusAndCriadoEmBetween(
-                uid, "OS", "PAGO", inicioMes, fimMes);
+                uid, "OS", StatusPagamento.PAGO, inicioMes, fimMes);
 
         // Dados da assinatura
         var assinatura = assinaturaRepository
@@ -217,7 +209,7 @@ public class PagamentoService {
                 .descricao(p.getDescricao())
                 .metodoPagamento(p.getMetodoPagamento())
                 .valor(p.getValor())
-                .status(p.getStatus())
+                .status(p.getStatus() != null ? p.getStatus().name() : null)
                 .pagoEm(p.getPagoEm())
                 .transacaoExternaId(p.getTransacaoExternaId())
                 .observacoes(p.getObservacoes())

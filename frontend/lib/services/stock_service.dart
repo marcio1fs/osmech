@@ -13,7 +13,7 @@ class StockService {
 
   /// Criar novo item de estoque
   Future<Map<String, dynamic>> criarItem(Map<String, dynamic> dados) async {
-    final response = await _api.post('/stock', body: dados);
+    final response = await _api.post('/api/stock', body: dados);
     final body = jsonDecode(response.body);
     if (response.statusCode == 200) return body;
     throw Exception(body['error'] ?? 'Erro ao criar item');
@@ -28,7 +28,7 @@ class StockService {
     if (categoria != null) params['categoria'] = categoria;
     if (busca != null && busca.isNotEmpty) params['busca'] = busca;
 
-    final response = await _api.get('/stock',
+    final response = await _api.get('/api/stock',
         queryParams: params.isNotEmpty ? params : null);
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
@@ -39,7 +39,7 @@ class StockService {
 
   /// Buscar item por ID
   Future<Map<String, dynamic>> buscarItem(int itemId) async {
-    final response = await _api.get('/stock/$itemId');
+    final response = await _api.get('/api/stock/$itemId');
     final body = jsonDecode(response.body);
     if (response.statusCode == 200) return body;
     throw Exception(body['error'] ?? 'Erro ao buscar item');
@@ -48,7 +48,7 @@ class StockService {
   /// Atualizar item existente
   Future<Map<String, dynamic>> atualizarItem(
       int itemId, Map<String, dynamic> dados) async {
-    final response = await _api.put('/stock/$itemId', body: dados);
+    final response = await _api.put('/api/stock/$itemId', body: dados);
     final body = jsonDecode(response.body);
     if (response.statusCode == 200) return body;
     throw Exception(body['error'] ?? 'Erro ao atualizar item');
@@ -56,7 +56,7 @@ class StockService {
 
   /// Desativar item (soft delete)
   Future<void> desativarItem(int itemId) async {
-    final response = await _api.delete('/stock/$itemId');
+    final response = await _api.delete('/api/stock/$itemId');
     if (response.statusCode != 200) {
       final body = jsonDecode(response.body);
       throw Exception(body['error'] ?? 'Erro ao desativar item');
@@ -70,7 +70,7 @@ class StockService {
   /// Registrar movimentação (entrada ou saída)
   Future<Map<String, dynamic>> registrarMovimentacao(
       Map<String, dynamic> dados) async {
-    final response = await _api.post('/stock/move', body: dados);
+    final response = await _api.post('/api/stock/move', body: dados);
     final body = jsonDecode(response.body);
     if (response.statusCode == 200) return body;
     throw Exception(body['error'] ?? 'Erro ao registrar movimentação');
@@ -78,7 +78,7 @@ class StockService {
 
   /// Listar todas as movimentações
   Future<List<Map<String, dynamic>>> listarMovimentacoes() async {
-    final response = await _api.get('/stock/movements');
+    final response = await _api.get('/api/stock/movements');
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
@@ -88,7 +88,7 @@ class StockService {
 
   /// Listar movimentações de um item específico
   Future<List<Map<String, dynamic>>> listarMovimentacoesItem(int itemId) async {
-    final response = await _api.get('/stock/$itemId/movements');
+    final response = await _api.get('/api/stock/$itemId/movements');
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }
@@ -102,7 +102,7 @@ class StockService {
 
   /// Obter alertas de estoque baixo/zerado
   Future<List<Map<String, dynamic>>> getAlertas() async {
-    final response = await _api.get('/stock/alerts');
+    final response = await _api.get('/api/stock/alerts');
     if (response.statusCode == 200) {
       return List<Map<String, dynamic>>.from(jsonDecode(response.body));
     }

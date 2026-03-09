@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Repositório de Categorias Financeiras.
@@ -24,4 +25,10 @@ public interface CategoriaFinanceiraRepository extends JpaRepository<CategoriaFi
 
     /** Verifica se já existe categoria com mesmo nome para o usuário */
     boolean existsByUsuarioIdAndNomeIgnoreCase(Long usuarioId, String nome);
+
+    /** Busca categoria por ID validando escopo (usuário dono ou categoria do sistema). */
+    @Query("SELECT c FROM CategoriaFinanceira c WHERE c.id = :id AND (c.usuarioId = :usuarioId OR c.sistema = true)")
+    Optional<CategoriaFinanceira> findByIdAndUsuarioIdOrSistemaTrue(
+            @Param("id") Long id,
+            @Param("usuarioId") Long usuarioId);
 }

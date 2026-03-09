@@ -20,6 +20,9 @@ public interface AssinaturaRepository extends JpaRepository<Assinatura, Long> {
     /** Busca última assinatura do usuário (mais recente) */
     Optional<Assinatura> findFirstByUsuarioIdOrderByCriadoEmDesc(Long usuarioId);
 
+    /** Busca última assinatura pendente do usuário */
+    Optional<Assinatura> findFirstByUsuarioIdAndStatusOrderByCriadoEmDesc(Long usuarioId, String status);
+
     /** Busca todas as assinaturas do usuário */
     List<Assinatura> findByUsuarioIdOrderByCriadoEmDesc(Long usuarioId);
 

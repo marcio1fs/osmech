@@ -9,7 +9,7 @@ class UserService {
 
   /// Busca dados do perfil do usuário logado.
   Future<Map<String, dynamic>> getPerfil() async {
-    final response = await _api.get('/usuario/perfil');
+    final response = await _api.get('/api/usuario/perfil');
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -21,11 +21,30 @@ class UserService {
     required String nome,
     String? telefone,
     String? nomeOficina,
+    String? cnpjOficina,
+    String? enderecoLogradouro,
+    String? enderecoNumero,
+    String? enderecoComplemento,
+    String? enderecoBairro,
+    String? enderecoCidade,
+    String? enderecoEstado,
+    String? enderecoCep,
+    String? siteOficina,
   }) async {
-    final response = await _api.put('/usuario/perfil', body: {
+    final response = await _api.put('/api/usuario/perfil', body: {
       'nome': nome,
       if (telefone != null) 'telefone': telefone,
       if (nomeOficina != null) 'nomeOficina': nomeOficina,
+      if (cnpjOficina != null) 'cnpjOficina': cnpjOficina,
+      if (enderecoLogradouro != null) 'enderecoLogradouro': enderecoLogradouro,
+      if (enderecoNumero != null) 'enderecoNumero': enderecoNumero,
+      if (enderecoComplemento != null)
+        'enderecoComplemento': enderecoComplemento,
+      if (enderecoBairro != null) 'enderecoBairro': enderecoBairro,
+      if (enderecoCidade != null) 'enderecoCidade': enderecoCidade,
+      if (enderecoEstado != null) 'enderecoEstado': enderecoEstado,
+      if (enderecoCep != null) 'enderecoCep': enderecoCep,
+      if (siteOficina != null) 'siteOficina': siteOficina,
     });
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -39,7 +58,7 @@ class UserService {
     required String senhaAtual,
     required String novaSenha,
   }) async {
-    final response = await _api.put('/usuario/senha', body: {
+    final response = await _api.put('/api/usuario/senha', body: {
       'senhaAtual': senhaAtual,
       'novaSenha': novaSenha,
     });
