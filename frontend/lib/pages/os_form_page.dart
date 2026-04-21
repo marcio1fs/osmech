@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../widgets/upper_text.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,8 +12,9 @@ import '../services/os_service.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../widgets/upper_text.dart';
 
-/// FormulÃ¡rio de criaÃ§Ã£o/ediÃ§Ã£o de OS â€” com suporte a mÃºltiplos serviÃ§os e itens de estoque.
+/// Formulario de criação/edição de OS — com suporte a multiplos serviços e itens de estoque.
 class OsFormPage extends StatefulWidget {
   final Map<String, dynamic>? osData;
   final VoidCallback? onSaved;
@@ -25,8 +27,7 @@ class OsFormPage extends StatefulWidget {
 class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _clienteNome;
-  late final TextEditingController _clienteCpf;
-  late final TextEditingController _clienteCnpj;
+  late final TextEditingController _clienteDocumento;
   late final TextEditingController _clienteTelefone;
   late final TextEditingController _placa;
   late final TextEditingController _modelo;
@@ -35,7 +36,6 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   late final TextEditingController _ano;
   late final TextEditingController _km;
   late final TextEditingController _diagnostico;
-  late final TextEditingController _mecanicoResponsavel;
   bool _applyingMask = false;
   String _status = 'ABERTA';
   bool _notificarWhatsApp = false;
@@ -43,13 +43,13 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   bool _closingOs = false;
   bool _saved = false;
 
-  // ServiÃ§os dinÃ¢micos
+  // Serviços dinamicos
   final List<_ServicoEntry> _servicos = [];
 
-  // Itens de estoque dinÃ¢micos
+  // Itens de estoque dinamicos
   final List<_ItemEstoqueEntry> _itensEstoque = [];
 
-  // Itens de estoque disponÃ­veis (carregados da API)
+  // Itens de estoque disponíveis (carregados da API)
   List<Map<String, dynamic>> _stockItems = [];
   bool _loadingStock = false;
   List<Map<String, dynamic>> _mecanicos = [];
@@ -126,20 +126,20 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Descartar alteraÃ§Ãµes?',
+        title: UpperText('Descartar alterações?',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(
-          'VocÃª tem alteraÃ§Ãµes nÃ£o salvas. Deseja sair sem salvar?',
+        content: UpperText(
+          'Você tem alterações não salvas. Deseja sair sem salvar?',
           style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Continuar editando')),
+              child: const UpperText('Continuar editando')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Descartar'),
+            child: const UpperText('Descartar'),
           ),
         ],
       ),
@@ -147,7 +147,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     return result ?? false;
   }
 
-  /// Mapa de transiÃ§Ãµes de status vÃ¡lidas (espelho do backend StatusOS).
+  /// Mapa de transições de status válidas (espelho do backend StatusOS).
   static const Map<String, List<String>> _transicoesValidas = {
     'ABERTA': [
       'ABERTA',
@@ -202,7 +202,44 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     return int.tryParse(digitsOnly);
   }
 
+  double _parseDoubleOrZero(String raw) {
+    return double.tryParse(raw.replaceAll(',', '.').trim()) ?? 0;
+  }
+
   String _digitsOnly(String raw) => raw.replaceAll(RegExp(r'[^0-9]'), '');
+
+  String _nomeMecanicoPorId(int? mecanicoId) {
+    if (mecanicoId == null) return '';
+    for (final mecanico in _mecanicos) {
+      if (mecanico['id'] == mecanicoId) {
+        return (mecanico['nome'] ?? '').toString();
+      }
+    }
+    return '';
+  }
+
+  String _normalizePlaca(String raw) {
+    final placa = raw.replaceAll(RegExp(r'[^A-Za-z0-9]'), '').toUpperCase();
+    return placa.length > 7 ? placa.substring(0, 7) : placa;
+  }
+
+  /// Formata a placa conforme o usuário digita:
+  /// - Mercosul (LKJ5G35): 3 letras + 1 número + 1 letra + 2 números → sem hífen
+  /// - Antiga   (ABC1234): 3 letras + 4 números → com hífen: ABC-1234
+  /// Enquanto digita, aplica o hífen automaticamente no formato antigo.
+  String _formatPlaca(String value) {
+    final norm = _normalizePlaca(value);
+    if (norm.length < 4) return norm;
+    // Detecta formato antigo: posição 3 é número E posição 4 (se existir) é número
+    final pos3IsDigit = RegExp(r'[0-9]').hasMatch(norm[3]);
+    final pos4IsDigit = norm.length > 4 ? RegExp(r'[0-9]').hasMatch(norm[4]) : true;
+    if (pos3IsDigit && pos4IsDigit) {
+      // Formato antigo: ABC-1234
+      return norm.length <= 3 ? norm : '${norm.substring(0, 3)}-${norm.substring(3)}';
+    }
+    // Mercosul: sem hífen
+    return norm;
+  }
 
   String _formatPhone(String value) {
     final digits = _digitsOnly(value);
@@ -259,25 +296,26 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     }
   }
 
-  void _onCpfChanged() {
+  void _onPlacaChanged() {
     if (_applyingMask) return;
-    final masked = _formatCpf(_clienteCpf.text);
-    if (_clienteCpf.text != masked) {
-      _setMaskedText(_clienteCpf, masked);
-    }
-  }
-
-  void _onCnpjChanged() {
-    if (_applyingMask) return;
-    final masked = _formatCnpj(_clienteCnpj.text);
-    if (_clienteCnpj.text != masked) {
-      _setMaskedText(_clienteCnpj, masked);
+    final masked = _formatPlaca(_placa.text);
+    if (_placa.text != masked) {
+      _setMaskedText(_placa, masked);
     }
   }
 
   bool _isValidTelefone(String telefone) {
     final digits = _digitsOnly(telefone);
     return digits.length == 10 || digits.length == 11;
+  }
+
+  bool _isValidPlaca(String placa) {
+    final norm = _normalizePlaca(placa);
+    // Mercosul: AAA0A00
+    if (RegExp(r'^[A-Z]{3}[0-9][A-Z][0-9]{2}$').hasMatch(norm)) return true;
+    // Antiga:   AAA0000
+    if (RegExp(r'^[A-Z]{3}[0-9]{4}$').hasMatch(norm)) return true;
+    return false;
   }
 
   bool _isValidCpf(String cpf) {
@@ -323,13 +361,54 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     return digits[12] == d1.toString() && digits[13] == d2.toString();
   }
 
+  void _onDocumentoChanged() {
+    if (_applyingMask) return;
+    final masked = _formatDocumento(_clienteDocumento.text);
+    if (_clienteDocumento.text != masked) {
+      _setDocumentoMaskedText(masked);
+    }
+  }
+
+  void _setDocumentoMaskedText(String value) {
+    _applyingMask = true;
+    _clienteDocumento.value = TextEditingValue(
+      text: value,
+      selection: TextSelection.collapsed(offset: value.length),
+    );
+    _applyingMask = false;
+  }
+
+  String _formatDocumento(String value) {
+    final digits = _digitsOnly(value);
+    if (digits.isEmpty) return '';
+    // If the digits are 11 or less, format as CPF, else as CNPJ (up to 14)
+    if (digits.length <= 11) {
+      return _formatCpf(digits);
+    } else {
+      return _formatCnpj(digits);
+    }
+  }
+
+  String? _validateDocumento(String? value) {
+    final input = value ?? '';
+    final digits = _digitsOnly(input);
+    if (digits.isEmpty) return null; // optional
+    if (digits.length == 11) {
+      return _isValidCpf(digits) ? null : 'CPF inválido';
+    } else if (digits.length == 14) {
+      return _isValidCnpj(digits) ? null : 'CNPJ inválido';
+    } else {
+      return 'Documento inválido';
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     final d = widget.osData;
     _clienteNome = TextEditingController(text: d?['clienteNome'] ?? '');
-    _clienteCpf = TextEditingController(text: d?['clienteCpf'] ?? '');
-    _clienteCnpj = TextEditingController(text: d?['clienteCnpj'] ?? '');
+    _clienteDocumento = TextEditingController(
+        text: d?['clienteCpf'] ?? d?['clienteCnpj'] ?? '');
     _clienteTelefone = TextEditingController(text: d?['clienteTelefone'] ?? '');
     _placa = TextEditingController(text: d?['placa'] ?? '');
     _modelo = TextEditingController(text: d?['modelo'] ?? '');
@@ -339,19 +418,16 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     final kmExistente = d?['quilometragem'] ?? d?['km'];
     _km = TextEditingController(text: kmExistente?.toString() ?? '');
     _diagnostico = TextEditingController(text: d?['diagnostico'] ?? '');
-    final mecanicoDaOs = (d?['mecanicoResponsavel'] ?? '').toString().trim();
-    _mecanicoResponsavel = TextEditingController(
-        text: mecanicoDaOs.isNotEmpty ? mecanicoDaOs : _nomeUsuarioLogado());
     _status = d?['status'] ?? 'ABERTA';
     _notificarWhatsApp = d?['whatsappConsentimento'] ?? false;
     _clienteTelefone.addListener(_onTelefoneChanged);
-    _clienteCpf.addListener(_onCpfChanged);
-    _clienteCnpj.addListener(_onCnpjChanged);
+    _placa.addListener(_onPlacaChanged);
+    _clienteDocumento.addListener(_onDocumentoChanged);
     _onTelefoneChanged();
-    _onCpfChanged();
-    _onCnpjChanged();
+    _onDocumentoChanged();
+    _onPlacaChanged();
 
-    // Carregar serviÃ§os existentes
+    // Carregar serviços existentes
     if (d != null &&
         d['servicos'] != null &&
         (d['servicos'] as List).isNotEmpty) {
@@ -362,11 +438,14 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
               TextEditingController(text: (s['quantidade'] ?? 1).toString()),
           valorUnitario:
               TextEditingController(text: (s['valorUnitario'] ?? 0).toString()),
+          percentualComissao: TextEditingController(
+              text: (s['percentualComissao'] ?? 0).toString()),
+          mecanicoId: s['mecanicoId'] != null ? (s['mecanicoId'] as num).toInt() : null,
         ));
       }
     }
 
-    // Se editando sem serviÃ§os, criar um a partir do campo descricao/valor
+    // Se editando sem serviços, criar um a partir do campo descricao/valor
     if (_servicos.isEmpty &&
         d != null &&
         d['descricao'] != null &&
@@ -379,7 +458,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       ));
     }
 
-    // Se novo formulÃ¡rio, adicionar um serviÃ§o vazio
+    // Se novo formulario, adicionar um serviço vazio
     if (_servicos.isEmpty) {
       _servicos.add(_ServicoEntry());
     }
@@ -399,7 +478,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       }
     }
 
-    // Carregar itens de estoque disponÃ­veis
+    // Carregar itens de estoque disponiveis
     _carregarStockItems();
     _carregarMecanicos();
     _carregarDadosCompletosOs();
@@ -416,19 +495,19 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       if (!mounted) return;
 
       final km = os['quilometragem'] ?? os['km'];
-      final mecanico = (os['mecanicoResponsavel'] ?? '').toString().trim();
-
+      final statusAtualizado = (os['status'] ?? '').toString().trim();
       setState(() {
-        _clienteCpf.text = (os['clienteCpf'] ?? '').toString();
-        _clienteCnpj.text = (os['clienteCnpj'] ?? '').toString();
+        _clienteDocumento.text =
+            (os['clienteCpf'] ?? os['clienteCnpj'] ?? '').toString();
+        _placa.text = (os['placa'] ?? '').toString();
         _montadora.text = (os['montadora'] ?? '').toString();
         _corVeiculo.text = (os['corVeiculo'] ?? '').toString();
-        _onCpfChanged();
-        _onCnpjChanged();
+        _onDocumentoChanged();
+        _onPlacaChanged();
         _km.text = km?.toString() ?? '';
-        _mecanicoResponsavel.text =
-            mecanico.isNotEmpty ? mecanico : _nomeUsuarioLogado();
-        _sincronizarMecanicoSelecionado();
+        if (statusAtualizado.isNotEmpty) {
+          _status = statusAtualizado;
+        }
       });
     } catch (e) {
       handleAuthError(e);
@@ -442,24 +521,9 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       if (!mounted) return;
       setState(() {
         _mecanicos = data;
-        _sincronizarMecanicoSelecionado();
       });
     } catch (e) {
       handleAuthError(e);
-    }
-  }
-
-  void _sincronizarMecanicoSelecionado() {
-    if (_mecanicos.isEmpty) return;
-    final nomeAtual = _mecanicoResponsavel.text.trim().toLowerCase();
-    if (nomeAtual.isEmpty) return;
-
-    for (final m in _mecanicos) {
-      final nome = (m['nome'] ?? '').toString().trim().toLowerCase();
-      if (nome == nomeAtual) {
-        _mecanicoResponsavel.text = (m['nome'] ?? '').toString();
-        return;
-      }
     }
   }
 
@@ -484,15 +548,22 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     if (_montadorasCarregadas && !force) return;
 
     setState(() => _loadingMontadoras = true);
+    final montadorasMap = <String, String>{};
+
+    for (final montadoraBase in _montadorasBaseBrasil) {
+      final chave = _normalizarChaveMontadora(montadoraBase);
+      montadorasMap[chave] = montadoraBase;
+    }
+
+    final montadoraAtual = _montadora.text.trim();
+    if (montadoraAtual.isNotEmpty) {
+      final chave = _normalizarChaveMontadora(montadoraAtual);
+      montadorasMap.putIfAbsent(chave, () => montadoraAtual);
+    }
+
     try {
       final osService = OsService(token: safeToken);
       final ordens = await osService.listar();
-      final montadorasMap = <String, String>{};
-
-      for (final montadoraBase in _montadorasBaseBrasil) {
-        final chave = _normalizarChaveMontadora(montadoraBase);
-        montadorasMap[chave] = montadoraBase;
-      }
 
       for (final os in ordens) {
         final montadora = (os['montadora'] ?? '').toString().trim();
@@ -513,122 +584,26 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       });
     } catch (e) {
       if (!mounted) return;
-      if (!handleAuthError(e)) {
-        setState(() => _loadingMontadoras = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Erro ao carregar montadoras'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+      if (handleAuthError(e)) {
+        return;
       }
-    }
-  }
 
-  Future<void> _abrirSeletorMontadora() async {
-    await _carregarMontadoras();
-    if (!mounted) return;
+      final lista = montadorasMap.values.toList()
+        ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    if (_montadorasDisponiveis.isEmpty) {
+      setState(() {
+        _montadorasDisponiveis = lista;
+        _montadorasCarregadas = true;
+        _loadingMontadoras = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nenhuma montadora cadastrada ainda'),
+          content: UpperText('Montadoras carregadas da lista local'),
           backgroundColor: AppColors.warning,
         ),
       );
-      return;
     }
-
-    final buscaController = TextEditingController();
-    final selecionada = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (ctx, setModalState) {
-            final query = buscaController.text.trim().toLowerCase();
-            final filtradas = _montadorasDisponiveis.where((montadora) {
-              if (query.isEmpty) return true;
-              return montadora.toLowerCase().contains(query);
-            }).toList();
-
-            return SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Selecione a montadora',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: buscaController,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar montadora...',
-                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onChanged: (_) => setModalState(() {}),
-                    ),
-                    const SizedBox(height: 12),
-                    if (filtradas.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: Text(
-                          'Nenhuma montadora encontrada',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
-                      )
-                    else
-                      Flexible(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxHeight: 360),
-                          child: ListView.separated(
-                            shrinkWrap: true,
-                            itemCount: filtradas.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (_, index) {
-                              final montadora = filtradas[index];
-                              return ListTile(
-                                dense: true,
-                                title: Text(
-                                  montadora,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                onTap: () => Navigator.pop(ctx, montadora),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
-    buscaController.dispose();
-
-    if (selecionada == null || !mounted) return;
-    setState(() => _montadora.text = selecionada);
   }
 
   String _normalizarChaveMontadora(String valor) {
@@ -668,11 +643,10 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   @override
   void dispose() {
     _clienteTelefone.removeListener(_onTelefoneChanged);
-    _clienteCpf.removeListener(_onCpfChanged);
-    _clienteCnpj.removeListener(_onCnpjChanged);
+    _placa.removeListener(_onPlacaChanged);
+    _clienteDocumento.removeListener(_onDocumentoChanged);
     _clienteNome.dispose();
-    _clienteCpf.dispose();
-    _clienteCnpj.dispose();
+    _clienteDocumento.dispose();
     _clienteTelefone.dispose();
     _placa.dispose();
     _modelo.dispose();
@@ -681,7 +655,6 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     _ano.dispose();
     _km.dispose();
     _diagnostico.dispose();
-    _mecanicoResponsavel.dispose();
     for (var s in _servicos) {
       s.dispose();
     }
@@ -712,7 +685,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   }
 
   void _mostrarSeletorEstoque() {
-    // Filtrar itens que jÃ¡ foram adicionados
+    // Filtrar itens que ja¡ foram adicionados
     final idsJaAdicionados = _itensEstoque.map((i) => i.stockItemId).toSet();
     final disponiveis = _stockItems
         .where((item) => !idsJaAdicionados.contains(item['id']))
@@ -722,7 +695,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     if (disponiveis.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nenhum item de estoque disponÃ­vel'),
+          content: UpperText('Nenhum item de estoque disponível'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -744,7 +717,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
           }).toList();
 
           return AlertDialog(
-            title: Text('Selecionar Item do Estoque',
+            title: UpperText('Selecionar Item do Estoque',
                 style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
             content: SizedBox(
               width: 500,
@@ -754,7 +727,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                   TextField(
                     controller: searchController,
                     decoration: InputDecoration(
-                      hintText: 'Buscar por nome ou cÃ³digo...',
+                      hintText: 'Buscar por nome ou código...',
                       prefixIcon: const Icon(Icons.search_rounded, size: 20),
                       border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10)),
@@ -765,7 +738,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                   Expanded(
                     child: filtrados.isEmpty
                         ? Center(
-                            child: Text('Nenhum item encontrado',
+                            child: UpperText('Nenhum item encontrado',
                                 style: GoogleFonts.inter(
                                     color: AppColors.textMuted)))
                         : ListView.builder(
@@ -779,11 +752,11 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                   child: const Icon(Icons.inventory_2_outlined,
                                       color: AppColors.accent, size: 20),
                                 ),
-                                title: Text(item['nome'] ?? '',
+                                title: UpperText(item['nome'] ?? '',
                                     style: GoogleFonts.inter(
                                         fontWeight: FontWeight.w600)),
-                                subtitle: Text(
-                                  '${item['codigo'] ?? ''} â€¢ Estoque: ${item['quantidade'] ?? 0} â€¢ R\$ ${_formatNum(item['precoVenda'] ?? 0)}',
+                                subtitle: UpperText(
+                                  '${item['codigo'] ?? ''} • Estoque: ${item['quantidade'] ?? 0} • R\$ ${_formatNum(item['precoVenda'] ?? 0)}',
                                   style: GoogleFonts.inter(
                                       fontSize: 12,
                                       color: AppColors.textSecondary),
@@ -815,7 +788,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancelar')),
+                  child: const UpperText('Cancelar')),
             ],
           );
         });
@@ -836,7 +809,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     if (_status == 'CONCLUIDA') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Esta OS ja esta concluida'),
+          content: UpperText('Esta OS ja esta concluida'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -847,9 +820,9 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       final continuar = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title: Text('Encerrar OS',
+          title: UpperText('Encerrar OS',
               style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-          content: Text(
+          content: UpperText(
             'Existem alteracoes nao salvas neste formulario. Deseja encerrar mesmo assim?',
             style:
                 GoogleFonts.inter(color: AppColors.textSecondary, height: 1.45),
@@ -857,10 +830,10 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx, false),
-                child: const Text('Cancelar')),
+                child: const UpperText('Cancelar')),
             FilledButton(
                 onPressed: () => Navigator.pop(ctx, true),
-                child: const Text('Continuar')),
+                child: const UpperText('Continuar')),
           ],
         ),
       );
@@ -900,7 +873,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('OS encerrada com sucesso'),
+          content: UpperText('OS encerrada com sucesso'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -908,7 +881,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao encerrar OS: $e'),
+            content: UpperText('Erro ao encerrar OS: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -929,7 +902,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('Encerrar OS',
+          title: UpperText('Encerrar OS',
               style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
           content: SizedBox(
             width: 460,
@@ -941,13 +914,13 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                   decoration:
                       const InputDecoration(labelText: 'Forma de pagamento'),
                   items: const [
-                    DropdownMenuItem(value: 'PIX', child: Text('PIX')),
+                    DropdownMenuItem(value: 'PIX', child: UpperText('PIX')),
                     DropdownMenuItem(
-                        value: 'DINHEIRO', child: Text('Dinheiro')),
-                    DropdownMenuItem(value: 'CARTAO', child: Text('Cartao')),
-                    DropdownMenuItem(value: 'BOLETO', child: Text('Boleto')),
+                        value: 'DINHEIRO', child: UpperText('Dinheiro')),
+                    DropdownMenuItem(value: 'CARTAO', child: UpperText('Cartao')),
+                    DropdownMenuItem(value: 'BOLETO', child: UpperText('Boleto')),
                     DropdownMenuItem(
-                        value: 'TRANSFERENCIA', child: Text('Transferencia')),
+                        value: 'TRANSFERENCIA', child: UpperText('Transferencia')),
                   ],
                   onChanged: (v) =>
                       setDialogState(() => metodoPagamento = v ?? 'PIX'),
@@ -965,7 +938,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                   value: enviarWhatsapp,
                   onChanged: (v) => setDialogState(() => enviarWhatsapp = v),
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Enviar recibo por WhatsApp'),
+                  title: const UpperText('Enviar recibo por WhatsApp'),
                 ),
                 if (enviarWhatsapp)
                   TextField(
@@ -980,7 +953,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar')),
+                child: const UpperText('Cancelar')),
             FilledButton(
               onPressed: () => Navigator.pop(
                 ctx,
@@ -991,7 +964,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                   observacoes: obsController.text,
                 ),
               ),
-              child: const Text('Encerrar'),
+              child: const UpperText('Encerrar'),
             ),
           ],
         ),
@@ -1017,7 +990,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Informe um telefone valido para WhatsApp'),
+          content: UpperText('Informe um telefone valido para WhatsApp'),
           backgroundColor: AppColors.warning,
         ),
       );
@@ -1030,7 +1003,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nao foi possivel abrir o WhatsApp'),
+          content: UpperText('Nao foi possivel abrir o WhatsApp'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1057,7 +1030,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Nao foi possivel abrir a tela de impressao'),
+          content: UpperText('Nao foi possivel abrir a tela de impressao'),
           backgroundColor: AppColors.error,
         ),
       );
@@ -1070,7 +1043,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Recibo / Extrato',
+        title: UpperText('Recibo / Extrato',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: SizedBox(
           width: 640,
@@ -1079,7 +1052,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (whatsappDetalhe.isNotEmpty) ...[
-                Text('WhatsApp: $whatsappDetalhe',
+                UpperText('WhatsApp: $whatsappDetalhe',
                     style: GoogleFonts.inter(
                         fontSize: 12, color: AppColors.textSecondary)),
                 const SizedBox(height: 8),
@@ -1112,12 +1085,12 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
             onPressed: () => _enviarReciboWhatsapp(
                 recibo, telefoneWhatsapp ?? _clienteTelefone.text),
             icon: const Icon(Icons.chat_rounded, size: 16),
-            label: const Text('Enviar WhatsApp'),
+            label: const UpperText('Enviar WhatsApp'),
           ),
           TextButton.icon(
             onPressed: () => _imprimirRecibo(recibo),
             icon: const Icon(Icons.print_rounded, size: 16),
-            label: const Text('Imprimir recibo'),
+            label: const UpperText('Imprimir recibo'),
           ),
           TextButton.icon(
             onPressed: () async {
@@ -1125,16 +1098,16 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Recibo copiado para a area de transferencia'),
+                  content: UpperText('Recibo copiado para a area de transferencia'),
                   backgroundColor: AppColors.success,
                 ),
               );
             },
             icon: const Icon(Icons.copy_rounded, size: 16),
-            label: const Text('Copiar recibo'),
+            label: const UpperText('Copiar recibo'),
           ),
           FilledButton(
-              onPressed: () => Navigator.pop(ctx), child: const Text('Fechar')),
+              onPressed: () => Navigator.pop(ctx), child: const UpperText('Fechar')),
         ],
       ),
     );
@@ -1143,13 +1116,13 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
   Future<void> _salvar() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Validar que tem pelo menos um serviÃ§o com descriÃ§Ã£o
+    // Validar que tem pelo menos um serviço com descrição
     final servicosValidos =
         _servicos.where((s) => s.descricao.text.trim().isNotEmpty).toList();
     if (servicosValidos.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Adicione pelo menos um serviÃ§o'),
+            content: UpperText('Adicione pelo menos um serviço'),
             backgroundColor: AppColors.error),
       );
       return;
@@ -1159,12 +1132,14 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     try {
       final osService = OsService(token: safeToken);
 
-      // Montar lista de serviÃ§os
+      // Montar lista de serviços
       final servicos = servicosValidos.map((s) {
         return {
           'descricao': s.descricao.text.trim(),
           'quantidade': int.tryParse(s.quantidade.text) ?? 1,
-          'valorUnitario': double.tryParse(s.valorUnitario.text) ?? 0,
+          'valorUnitario': _parseDoubleOrZero(s.valorUnitario.text),
+          'mecanicoId': s.mecanicoId,
+          'percentualComissao': _parseDoubleOrZero(s.percentualComissao.text),
         };
       }).toList();
 
@@ -1177,16 +1152,24 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
         };
       }).toList();
 
-      final mecanicoPayload = _mecanicoResponsavel.text.trim().isNotEmpty
-          ? _mecanicoResponsavel.text.trim()
-          : _nomeUsuarioLogado();
+      // Deriva mecanicoResponsavel do primeiro serviço com mecânico atribuído
+      final mecanicoDoServico = _servicos
+          .where((s) => s.mecanicoId != null)
+          .map((s) => _nomeMecanicoPorId(s.mecanicoId))
+          .where((nome) => nome.isNotEmpty)
+          .firstOrNull;
+      final mecanicoPayload = mecanicoDoServico ?? _nomeUsuarioLogado();
+      final documentoDigits = _digitsOnly(_clienteDocumento.text);
+      final clienteCpf = documentoDigits.length == 11 ? documentoDigits : '';
+      final clienteCnpj = documentoDigits.length == 14 ? documentoDigits : '';
+      final placaNormalizada = _normalizePlaca(_placa.text);
 
       final data = {
         'clienteNome': _clienteNome.text.trim(),
-        'clienteCpf': _clienteCpf.text.trim(),
-        'clienteCnpj': _clienteCnpj.text.trim(),
+        'clienteCpf': clienteCpf,
+        'clienteCnpj': clienteCnpj,
         'clienteTelefone': _clienteTelefone.text.trim(),
-        'placa': _placa.text.trim().toUpperCase(),
+        'placa': placaNormalizada,
         'modelo': _modelo.text.trim(),
         'montadora': _montadora.text.trim(),
         'corVeiculo': _corVeiculo.text.trim(),
@@ -1199,7 +1182,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
         'itens': itens,
       };
 
-      // Enviar status apenas na ediÃ§Ã£o
+      // Enviar status apenas na edição
       if (_isEditing) {
         data['status'] = _status;
       }
@@ -1222,7 +1205,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Erro ao salvar: $e'),
+                content: UpperText('Erro ao salvar: $e'),
                 backgroundColor: AppColors.error),
           );
         }
@@ -1275,7 +1258,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
+                      UpperText(
                         _isEditing ? 'Editar OS' : 'Nova Ordem de Serviço',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -1284,7 +1267,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary),
                       ),
-                      Text(
+                      UpperText(
                         _isEditing
                             ? 'Placa: ${widget.osData?['placa'] ?? ''}'
                             : 'Preencha os dados da OS',
@@ -1305,7 +1288,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                       border: Border.all(
                           color: AppColors.accent.withValues(alpha: 0.3)),
                     ),
-                    child: Text(
+                    child: UpperText(
                       'Total: R\$ ${_valorTotal.toStringAsFixed(2).replaceAll('.', ',')}',
                       style: GoogleFonts.inter(
                           fontSize: 15,
@@ -1320,7 +1303,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                         if (context.mounted) Navigator.pop(context);
                       }
                     },
-                    child: const Text('Cancelar'),
+                    child: const UpperText('Cancelar'),
                   );
 
                   final closeButton = _isEditing && _status != 'CONCLUIDA'
@@ -1342,7 +1325,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                 )
                               : const Icon(Icons.receipt_long_rounded,
                                   size: 18),
-                          label: const Text('Encerrar OS'),
+                          label: const UpperText('Encerrar OS'),
                         )
                       : null;
 
@@ -1355,7 +1338,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
                         : const Icon(Icons.save_rounded, size: 18),
-                    label: Text(_isEditing ? 'Salvar Alterações' : 'Criar OS'),
+                    label: UpperText(_isEditing ? 'Salvar Alterações' : 'Criar OS'),
                   );
 
                   final actions = Wrap(
@@ -1453,33 +1436,24 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                             Row(
                               children: [
                                 Expanded(
+                                  flex: 2,
                                   child: _Field(
-                                    label: 'CPF',
-                                    controller: _clienteCpf,
+                                    label: 'CPF/CNPJ',
+                                    controller: _clienteDocumento,
                                     keyboard: TextInputType.number,
-                                    validator: (v) {
-                                      final value = (v ?? '').trim();
-                                      if (value.isEmpty) return null;
-                                      return _isValidCpf(value)
-                                          ? null
-                                          : 'CPF inválido';
-                                    },
+                                    validator: _validateDocumento,
+                                    hintText: '000.000.000-00 ou 00.000.000/0000-00',
+                                    inputFormatters: [
+                                      FilteringTextInputFormatter.allow(
+                                          RegExp(r'\d')),
+                                    ],
                                   ),
                                 ),
                                 const SizedBox(width: 16),
+                                // Keeping the space for layout consistency, but we can remove it if needed
+                                // For now, let's keep an empty expanded to maintain UI balance
                                 Expanded(
-                                  child: _Field(
-                                    label: 'CNPJ',
-                                    controller: _clienteCnpj,
-                                    keyboard: TextInputType.number,
-                                    validator: (v) {
-                                      final value = (v ?? '').trim();
-                                      if (value.isEmpty) return null;
-                                      return _isValidCnpj(value)
-                                          ? null
-                                          : 'CNPJ inválido';
-                                    },
-                                  ),
+                                  child: Container(),
                                 ),
                               ],
                             ),
@@ -1500,28 +1474,30 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                     child: _Field(
                                         label: 'Placa',
                                         controller: _placa,
-                                        required: true)),
+                                        required: true,
+                                        hintText: 'ABC-1234',
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.allow(
+                                              RegExp(r'[A-Za-z0-9\-]')),
+                                        ],
+                                        validator: (v) {
+                                          final value = (v ?? '').trim();
+                                          if (value.isEmpty) {
+                                            return 'Campo obrigatório';
+                                          }
+                                          if (!_isValidPlaca(value)) {
+                                            return 'Placa inválida';
+                                          }
+                                          return null;
+                                        })),
                                 const SizedBox(width: 16),
                                 Expanded(
-                                    child: _Field(
-                                  label: 'Montadora',
-                                  controller: _montadora,
-                                  readOnly: true,
-                                  onTap: _abrirSeletorMontadora,
-                                  suffixIcon: _loadingMontadoras
-                                      ? const SizedBox(
-                                          width: 18,
-                                          height: 18,
-                                          child: Padding(
-                                            padding: EdgeInsets.all(12),
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                            ),
-                                          ),
-                                        )
-                                      : const Icon(
-                                          Icons.arrow_drop_down_rounded),
-                                )),
+                                  child: _MontadoraField(
+                                    controller: _montadora,
+                                    opcoes: _montadorasDisponiveis,
+                                    onCarregar: () => _carregarMontadoras(),
+                                  ),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 16),
@@ -1569,7 +1545,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                             FilledButton.icon(
                               onPressed: _adicionarServico,
                               icon: const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('Adicionar Serviço'),
+                              label: const UpperText('Adicionar Serviço'),
                               style: FilledButton.styleFrom(
                                   backgroundColor: AppColors.accent,
                                   padding: const EdgeInsets.symmetric(
@@ -1590,7 +1566,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                 color: AppColors.surfaceVariant,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(
+                              child: UpperText(
                                 'Subtotal Serviços: R\$ ${_totalServicos.toStringAsFixed(2).replaceAll('.', ',')}',
                                 style: GoogleFonts.inter(
                                     fontSize: 14,
@@ -1620,7 +1596,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                               FilledButton.icon(
                                 onPressed: _mostrarSeletorEstoque,
                                 icon: const Icon(Icons.add_rounded, size: 18),
-                                label: const Text('Adicionar Peça'),
+                                label: const UpperText('Adicionar Peça'),
                                 style: FilledButton.styleFrom(
                                     backgroundColor: const Color(0xFF8B5CF6),
                                     padding: const EdgeInsets.symmetric(
@@ -1641,7 +1617,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                 color: AppColors.surfaceVariant,
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              child: Text(
+                              child: UpperText(
                                 'Subtotal Peças: R\$ ${_totalItens.toStringAsFixed(2).replaceAll('.', ',')}',
                                 style: GoogleFonts.inter(
                                     fontSize: 14,
@@ -1655,7 +1631,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                           _CardSection(
                             children: [
                               Center(
-                                child: Text(
+                                child: UpperText(
                                   'Nenhuma peça adicionada. Clique em "Adicionar Peça" para selecionar do estoque.',
                                   style: GoogleFonts.inter(
                                       fontSize: 13, color: AppColors.textMuted),
@@ -1678,39 +1654,6 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                 controller: _diagnostico,
                                 maxLines: 3),
                             const SizedBox(height: 16),
-                            if (_mecanicos.isNotEmpty)
-                              DropdownButtonFormField<String>(
-                                value: _mecanicos.any((m) =>
-                                        (m['nome'] ?? '')
-                                            .toString()
-                                            .trim()
-                                            .toLowerCase() ==
-                                        _mecanicoResponsavel.text
-                                            .trim()
-                                            .toLowerCase())
-                                    ? _mecanicoResponsavel.text.trim()
-                                    : null,
-                                decoration: const InputDecoration(
-                                  labelText: 'Mecânico Responsável',
-                                ),
-                                items: _mecanicos
-                                    .map((m) => DropdownMenuItem<String>(
-                                          value: (m['nome'] ?? '').toString(),
-                                          child: Text(
-                                              (m['nome'] ?? '').toString()),
-                                        ))
-                                    .toList(),
-                                onChanged: (v) {
-                                  if (v == null) return;
-                                  setState(() => _mecanicoResponsavel.text = v);
-                                },
-                              )
-                            else
-                              _Field(
-                                label: 'Mecânico Responsável',
-                                controller: _mecanicoResponsavel,
-                              ),
-                            const SizedBox(height: 16),
                             Row(
                               children: [
                                 Expanded(
@@ -1718,7 +1661,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      Text('Status',
+                                      UpperText('Status',
                                           style: GoogleFonts.inter(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
@@ -1730,7 +1673,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                         items: _statusPermitidos
                                             .map((s) => DropdownMenuItem(
                                                 value: s,
-                                                child: Text(
+                                                child: UpperText(
                                                     _statusLabels[s] ?? s)))
                                             .toList(),
                                         onChanged: _isEditing
@@ -1757,13 +1700,13 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.end,
                                       children: [
-                                        Text('Valor Total da OS',
+                                        UpperText('Valor Total da OS',
                                             style: GoogleFonts.inter(
                                                 fontSize: 12,
                                                 color:
                                                     AppColors.textSecondary)),
                                         const SizedBox(height: 4),
-                                        Text(
+                                        UpperText(
                                           'R\$ ${_valorTotal.toStringAsFixed(2).replaceAll('.', ',')}',
                                           style: GoogleFonts.inter(
                                               fontSize: 24,
@@ -1788,12 +1731,12 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                 value: _notificarWhatsApp,
                                 onChanged: (v) =>
                                     setState(() => _notificarWhatsApp = v),
-                                title: Text('Notificar cliente via WhatsApp',
+                                title: UpperText('Notificar cliente via WhatsApp',
                                     style: GoogleFonts.inter(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w500)),
-                                subtitle: Text(
-                                    'Envia atualizaÃ§Ã£o de status ao cliente',
+                                subtitle: UpperText(
+                                    'Envia atualização de status ao cliente',
                                     style: GoogleFonts.inter(
                                         fontSize: 12,
                                         color: AppColors.textMuted)),
@@ -1820,8 +1763,10 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     return List.generate(_servicos.length, (index) {
       final s = _servicos[index];
       final qty = int.tryParse(s.quantidade.text) ?? 0;
-      final val = double.tryParse(s.valorUnitario.text) ?? 0;
+      final val = _parseDoubleOrZero(s.valorUnitario.text);
       final total = qty * val;
+      final percentualComissao = _parseDoubleOrZero(s.percentualComissao.text);
+      final valorComissao = total * (percentualComissao / 100);
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 12),
@@ -1845,19 +1790,19 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
-                      child: Text('${index + 1}',
+                      child: UpperText('${index + 1}',
                           style: GoogleFonts.inter(
                               fontWeight: FontWeight.w700,
                               color: AppColors.accent)),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text('Serviço ${index + 1}',
+                  UpperText('Serviço ${index + 1}',
                       style: GoogleFonts.inter(
                           fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary)),
                   const Spacer(),
-                  Text(
+                  UpperText(
                     'R\$ ${total.toStringAsFixed(2).replaceAll('.', ',')}',
                     style: GoogleFonts.inter(
                         fontWeight: FontWeight.w700,
@@ -1870,7 +1815,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                       icon: const Icon(Icons.delete_outline_rounded,
                           size: 20, color: AppColors.error),
                       onPressed: () => _removerServico(index),
-                      tooltip: 'Remover serviÃ§o',
+                      tooltip: 'Remover serviço',
                     ),
                 ],
               ),
@@ -1902,6 +1847,85 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                         required: true,
                         keyboard: TextInputType.number,
                         onChanged: () => setState(() {})),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<int?>(
+                      value: _mecanicos.any((m) => (m['id'] as num).toInt() == s.mecanicoId)
+                          ? s.mecanicoId
+                          : null,
+                      decoration: const InputDecoration(
+                        labelText: 'Mecanico do Servico',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: [
+                        const DropdownMenuItem<int?>(
+                          value: null,
+                          child: UpperText('Sem mecanico'),
+                        ),
+                        ..._mecanicos.map(
+                          (mecanico) => DropdownMenuItem<int?>(
+                            value: (mecanico['id'] as num).toInt(),
+                            child: UpperText((mecanico['nome'] ?? '-').toString()),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setState(() {
+                          s.mecanicoId = value;
+                          if (value == null) {
+                            s.percentualComissao.text = '0';
+                            return;
+                          }
+                          final mecanico = _mecanicos.firstWhere(
+                            (item) => (item['id'] as num).toInt() == value,
+                            orElse: () => <String, dynamic>{},
+                          );
+                          s.percentualComissao.text =
+                              (mecanico['percentualComissao'] ?? 0).toString();
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _Field(
+                      label: 'Comissao (%)',
+                      controller: s.percentualComissao,
+                      keyboard: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      onChanged: () => setState(() {}),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: UpperText(
+                      s.mecanicoId == null
+                          ? 'Comissao nao atribuida'
+                          : 'Mecanico: ${_nomeMecanicoPorId(s.mecanicoId)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  UpperText(
+                    'Comissao: R\$ ${valorComissao.toStringAsFixed(2).replaceAll('.', ',')}',
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.success,
+                    ),
                   ),
                 ],
               ),
@@ -1950,17 +1974,17 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(i.nomeItem,
+                      UpperText(i.nomeItem,
                           style: GoogleFonts.inter(
                               fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary)),
-                      Text('CÃ³digo: ${i.codigoItem}',
+                      UpperText('Código: ${i.codigoItem}',
                           style: GoogleFonts.inter(
                               fontSize: 12, color: AppColors.textSecondary)),
                     ],
                   ),
                   const Spacer(),
-                  Text(
+                  UpperText(
                     'R\$ ${total.toStringAsFixed(2).replaceAll('.', ',')}',
                     style: GoogleFonts.inter(
                         fontWeight: FontWeight.w700,
@@ -1987,7 +2011,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                         color: AppColors.surfaceVariant,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
+                      child: UpperText(
                         'Estoque: ${i.estoqueDisponivel}',
                         style: GoogleFonts.inter(
                             fontSize: 12,
@@ -2029,19 +2053,26 @@ class _ServicoEntry {
   final TextEditingController descricao;
   final TextEditingController quantidade;
   final TextEditingController valorUnitario;
+  final TextEditingController percentualComissao;
+  int? mecanicoId;
 
   _ServicoEntry({
     TextEditingController? descricao,
     TextEditingController? quantidade,
     TextEditingController? valorUnitario,
+    TextEditingController? percentualComissao,
+    this.mecanicoId,
   })  : descricao = descricao ?? TextEditingController(),
         quantidade = quantidade ?? TextEditingController(text: '1'),
-        valorUnitario = valorUnitario ?? TextEditingController(text: '0');
+        valorUnitario = valorUnitario ?? TextEditingController(text: '0'),
+        percentualComissao =
+            percentualComissao ?? TextEditingController(text: '0');
 
   void dispose() {
     descricao.dispose();
     quantidade.dispose();
     valorUnitario.dispose();
+    percentualComissao.dispose();
   }
 }
 
@@ -2096,7 +2127,7 @@ class _SectionHeader extends StatelessWidget {
       children: [
         Icon(icon, size: 20, color: AppColors.accent),
         const SizedBox(width: 10),
-        Text(title,
+        UpperText(title,
             style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -2126,6 +2157,91 @@ class _CardSection extends StatelessWidget {
   }
 }
 
+class _MontadoraField extends StatelessWidget {
+  final TextEditingController controller;
+  final List<String> opcoes;
+  final VoidCallback onCarregar;
+
+  const _MontadoraField({
+    required this.controller,
+    required this.opcoes,
+    required this.onCarregar,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        UpperText('Montadora',
+            style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary)),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          initialValue: TextEditingValue(text: controller.text),
+          optionsBuilder: (textEditingValue) {
+            onCarregar();
+            final query = textEditingValue.text.trim().toLowerCase();
+            if (query.isEmpty) return opcoes;
+            return opcoes.where(
+                (m) => m.toLowerCase().contains(query));
+          },
+          onSelected: (value) => controller.text = value,
+          fieldViewBuilder: (ctx, fieldController, focusNode, onSubmit) {
+            // Sincroniza o controller externo com o interno do Autocomplete
+            fieldController.text = controller.text;
+            fieldController.addListener(() {
+              controller.text = fieldController.text;
+            });
+            return TextFormField(
+              controller: fieldController,
+              focusNode: focusNode,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                suffixIcon: Icon(Icons.arrow_drop_down_rounded),
+              ),
+              onFieldSubmitted: (_) => onSubmit(),
+            );
+          },
+          optionsViewBuilder: (ctx, onSelected, options) {
+            return Align(
+              alignment: Alignment.topLeft,
+              child: Material(
+                elevation: 4,
+                borderRadius: BorderRadius.circular(10),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 240, maxWidth: 280),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: options.length,
+                    itemBuilder: (_, i) {
+                      final opt = options.elementAt(i);
+                      return InkWell(
+                        onTap: () => onSelected(opt),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                          child: UpperText(opt,
+                              style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  color: AppColors.textPrimary)),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
 class _Field extends StatelessWidget {
   final String label;
   final TextEditingController controller;
@@ -2137,6 +2253,8 @@ class _Field extends StatelessWidget {
   final bool readOnly;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
+  final List<TextInputFormatter>? inputFormatters;
+  final String? hintText;
   const _Field(
       {required this.label,
       required this.controller,
@@ -2147,14 +2265,16 @@ class _Field extends StatelessWidget {
       this.onTap,
       this.readOnly = false,
       this.suffixIcon,
-      this.validator});
+      this.validator,
+      this.inputFormatters,
+      this.hintText});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        UpperText(label,
             style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
@@ -2164,6 +2284,7 @@ class _Field extends StatelessWidget {
           controller: controller,
           maxLines: maxLines,
           keyboardType: keyboard,
+          inputFormatters: inputFormatters,
           textInputAction:
               maxLines == 1 ? TextInputAction.next : TextInputAction.newline,
           readOnly: readOnly,
@@ -2173,11 +2294,11 @@ class _Field extends StatelessWidget {
               FocusScope.of(context).nextFocus();
             }
           },
-          decoration: InputDecoration(suffixIcon: suffixIcon),
+          decoration: InputDecoration(suffixIcon: suffixIcon, hintText: hintText),
           onChanged: onChanged != null ? (_) => onChanged!() : null,
           validator: validator ??
               (required
-                  ? (v) => v == null || v.isEmpty ? 'Campo obrigatÃ³rio' : null
+                  ? (v) => v == null || v.isEmpty ? 'Campo obrigatório' : null
                   : null),
         ),
       ],

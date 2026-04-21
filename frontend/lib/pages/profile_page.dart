@@ -6,8 +6,9 @@ import '../mixins/auth_error_mixin.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/upper_text.dart';
 
-/// PÃ¡gina de perfil do usuÃ¡rio â€” exibe e permite editar dados pessoais e senha.
+/// Página de perfil do usuário — exibe e permite editar dados pessoais e senha.
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -182,7 +183,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:
-              Text('Erro ao carregar perfil: $e', style: GoogleFonts.inter()),
+              UpperText('Erro ao carregar perfil: $e', style: GoogleFonts.inter()),
           backgroundColor: AppColors.error,
         ));
       }
@@ -203,7 +204,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
         nomeOficina:
             _oficinaCtrl.text.trim().isEmpty ? null : _oficinaCtrl.text.trim(),
         cnpjOficina:
-            _cnpjCtrl.text.trim().isEmpty ? null : _cnpjCtrl.text.trim(),
+            _cnpjCtrl.text.trim().isEmpty ? null : _digitsOnly(_cnpjCtrl.text),
         enderecoLogradouro: _logradouroCtrl.text.trim().isEmpty
             ? null
             : _logradouroCtrl.text.trim(),
@@ -227,7 +228,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
       await auth.updateNome(_nomeCtrl.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Perfil atualizado com sucesso!',
+          content: UpperText('Perfil atualizado com sucesso!',
               style: GoogleFonts.inter()),
           backgroundColor: AppColors.success,
         ));
@@ -235,7 +236,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$e', style: GoogleFonts.inter()),
+          content: UpperText('$e', style: GoogleFonts.inter()),
           backgroundColor: AppColors.error,
         ));
       }
@@ -259,7 +260,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:
-              Text('Senha alterada com sucesso!', style: GoogleFonts.inter()),
+              UpperText('Senha alterada com sucesso!', style: GoogleFonts.inter()),
           backgroundColor: AppColors.success,
         ));
       }
@@ -267,7 +268,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
       if (handleAuthError(e)) return;
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('$e', style: GoogleFonts.inter()),
+          content: UpperText('$e', style: GoogleFonts.inter()),
           backgroundColor: AppColors.error,
         ));
       }
@@ -298,7 +299,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                     CircleAvatar(
                       radius: 32,
                       backgroundColor: AppColors.accent.withValues(alpha: 0.15),
-                      child: Text(
+                      child: UpperText(
                         (_nomeCtrl.text.isNotEmpty ? _nomeCtrl.text[0] : 'U')
                             .toUpperCase(),
                         style: GoogleFonts.inter(
@@ -313,7 +314,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Meu Perfil',
+                          UpperText('Meu Perfil',
                               style: GoogleFonts.inter(
                                   fontSize: 24,
                                   fontWeight: FontWeight.w800,
@@ -326,7 +327,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                               _badge(_role, AppColors.textSecondary),
                               if (_criadoEm.isNotEmpty) ...[
                                 const SizedBox(width: 8),
-                                Text('Desde $_criadoEm',
+                                UpperText('Desde $_criadoEm',
                                     style: GoogleFonts.inter(
                                         fontSize: 12,
                                         color: AppColors.textSecondary)),
@@ -351,14 +352,14 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                     const SizedBox(height: 16),
                     _inputField('Nome', _nomeCtrl,
                         validator: (v) => v == null || v.trim().isEmpty
-                            ? 'Nome Ã© obrigatÃ³rio'
+                            ? 'Nome é obrigatório'
                             : null),
                     const SizedBox(height: 16),
                     _inputField('Telefone', _telefoneCtrl,
                         hint: '(11) 99999-9999'),
                     const SizedBox(height: 16),
                     _inputField('Nome da Oficina', _oficinaCtrl,
-                        hint: 'Ex: Auto MecÃ¢nica Silva'),
+                        hint: 'Ex: Auto Mecânica Silva'),
                     const SizedBox(height: 16),
                     _inputField(
                       'CNPJ da Oficina',
@@ -463,7 +464,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.save_rounded, size: 18),
-                        label: Text(
+                        label: UpperText(
                             _savingProfile ? 'Salvando...' : 'Salvar Perfil'),
                       ),
                     ),
@@ -483,7 +484,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                         onToggle: () =>
                             setState(() => _showSenhaAtual = !_showSenhaAtual),
                         validator: (v) => v == null || v.isEmpty
-                            ? 'Senha atual Ã© obrigatÃ³ria'
+                            ? 'Senha atual é obrigatória'
                             : null),
                     const SizedBox(height: 16),
                     _passwordField('Nova Senha', _novaSenhaCtrl,
@@ -492,9 +493,9 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                             setState(() => _showNovaSenha = !_showNovaSenha),
                         validator: (v) {
                           if (v == null || v.isEmpty) {
-                            return 'Nova senha Ã© obrigatÃ³ria';
+                            return 'Nova senha é obrigatória';
                           }
-                          if (v.length < 8) return 'MÃ­nimo de 8 caracteres';
+                          if (v.length < 8) return 'Mínimo de 8 caracteres';
                           return null;
                         }),
                     const SizedBox(height: 16),
@@ -504,12 +505,12 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                         return 'Confirme a nova senha';
                       }
                       if (v != _novaSenhaCtrl.text) {
-                        return 'As senhas nÃ£o coincidem';
+                        return 'As senhas não coincidem';
                       }
                       return null;
                     }),
                     const SizedBox(height: 8),
-                    Text('MÃ­nimo de 8 caracteres',
+                    UpperText('Mínimo de 8 caracteres',
                         style: GoogleFonts.inter(
                             fontSize: 12, color: AppColors.textSecondary)),
                     const SizedBox(height: 20),
@@ -524,7 +525,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                                 child: CircularProgressIndicator(
                                     strokeWidth: 2, color: Colors.white))
                             : const Icon(Icons.key_rounded, size: 18),
-                        label: Text(
+                        label: UpperText(
                             _savingPassword ? 'Alterando...' : 'Alterar Senha'),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.warning,
@@ -548,7 +549,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Text(text,
+      child: UpperText(text,
           style: GoogleFonts.inter(
               fontSize: 11, fontWeight: FontWeight.w600, color: color)),
     );
@@ -567,7 +568,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
           children: [
             Icon(icon, size: 20, color: AppColors.accent),
             const SizedBox(width: 8),
-            Text(title,
+            UpperText(title,
                 style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -600,7 +601,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        UpperText(label,
             style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
@@ -645,7 +646,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
+        UpperText(label,
             style: GoogleFonts.inter(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,

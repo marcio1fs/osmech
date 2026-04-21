@@ -20,14 +20,14 @@ class MecanicoService {
   Future<Map<String, dynamic>> criar(Map<String, dynamic> dados) async {
     final response = await _api.post('/api/mecanicos', body: dados);
     final body = jsonDecode(response.body);
-    if (response.statusCode == 200) return body;
+    if (response.statusCode == 200 || response.statusCode == 201) return body;
     throw Exception(body['error'] ?? 'Erro ao criar mecânico');
   }
 
   Future<Map<String, dynamic>> atualizar(int id, Map<String, dynamic> dados) async {
     final response = await _api.put('/api/mecanicos/$id', body: dados);
     final body = jsonDecode(response.body);
-    if (response.statusCode == 200) return body;
+    if (response.statusCode == 200 || response.statusCode == 201) return body;
     throw Exception(body['error'] ?? 'Erro ao atualizar mecânico');
   }
 

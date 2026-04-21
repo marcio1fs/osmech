@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../main.dart' show globalNavNotifier;
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import '../pages/dashboard_page.dart';
@@ -22,6 +23,7 @@ import '../pages/stock_alerts_page.dart';
 import '../pages/chat_page.dart';
 import '../pages/profile_page.dart';
 import '../pages/relatorios_page.dart';
+import '../widgets/upper_text.dart';
 
 /// Shell principal com sidebar persistente para navegação web.
 class AppShell extends StatefulWidget {
@@ -43,6 +45,23 @@ class _AppShellState extends State<AppShell> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
+    globalNavNotifier.addListener(_onGlobalNav);
+  }
+
+  @override
+  void dispose() {
+    globalNavNotifier.removeListener(_onGlobalNav);
+    super.dispose();
+  }
+
+  void _onGlobalNav() {
+    final idx = globalNavNotifier.value;
+    if (idx != null && mounted) navigateTo(idx);
+  }
+
+  /// Chamado pelos atalhos de teclado globais (F1-F10).
+  void navigateTo(int index) {
+    setState(() => _selectedIndex = index);
   }
 
   final List<_NavItem> _navItems = const [
@@ -222,7 +241,7 @@ class _AppShellState extends State<AppShell> {
                       if (_sidebarExpanded) ...[
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
+                          child: UpperText(
                             'OSMECH',
                             style: GoogleFonts.inter(
                               fontSize: 20,
@@ -280,7 +299,7 @@ class _AppShellState extends State<AppShell> {
                               Padding(
                                 padding: const EdgeInsets.only(
                                     left: 14, top: 12, bottom: 4),
-                                child: Text(
+                                child: UpperText(
                                   item.section!,
                                   style: GoogleFonts.inter(
                                     fontSize: 10,
@@ -314,12 +333,12 @@ class _AppShellState extends State<AppShell> {
                     showDialog(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Sair'),
-                        content: const Text('Deseja sair da sua conta?'),
+                        title: const UpperText('Sair'),
+                        content: const UpperText('Deseja sair da sua conta?'),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx),
-                            child: const Text('Cancelar'),
+                            child: const UpperText('Cancelar'),
                           ),
                           FilledButton(
                             onPressed: () {
@@ -329,7 +348,7 @@ class _AppShellState extends State<AppShell> {
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.error,
                             ),
-                            child: const Text('Sair'),
+                            child: const UpperText('Sair'),
                           ),
                         ],
                       ),
@@ -346,7 +365,7 @@ class _AppShellState extends State<AppShell> {
                           radius: 18,
                           backgroundColor:
                               AppColors.accent.withValues(alpha: 0.2),
-                          child: Text(
+                          child: UpperText(
                             (auth.nome ?? 'U')[0].toUpperCase(),
                             style: GoogleFonts.inter(
                               color: AppColors.accentLight,
@@ -361,7 +380,7 @@ class _AppShellState extends State<AppShell> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(
+                                UpperText(
                                   auth.nome ?? 'Usuário',
                                   style: GoogleFonts.inter(
                                     color: Colors.white,
@@ -370,7 +389,7 @@ class _AppShellState extends State<AppShell> {
                                   ),
                                   overflow: TextOverflow.ellipsis,
                                 ),
-                                Text(
+                                UpperText(
                                   auth.plano ?? 'FREE',
                                   style: GoogleFonts.inter(
                                     color: AppColors.sidebarText,
@@ -486,7 +505,7 @@ class _AppShellState extends State<AppShell> {
                         radius: 18,
                         backgroundColor:
                             AppColors.accent.withValues(alpha: 0.15),
-                        child: Text(
+                        child: UpperText(
                           (auth.nome ?? 'U')[0].toUpperCase(),
                           style: GoogleFonts.inter(
                             color: AppColors.accent,
@@ -499,12 +518,12 @@ class _AppShellState extends State<AppShell> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(auth.nome ?? 'Usuário',
+                            UpperText(auth.nome ?? 'Usuário',
                                 style: GoogleFonts.inter(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary)),
-                            Text(auth.plano ?? 'FREE',
+                            UpperText(auth.plano ?? 'FREE',
                                 style: GoogleFonts.inter(
                                     fontSize: 11,
                                     color: AppColors.textSecondary)),
@@ -518,7 +537,7 @@ class _AppShellState extends State<AppShell> {
                         },
                         icon: const Icon(Icons.logout_rounded,
                             size: 16, color: AppColors.error),
-                        label: Text('Sair',
+                        label: UpperText('Sair',
                             style: GoogleFonts.inter(
                                 fontSize: 12, color: AppColors.error)),
                       ),
@@ -537,7 +556,7 @@ class _AppShellState extends State<AppShell> {
                           Padding(
                             padding: const EdgeInsets.only(
                                 left: 20, top: 16, bottom: 4),
-                            child: Text(
+                            child: UpperText(
                               _navItems[i].section!,
                               style: GoogleFonts.inter(
                                 fontSize: 10,
@@ -553,7 +572,7 @@ class _AppShellState extends State<AppShell> {
                               color: _selectedIndex == i
                                   ? AppColors.accent
                                   : AppColors.textSecondary),
-                          title: Text(
+                          title: UpperText(
                             _navItems[i].label,
                             style: GoogleFonts.inter(
                               fontSize: 14,
@@ -658,7 +677,7 @@ class _SidebarItemState extends State<_SidebarItem> {
                 if (widget.expanded) ...[
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
+                    child: UpperText(
                       widget.label,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

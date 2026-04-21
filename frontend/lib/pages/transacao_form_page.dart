@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../widgets/upper_text.dart';
 
 /// Formulário para criar nova transação financeira.
 class TransacaoFormPage extends StatefulWidget {
@@ -88,7 +89,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Transação registrada com sucesso!',
+            content: UpperText('Transação registrada com sucesso!',
                 style: GoogleFonts.inter()),
             backgroundColor: AppColors.success,
           ),
@@ -100,7 +101,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
+              content: UpperText(
                   'Erro: ${e.toString().replaceAll('Exception: ', '')}',
                   style: GoogleFonts.inter()),
               backgroundColor: AppColors.error,
@@ -133,12 +134,12 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Novo Lançamento',
+                    UpperText('Novo Lançamento',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('Registre uma entrada ou saída financeira',
+                    UpperText('Registre uma entrada ou saída financeira',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -160,7 +161,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Tipo selector
-                        Text('Tipo de Lançamento',
+                        UpperText('Tipo de Lançamento',
                             style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
@@ -250,12 +251,12 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                                 items: [
                                   const DropdownMenuItem<int>(
                                     value: null,
-                                    child: Text('Sem categoria'),
+                                    child: UpperText('Sem categoria'),
                                   ),
                                   ..._categoriasFiltradas
                                       .map((c) => DropdownMenuItem<int>(
                                             value: c['id'] as int,
-                                            child: Text(c['nome'] ?? ''),
+                                            child: UpperText(c['nome'] ?? ''),
                                           )),
                                 ],
                                 onChanged: (v) =>
@@ -272,17 +273,17 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                           isExpanded: true,
                           items: const [
                             DropdownMenuItem(
-                                value: 'DINHEIRO', child: Text('Dinheiro')),
-                            DropdownMenuItem(value: 'PIX', child: Text('PIX')),
+                                value: 'DINHEIRO', child: UpperText('Dinheiro')),
+                            DropdownMenuItem(value: 'PIX', child: UpperText('PIX')),
                             DropdownMenuItem(
-                                value: 'CARTAO', child: Text('Cartão')),
+                                value: 'CARTAO', child: UpperText('Cartão')),
                             DropdownMenuItem(
-                                value: 'BOLETO', child: Text('Boleto')),
+                                value: 'BOLETO', child: UpperText('Boleto')),
                             DropdownMenuItem(
                                 value: 'TRANSFERENCIA',
-                                child: Text('Transferência')),
+                                child: UpperText('Transferência')),
                             DropdownMenuItem(
-                                value: 'OUTRO', child: Text('Outro')),
+                                value: 'OUTRO', child: UpperText('Outro')),
                           ],
                           onChanged: (v) =>
                               setState(() => _metodoPagamento = v!),
@@ -313,7 +314,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                                     child: CircularProgressIndicator(
                                         strokeWidth: 2, color: Colors.white))
                                 : const Icon(Icons.save_rounded, size: 20),
-                            label: Text(_saving
+                            label: UpperText(_saving
                                 ? 'Salvando...'
                                 : 'Registrar Lançamento'),
                             style: FilledButton.styleFrom(
@@ -340,7 +341,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
   }
 
   Widget _buildLabel(String text) {
-    return Text(text,
+    return UpperText(text,
         style: GoogleFonts.inter(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -405,7 +406,7 @@ class _TipoButton extends StatelessWidget {
           children: [
             Icon(icon, color: selected ? color : AppColors.textMuted, size: 20),
             const SizedBox(width: 8),
-            Text(label,
+            UpperText(label,
                 style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,

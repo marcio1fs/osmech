@@ -1,0 +1,88 @@
+services:
+
+  # ── Banco de dados ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: osmech-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: oficina_db
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - osmech-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d oficina_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend Spring Boot ───────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: osmech-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      PORT: 8080
+      DB_URL: jdbc:postgresql://postgres:5432/oficina_db
+      DB_USERNAME: ${DB_USERNAME}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      FLYWAY_ENABLED: "true"
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+      FLYWAY_BASELINE_VERSION: "1"
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN}
+      MERCADOPAGO_PUBLIC_KEY: ${MERCADOPAGO_PUBLIC_KEY}
+      MERCADOPAGO_SUCCESS_URL: ${MERCADOPAGO_SUCCESS_URL}
+      MERCADOPAGO_PENDING_URL: ${MERCADOPAGO_PENDING_URL}
+      MERCADOPAGO_FAILURE_URL: ${MERCADOPAGO_FAILURE_URL}
+      MERCADOPAGO_NOTIFICATION_URL: ${MERCADOPAGO_NOTIFICATION_URL}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET}
+      AI_ENABLED: ${AI_ENABLED:-false}
+      AI_PROVIDER: ${AI_PROVIDER:-gemini}
+      AI_OPENAI_API_KEY: ${AI_OPENAI_API_KEY:-}
+      AI_OPENAI_MODEL: ${AI_OPENAI_MODEL:-gemini-1.5-flash}
+      AI_OPENAI_BASE_URL: ${AI_OPENAI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}
+    networks:
+      - osmech-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── Nginx — serve Flutter Web + proxy para backend ────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: osmech-nginx
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/build/web:/usr/share/nginx/html:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - osmech-net
+
+volumes:
+  postgres_data:
+
+networks:
+  osmech-net:
+    driver: bridge

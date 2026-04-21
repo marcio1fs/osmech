@@ -1,10 +1,13 @@
 package com.osmech.os.dto;
 
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+
 import java.math.BigDecimal;
 
 /**
- * DTO de resposta de um serviço na OS.
+ * DTO de resposta de um servico na OS.
  */
 @Data
 @AllArgsConstructor
@@ -15,4 +18,8 @@ public class ServicoOSResponse {
     private Integer quantidade;
     private BigDecimal valorUnitario;
     private BigDecimal valorTotal;
+    private Long mecanicoId;
+    private String mecanicoNome;
+    private BigDecimal percentualComissao;
+    private BigDecimal valorComissao;
 }

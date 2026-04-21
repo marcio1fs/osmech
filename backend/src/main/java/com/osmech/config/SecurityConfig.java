@@ -33,6 +33,7 @@ import java.util.List;
  * - Sessão stateless (JWT)
  * - Rotas públicas: /api/auth/**, /api/planos/**
  * - AuthenticationEntryPoint retorna 401 (não 403) para requests não autenticados
+ * - Rate limiting configurado para endpoints sensíveis
  */
 @Configuration
 @EnableWebSecurity
@@ -42,6 +43,7 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final Environment environment;
+    private final RateLimitFilter rateLimitFilter;
 
     @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:8083,http://localhost:3000}")
     private String allowedOrigins;
@@ -57,21 +59,24 @@ public class SecurityConfig {
                 .authenticationEntryPoint((request, response, authException) -> {
                     response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Sessão expirada ou token inválido. Faça login novamente.\"}");
+                    response.getWriter().write("{\"error\":\"Token expirado ou inválido. Faça login novamente.\"}");
                 })
                 // 403 para requests autenticados mas sem permissão
                 .accessDeniedHandler((request, response, accessDeniedException) -> {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType("application/json");
-                    response.getWriter().write("{\"error\":\"Acesso negado. Permissão insuficiente.\"}");
+                    response.getWriter().write("{\"error\":\"Acesso negado.\"}");
                 })
             )
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/planos/**", "/api/mercadopago/webhook").permitAll()
+                .requestMatchers("/auth/**", "/planos/**").permitAll()
+                .requestMatchers("/api/auth/**", "/api/planos/**").permitAll()
+                .requestMatchers("/mercadopago/webhook").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/api/**").authenticated()
                 .anyRequest().permitAll()
             )
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -84,7 +89,7 @@ public class SecurityConfig {
         boolean isDev = Arrays.asList(environment.getActiveProfiles()).contains("dev");
 
         if (isDev) {
-            config.setAllowedOriginPatterns(Collections.singletonList("http://localhost:*"));
+            config.setAllowedOriginPatterns(Arrays.asList("http://localhost:*", "http://127.0.0.1:*"));
         } else {
             config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         }
@@ -93,6 +98,11 @@ public class SecurityConfig {
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
         config.setExposedHeaders(List.of("Authorization", "Content-Disposition"));
+
+        // HSTS em produção
+        if (!isDev) {
+            config.setMaxAge(3600L);
+        }
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

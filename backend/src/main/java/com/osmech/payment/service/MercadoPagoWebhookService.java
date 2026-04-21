@@ -49,29 +49,34 @@ public class MercadoPagoWebhookService {
 
     @PostConstruct
     public void validateProductionConfig() {
-        // Always require webhook secret configuration - it's critical for security
-        // The secret must be set via MERCADOPAGO_WEBHOOK_SECRET environment variable
+        // webhookSecret é OBRIGATÓRIO em produção, mas apenas aviso em desenvolvimento
+        // para permitir desenvolvimento local sem configuração adicional
         if (webhookSecret == null || webhookSecret.isBlank()) {
-            log.warn("===========================================================");
-            log.warn("WARNING: MercadoPago webhook secret is NOT configured!");
-            log.warn("Set MERCADOPAGO_WEBHOOK_SECRET environment variable.");
-            log.warn("Webhook requests will be ACCEPTED WITHOUT SIGNATURE VALIDATION.");
-            log.warn("This is acceptable for LOCAL DEVELOPMENT only.");
-            log.warn("===========================================================");
+            boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod")
+                    || Arrays.asList(environment.getActiveProfiles()).contains("production")
+                    || Arrays.asList(environment.getActiveProfiles()).contains("staging");
+            
+            if (isProd) {
+                log.error("=============================================================");
+                log.error("FATAL: MercadoPago webhook secret NAO configurado em PRODUCAO!");
+                log.error("Configure MERCADOPAGO_WEBHOOK_SECRET environment variable.");
+                log.error("=============================================================");
+                throw new IllegalStateException(
+                    "MercadoPago webhook secret MUST be configured in production. "
+                    + "Set MERCADOPAGO_WEBHOOK_SECRET environment variable."
+                );
+            } else {
+                // Em desenvolvimento, permite iniciar com aviso
+                log.warn("=============================================================");
+                log.warn("WARNING: MercadoPago webhook secret is NOT configured!");
+                log.warn("Set MERCADOPAGO_WEBHOOK_SECRET environment variable.");
+                log.warn("Webhook requests will be ACCEPTED WITHOUT SIGNATURE VALIDATION.");
+                log.warn("This is acceptable for LOCAL DEVELOPMENT only.");
+                log.warn("===========================================================");
+            }
         } else {
             log.info("MercadoPago webhook signature validation is ENABLED.");
             log.debug("Webhook secret configured (length: {} chars)", webhookSecret.length());
-        }
-        
-        boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod")
-                || Arrays.asList(environment.getActiveProfiles()).contains("production");
-        
-        if (isProd && (webhookSecret == null || webhookSecret.isBlank())) {
-            log.error("FATAL: MercadoPago webhook secret is not configured in production! ");
-            throw new IllegalStateException(
-                "MercadoPago webhook secret MUST be configured in production. "
-                + "Set MERCADOPAGO_WEBHOOK_SECRET environment variable."
-            );
         }
     }
 
@@ -228,29 +233,55 @@ public class MercadoPagoWebhookService {
     private void validarAssinaturaSeConfigurada(Map<String, String> queryParams,
                                                 Map<String, String> headers,
                                                 Long paymentId) {
+        // Validação de assinatura é OBRIGATÓRIA em produção
+        // Em desenvolvimento, pula validação se secret não estiver configurado
         String secret = trimToNull(webhookSecret);
         if (secret == null) {
+            boolean isProd = Arrays.asList(environment.getActiveProfiles()).contains("prod")
+                    || Arrays.asList(environment.getActiveProfiles()).contains("production")
+                    || Arrays.asList(environment.getActiveProfiles()).contains("staging");
+            if (isProd) {
+                throw new SecurityException("Webhook secret nao configurado em producao. Configure MERCADOPAGO_WEBHOOK_SECRET.");
+            }
+            // Em dev, pula validação
+            log.debug("Webhook signature validation SKIPPED (dev mode)");
             return;
         }
 
         String signatureHeader = obterHeader(headers, "x-signature");
         String requestId = obterHeader(headers, "x-request-id");
         if (signatureHeader == null || requestId == null) {
-            throw new SecurityException("Cabecalhos de assinatura ausentes");
+            throw new SecurityException("Cabecalhos de assinatura ausentes: x-signature e x-request-id sao obrigatorios");
         }
 
         Map<String, String> assinatura = parseAssinatura(signatureHeader);
         String ts = trimToNull(assinatura.get("ts"));
         String v1 = trimToNull(assinatura.get("v1"));
         if (ts == null || v1 == null) {
-            throw new SecurityException("Formato de assinatura invalido");
+            throw new SecurityException("Formato de assinatura invalido. Esperado: ts=<timestamp>,v1=<signature>");
+        }
+
+        // Validar timestamp para evitar replay attacks (max 5 minutos)
+        try {
+            long timestamp = Long.parseLong(ts);
+            long now = System.currentTimeMillis() / 1000;
+            long diff = Math.abs(now - timestamp);
+            if (diff > 300) { // 5 minutos
+                log.warn("Webhook timestamp expirado: diff={} segundos", diff);
+                throw new SecurityException("Webhook expirado. Timestamp muito antigo (max 5 minutos)");
+            }
+        } catch (NumberFormatException e) {
+            throw new SecurityException("Timestamp invalido: deve ser numerico");
         }
 
         String manifest = "id:" + paymentId + ";request-id:" + requestId + ";ts:" + ts + ";";
         String expected = hmacSha256Hex(manifest, secret);
         if (!MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), v1.getBytes(StandardCharsets.UTF_8))) {
-            throw new SecurityException("Assinatura invalida");
+            log.warn("Assinatura HMAC invalida para paymentId={}", paymentId);
+            throw new SecurityException("Assinatura invalida - possivel ataque");
         }
+        
+        log.debug("Webhook signature validada com sucesso para paymentId={}", paymentId);
     }
 
     private Long extrairPaymentId(Map<String, String> queryParams, Map<String, Object> body) {

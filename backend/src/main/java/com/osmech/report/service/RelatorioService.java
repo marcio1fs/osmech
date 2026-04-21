@@ -563,65 +563,73 @@ public class RelatorioService {
 
     // ==================== EXPORTAÇÃO ====================
 
+    /**
+     * Gera CSV real com dados do relatório solicitado.
+     * PDF e Excel também geram CSV por ora (sem dependência extra).
+     */
     public ByteArrayOutputStream exportarParaPdf(String tipo, LocalDate inicio, LocalDate fim, String formato) {
-        // Implementação simplificada - em produção usaria OpenPDF
+        String csv = exportarParaCsv(tipo, inicio, fim);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        StringBuilder content = new StringBuilder();
-        
-        content.append("Relatório OSMECH\n");
-        content.append("Tipo: ").append(tipo).append("\n");
-        if (inicio != null && fim != null) {
-            content.append("Período: ").append(inicio).append(" até ").append(fim).append("\n");
-        }
-        content.append("Data geração: ").append(LocalDate.now()).append("\n");
-        
-        try {
-            out.write(content.toString().getBytes("UTF-8"));
-        } catch (Exception e) {
-            log.error("Erro ao gerar PDF", e);
-        }
-        
+        try { out.write(csv.getBytes("UTF-8")); } catch (Exception e) { log.error("Erro ao gerar PDF", e); }
         return out;
     }
 
     public ByteArrayOutputStream exportarParaExcel(String tipo, LocalDate inicio, LocalDate fim) {
+        String csv = exportarParaCsv(tipo, inicio, fim);
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        
-        try {
-            // Gera conteúdo CSV como base (em produção usaria Apache POI)
-            StringBuilder content = new StringBuilder();
-            content.append("Relatório OSMECH\n");
-            content.append("Tipo: ").append(tipo).append("\n");
-            if (inicio != null && fim != null) {
-                content.append("Período: ").append(inicio).append(" até ").append(fim).append("\n");
-            }
-            content.append("\nDados:\n");
-            content.append("Coluna1,Coluna2,Coluna3\n");
-            content.append("Valor1,Valor2,Valor3\n");
-            
-            out.write(content.toString().getBytes("UTF-8"));
-        } catch (Exception e) {
-            log.error("Erro ao gerar Excel", e);
-        }
-        
+        try { out.write(csv.getBytes("UTF-8")); } catch (Exception e) { log.error("Erro ao gerar Excel", e); }
         return out;
     }
 
     public String exportarParaCsv(String tipo, LocalDate inicio, LocalDate fim) {
-        StringBuilder content = new StringBuilder();
-        
-        content.append("Relatório OSMECH\n");
-        content.append("Tipo: ").append(tipo).append("\n");
-        if (inicio != null && fim != null) {
-            content.append("Período: ").append(inicio).append(" até ").append(fim).append("\n");
+        // Busca o usuarioId a partir do contexto de segurança
+        String email = org.springframework.security.core.context.SecurityContextHolder
+                .getContext().getAuthentication().getName();
+        Long uid = usuarioRepository.findByEmail(email).map(u -> u.getId()).orElse(null);
+        if (uid == null) return "Usuário não encontrado\n";
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("\uFEFF"); // BOM UTF-8 para Excel reconhecer acentos
+        LocalDate ini = inicio != null ? inicio : LocalDate.now().withDayOfMonth(1);
+        LocalDate fim2 = fim != null ? fim : LocalDate.now();
+
+        switch (tipo.toLowerCase()) {
+            case "os" -> {
+                sb.append("ID,Cliente,Placa,Modelo,Status,Valor,Data\n");
+                gerarRelatorioOsPorPeriodo(uid, ini, fim2, null).getDetalhamento()
+                    .forEach(d -> sb.append(String.format("%s,%s,%s,%s,%s,%s,%s\n",
+                        d.get("id"), csvEscape(d.get("cliente")), csvEscape(d.get("placa")),
+                        csvEscape(d.get("modelo")), d.get("status"), d.get("valor"), d.get("data"))));
+            }
+            case "financeiro" -> {
+                sb.append("Tipo,Descrição,Valor,Método,Data\n");
+                gerarRelatorioReceitas(uid, ini, fim2).getTransacoes()
+                    .forEach(t -> sb.append(String.format("%s,%s,%s,%s,%s\n",
+                        t.getTipo(), csvEscape(t.getDescricao()), t.getValor(),
+                        csvEscape(t.getMetodoPagamento()), t.getData())));
+            }
+            case "clientes" -> {
+                sb.append("Cliente,Telefone,OS,Total Gasto\n");
+                gerarRelatorioClientesPorGasto(uid, 1000)
+                    .forEach(c -> sb.append(String.format("%s,%s,%s,%s\n",
+                        csvEscape(c.getNome()), csvEscape(c.getTelefone()),
+                        c.getQuantidadeOs(), c.getTotalGasto())));
+            }
+            case "estoque" -> {
+                sb.append("Código,Nome,Categoria,Quantidade,Mínimo\n");
+                gerarRelatorioEstoqueBaixo(uid, 1000)
+                    .forEach(i -> sb.append(String.format("%s,%s,%s,%s,%s\n",
+                        csvEscape(i.getCodigo()), csvEscape(i.getNome()),
+                        csvEscape(i.getCategoria()), i.getQuantidadeAtual(), i.getQuantidadeMinima())));
+            }
+            default -> sb.append("Tipo de relatório não reconhecido: ").append(tipo).append("\n");
         }
-        content.append("\n");
-        
-        // Dados de exemplo
-        content.append("Data,Descrição,Valor,Status\n");
-        content.append("01/01/2024,Serviço 1,R$ 150,00,Concluída\n");
-        content.append("02/01/2024,Serviço 2,R$ 200,00,Concluída\n");
-        
-        return content.toString();
+        return sb.toString();
+    }
+
+    private String csvEscape(Object value) {
+        if (value == null) return "";
+        String s = value.toString().replace("\"", "\"\"");
+        return s.contains(",") || s.contains("\n") ? "\"" + s + "\"" : s;
     }
 }

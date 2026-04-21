@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/chat_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../widgets/upper_text.dart';
 
 /// Página de chat com a IA do OSMECH.
 class ChatPage extends StatefulWidget {
@@ -47,8 +48,8 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
         setState(() {
           _messages = historico
               .map((m) => _ChatMsg(
-                    role: m['role'] as String,
-                    content: m['content'] as String,
+                    role: (m['role'] as String?) ?? 'assistant',
+                    content: (m['content'] as String?) ?? '',
                   ))
               .toList();
         });
@@ -78,7 +79,7 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
         _sessionId = resp['sessionId'] as String?;
         _messages.add(_ChatMsg(
           role: 'assistant',
-          content: resp['content'] as String,
+          content: (resp['content'] as String?) ?? '',
         ));
         _sending = false;
       });
@@ -150,12 +151,12 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('IA OSMECH',
+                    UpperText('IA OSMECH',
                         style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('Assistente de oficina mecânica',
+                    UpperText('Assistente de oficina mecânica',
                         style: GoogleFonts.inter(
                             fontSize: 11, color: AppColors.textMuted)),
                   ],
@@ -164,7 +165,7 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
                 OutlinedButton.icon(
                   onPressed: _novaSessao,
                   icon: const Icon(Icons.add_rounded, size: 16),
-                  label: Text('Nova conversa',
+                  label: UpperText('Nova conversa',
                       style: GoogleFonts.inter(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.accent,
@@ -282,13 +283,13 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
                   color: Colors.white, size: 40),
             ),
             const SizedBox(height: 20),
-            Text('IA OSMECH',
+            UpperText('IA OSMECH',
                 style: GoogleFonts.inter(
                     fontSize: 24,
                     fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 8),
-            Text('Seu assistente inteligente de oficina mecânica',
+            UpperText('Seu assistente inteligente de oficina mecânica',
                 style: GoogleFonts.inter(
                     fontSize: 14, color: AppColors.textMuted)),
             const SizedBox(height: 32),
@@ -335,15 +336,15 @@ class _ChatPageState extends State<ChatPage> with AuthErrorMixin {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(emoji, style: const TextStyle(fontSize: 24)),
+            UpperText(emoji, style: const TextStyle(fontSize: 24)),
             const SizedBox(height: 8),
-            Text(title,
+            UpperText(title,
                 style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary)),
             const SizedBox(height: 4),
-            Text(prompt,
+            UpperText(prompt,
                 style:
                     GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
                 maxLines: 2,

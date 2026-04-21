@@ -16,7 +16,7 @@ import java.util.List;
  * Controller REST para Pagamentos.
  */
 @RestController
-@RequestMapping("/api/pagamento")
+@RequestMapping("/pagamento")
 @RequiredArgsConstructor
 public class PagamentoController {
 

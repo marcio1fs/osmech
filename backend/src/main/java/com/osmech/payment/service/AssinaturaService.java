@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -55,6 +56,11 @@ public class AssinaturaService {
         Plano plano = planoRepository.findByCodigo(planoCodigoNormalizado)
                 .orElseThrow(() -> new ResourceNotFoundException("Plano nao encontrado: " + planoCodigoNormalizado));
 
+        // Verificar se o plano está ativo
+        if (!Boolean.TRUE.equals(plano.getAtivo())) {
+            throw new IllegalArgumentException("Plano nao esta disponivel para assinatura");
+        }
+
         Assinatura assinaturaPendente = assinaturaRepository
                 .findFirstByUsuarioIdAndStatusOrderByCriadoEmDesc(usuario.getId(), STATUS_PENDING)
                 .orElse(null);
@@ -87,12 +93,21 @@ public class AssinaturaService {
                 .planoId(plano.getId())
                 .planoCodigo(plano.getCodigo())
                 .status(STATUS_PENDING)
-                .valorMensal(plano.getPreco())
+                .valorMensal(plano.getPreco())  // Valor do plano - não pode ser alterado
                 .dataInicio(LocalDate.now())
                 .proximaCobranca(LocalDate.now().plusMonths(1))
                 .build();
 
         assinatura = assinaturaRepository.save(assinatura);
+
+        // VALIDAÇÃO DE SEGURANÇA: O valor deve ser exatamente o preço do plano
+        // Nunca aceite valores da requisição - sempre use o valor do banco
+        BigDecimal valorCobrado = plano.getPreco();
+        
+        // Verificação adicional: garantir que o valor é positivo e válido
+        if (valorCobrado == null || valorCobrado.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalStateException("Preco do plano invalido");
+        }
 
         Pagamento pagamento = Pagamento.builder()
                 .usuarioId(usuario.getId())
@@ -100,7 +115,7 @@ public class AssinaturaService {
                 .referenciaId(assinatura.getId())
                 .descricao("Assinatura Plano " + plano.getNome())
                 .metodoPagamento(METODO_MERCADO_PAGO_CHECKOUT)
-                .valor(plano.getPreco())
+                .valor(valorCobrado)  // Usa valor do plano - não da requisição
                 .status(StatusPagamento.PENDENTE)
                 .criadoEm(LocalDateTime.now())
                 .build();

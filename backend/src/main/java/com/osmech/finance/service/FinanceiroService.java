@@ -19,6 +19,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Serviço principal do módulo financeiro.
@@ -170,20 +171,77 @@ public class FinanceiroService {
     // ==========================================
 
     /**
-     * Retorna o fluxo de caixa em um período.
+     * Retorna o fluxo de caixa em um período, preenchendo todos os dias
+     * (inclusive os sem movimentação) e com saldo acumulado correto.
      */
     @Transactional(readOnly = true)
     public List<FluxoCaixaResponse> getFluxoCaixa(String emailUsuario, LocalDate inicio, LocalDate fim) {
         Usuario usuario = getUsuario(emailUsuario);
-        return fluxoRepository
-                .findByUsuarioIdAndDataBetweenOrderByDataAsc(usuario.getId(), inicio, fim)
+        Long uid = usuario.getId();
+
+        // Mapa dos dias que têm registro real
+        Map<LocalDate, FluxoCaixa> registros = fluxoRepository
+                .findByUsuarioIdAndDataBetweenOrderByDataAsc(uid, inicio, fim)
                 .stream()
-                .map(this::toFluxoResponse)
+                .collect(java.util.stream.Collectors.toMap(FluxoCaixa::getData, f -> f));
+
+        // Saldo acumulado do dia anterior ao início do período
+        BigDecimal saldoAnterior = fluxoRepository
+                .findFirstByUsuarioIdAndDataBeforeOrderByDataDesc(uid, inicio)
+                .map(FluxoCaixa::getSaldoAcumulado)
+                .orElse(BigDecimal.ZERO);
+
+        List<FluxoCaixaResponse> resultado = new java.util.ArrayList<>();
+        BigDecimal acumulado = saldoAnterior;
+
+        for (LocalDate dia = inicio; !dia.isAfter(fim); dia = dia.plusDays(1)) {
+            FluxoCaixa registro = registros.get(dia);
+            if (registro != null) {
+                // Recalcula acumulado a partir do saldo anterior (corrige propagação)
+                acumulado = acumulado.add(registro.getSaldo());
+                resultado.add(FluxoCaixaResponse.builder()
+                        .id(registro.getId())
+                        .data(dia)
+                        .totalEntradas(registro.getTotalEntradas())
+                        .totalSaidas(registro.getTotalSaidas())
+                        .saldo(registro.getSaldo())
+                        .saldoAcumulado(acumulado)
+                        .semMovimentacao(false)
+                        .build());
+            } else {
+                // Dia sem movimentação — mantém acumulado
+                resultado.add(FluxoCaixaResponse.builder()
+                        .data(dia)
+                        .totalEntradas(BigDecimal.ZERO)
+                        .totalSaidas(BigDecimal.ZERO)
+                        .saldo(BigDecimal.ZERO)
+                        .saldoAcumulado(acumulado)
+                        .semMovimentacao(true)
+                        .build());
+            }
+        }
+
+        return resultado;
+    }
+
+    /**
+     * Retorna as transações de um dia específico.
+     */
+    @Transactional(readOnly = true)
+    public List<TransacaoResponse> getTransacoesDia(String emailUsuario, LocalDate data) {
+        Usuario usuario = getUsuario(emailUsuario);
+        return transacaoRepository
+                .findByUsuarioIdAndDia(usuario.getId(),
+                        data.atStartOfDay(),
+                        data.atTime(LocalTime.MAX))
+                .stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     /**
-     * Atualiza o fluxo de caixa de um dia específico.
+     * Atualiza o fluxo de caixa de um dia específico e propaga o saldo
+     * acumulado para todos os dias posteriores que já têm registro.
      */
     @Transactional
     public void atualizarFluxoCaixa(Long usuarioId, LocalDate data) {
@@ -194,7 +252,7 @@ public class FinanceiroService {
         BigDecimal saidas = transacaoRepository.somaSaidasPeriodo(usuarioId, inicioDia, fimDia);
         BigDecimal saldoDia = entradas.subtract(saidas);
 
-        // Busca saldo acumulado do dia anterior
+        // Saldo acumulado do dia anterior
         BigDecimal saldoAnterior = fluxoRepository
                 .findFirstByUsuarioIdAndDataBeforeOrderByDataDesc(usuarioId, data)
                 .map(FluxoCaixa::getSaldoAcumulado)
@@ -203,17 +261,23 @@ public class FinanceiroService {
         BigDecimal saldoAcumulado = saldoAnterior.add(saldoDia);
 
         FluxoCaixa fluxo = fluxoRepository.findByUsuarioIdAndData(usuarioId, data)
-                .orElse(FluxoCaixa.builder()
-                        .usuarioId(usuarioId)
-                        .data(data)
-                        .build());
+                .orElse(FluxoCaixa.builder().usuarioId(usuarioId).data(data).build());
 
         fluxo.setTotalEntradas(entradas);
         fluxo.setTotalSaidas(saidas);
         fluxo.setSaldo(saldoDia);
         fluxo.setSaldoAcumulado(saldoAcumulado);
-
         fluxoRepository.save(fluxo);
+
+        // Propaga saldo acumulado para dias posteriores que já têm registro
+        List<FluxoCaixa> posteriores = fluxoRepository
+                .findByUsuarioIdAndDataBetweenOrderByDataAsc(usuarioId, data.plusDays(1), LocalDate.now().plusDays(1));
+        BigDecimal acumuladoCorrente = saldoAcumulado;
+        for (FluxoCaixa posterior : posteriores) {
+            acumuladoCorrente = acumuladoCorrente.add(posterior.getSaldo());
+            posterior.setSaldoAcumulado(acumuladoCorrente);
+            fluxoRepository.save(posterior);
+        }
     }
 
     // ==========================================
@@ -250,6 +314,37 @@ public class FinanceiroService {
                 .qtdTransacoesMes(qtdMes)
                 .qtdSemCategoria(qtdSemCat)
                 .build();
+    }
+
+    // ==========================================
+    // TENDÊNCIA (DASHBOARD)
+    // ==========================================
+
+    /**
+     * Retorna receita e despesa dos últimos 7 dias para o mini gráfico do dashboard.
+     */
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getTendencia7Dias(String emailUsuario) {
+        Usuario usuario = getUsuario(emailUsuario);
+        Long uid = usuario.getId();
+        LocalDate hoje = LocalDate.now();
+
+        List<Map<String, Object>> resultado = new java.util.ArrayList<>();
+        for (int i = 6; i >= 0; i--) {
+            LocalDate dia = hoje.minusDays(i);
+            LocalDateTime inicio = dia.atStartOfDay();
+            LocalDateTime fim = dia.atTime(LocalTime.MAX);
+
+            BigDecimal entradas = transacaoRepository.somaEntradasPeriodo(uid, inicio, fim);
+            BigDecimal saidas   = transacaoRepository.somaSaidasPeriodo(uid, inicio, fim);
+
+            Map<String, Object> ponto = new java.util.LinkedHashMap<>();
+            ponto.put("data", dia.toString());
+            ponto.put("entradas", entradas);
+            ponto.put("saidas", saidas);
+            resultado.add(ponto);
+        }
+        return resultado;
     }
 
     // ==========================================

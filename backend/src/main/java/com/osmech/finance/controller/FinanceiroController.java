@@ -17,7 +17,7 @@ import java.util.List;
  * Gerencia transações, fluxo de caixa e resumo financeiro.
  */
 @RestController
-@RequestMapping("/api/finance")
+@RequestMapping("/finance")
 @RequiredArgsConstructor
 public class FinanceiroController {
 
@@ -63,6 +63,14 @@ public class FinanceiroController {
         return ResponseEntity.ok(financeiroService.getFluxoCaixa(auth.getName(), inicio, fim));
     }
 
+    /** GET /api/finance/cashflow/day - Transações de um dia específico */
+    @GetMapping("/cashflow/day")
+    public ResponseEntity<List<TransacaoResponse>> getTransacoesDia(
+            Authentication auth,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate data) {
+        return ResponseEntity.ok(financeiroService.getTransacoesDia(auth.getName(), data));
+    }
+
     // ==========================================
     // RESUMO FINANCEIRO
     // ==========================================
@@ -71,5 +79,11 @@ public class FinanceiroController {
     @GetMapping("/summary")
     public ResponseEntity<ResumoFinanceiroDTO> getResumoFinanceiro(Authentication auth) {
         return ResponseEntity.ok(financeiroService.getResumoFinanceiro(auth.getName()));
+    }
+
+    /** GET /api/finance/tendencia - Receita dos últimos 7 dias para mini gráfico */
+    @GetMapping("/tendencia")
+    public ResponseEntity<List<java.util.Map<String, Object>>> getTendencia(Authentication auth) {
+        return ResponseEntity.ok(financeiroService.getTendencia7Dias(auth.getName()));
     }
 }

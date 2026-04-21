@@ -4,11 +4,12 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/os_service.dart';
 import '../services/finance_service.dart';
+import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
-/// Dashboard profissional com métricas e visualizações detalhadas.
 class DashboardPage extends StatefulWidget {
   final void Function(int)? onNavigate;
   const DashboardPage({super.key, this.onNavigate});
@@ -19,495 +20,705 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
   Map<String, dynamic>? _stats;
-  Map<String, dynamic>? _financeSummary;
+  Map<String, dynamic>? _finance;
+  List<Map<String, dynamic>> _osRecentes = [];
+  List<Map<String, dynamic>> _alertasEstoque = [];
+  List<Map<String, dynamic>> _tendencia = [];
   bool _loading = true;
   String? _error;
 
+  // Índices corretos do AppShell
+  static const int _idxNovaOs      = 2;
+  static const int _idxListaOs     = 1;
+  static const int _idxFinanceiro  = 6;
+  static const int _idxFluxoCaixa  = 9;
+  static const int _idxEstoque     = 11;
+  static const int _idxRelatorios  = 18;
+  static const int _idxMecanicos   = 5;
+  static const int _idxAlertas     = 14;
+
   @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
+  void initState() { super.initState(); _loadData(); }
 
   Future<void> _loadData() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    setState(() { _loading = true; _error = null; });
     try {
-      final osService = OsService(token: safeToken);
-      final financeService = FinanceService(token: safeToken);
+      final os      = OsService(token: safeToken);
+      final finance = FinanceService(token: safeToken);
+      final stock   = StockService(token: safeToken);
 
       final results = await Future.wait([
-        osService.getDashboardStats().catchError((e) {
-          debugPrint('[Dashboard] Falha ao carregar stats OS: $e');
-          return <String, dynamic>{
-            'total': 0,
-            'abertas': 0,
-            'emAndamento': 0,
-            'concluidas': 0,
-            'esteMes': 0,
-          };
-        }),
-        financeService.getResumoFinanceiro().catchError((e) {
-          debugPrint('[Dashboard] Falha ao carregar resumo financeiro: $e');
-          return <String, dynamic>{};
-        }),
+        os.getDashboardStats().catchError((_) => <String, dynamic>{}),
+        finance.getResumoFinanceiro().catchError((_) => <String, dynamic>{}),
+        os.listar().catchError((_) => <Map<String, dynamic>>[]),
+        stock.getAlertas().catchError((_) => <Map<String, dynamic>>[]),
+        finance.getTendencia7Dias().catchError((_) => <Map<String, dynamic>>[]),
       ]);
 
+      final ordens = (results[2] as List<Map<String, dynamic>>);
+      // Últimas 5 OS abertas ou em andamento
+      final recentes = ordens
+          .where((o) => o['status'] == 'ABERTA' || o['status'] == 'EM_ANDAMENTO'
+              || o['status'] == 'AGUARDANDO_PECA' || o['status'] == 'AGUARDANDO_APROVACAO')
+          .take(5)
+          .toList();
+
       setState(() {
-        _stats = results[0];
-        _financeSummary = results[1];
-        _loading = false;
+        _stats          = results[0] as Map<String, dynamic>;
+        _finance        = results[1] as Map<String, dynamic>;
+        _osRecentes     = recentes;
+        _alertasEstoque = (results[3] as List<Map<String, dynamic>>).take(5).toList();
+        _tendencia      = results[4] as List<Map<String, dynamic>>;
+        _loading        = false;
       });
     } catch (e) {
-      if (!handleAuthError(e)) {
-        setState(() {
-          _error = 'Erro ao carregar dados';
-          _loading = false;
-        });
-      }
+      if (!handleAuthError(e)) setState(() { _error = 'Erro ao carregar dados'; _loading = false; });
     }
   }
+
+  double _toDouble(dynamic v) {
+    if (v == null) return 0;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString()) ?? 0;
+  }
+
+  int _toInt(dynamic v) => _toDouble(v).toInt();
 
   @override
   Widget build(BuildContext context) {
     final auth = Provider.of<AuthService>(context);
+    final now  = DateTime.now();
+    final hora = now.hour < 12 ? 'Bom dia' : now.hour < 18 ? 'Boa tarde' : 'Boa noite';
 
     return Container(
       color: AppColors.background,
-      child: Column(
-        children: [
-          Container(
-            height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(bottom: BorderSide(color: AppColors.border)),
-            ),
-            child: Row(
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text('Dashboard', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-                    Text('Visão geral da sua oficina', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
-                  ],
-                ),
-                const Spacer(),
-                _ActionButton(icon: Icons.refresh_rounded, label: 'Atualizar', onTap: _loadData),
-                const SizedBox(width: 12),
-                _ActionButton(icon: Icons.add_rounded, label: 'Nova OS', primary: true, onTap: () => widget.onNavigate?.call(2)),
-              ],
-            ),
-          ),
-          Expanded(
-            child: _loading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
-                : _error != null
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-                            const SizedBox(height: 16),
-                            Text(_error!, style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                            const SizedBox(height: 16),
-                            FilledButton.icon(onPressed: _loadData, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('Tentar novamente')),
-                          ],
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildWelcomeCard(auth),
-                            const SizedBox(height: 28),
-                            _buildSectionTitle('Resumo Financeiro'),
-                            const SizedBox(height: 16),
-                            _buildFinanceMetrics(),
-                            const SizedBox(height: 28),
-                            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Expanded(flex: 1, child: _buildOsStatusVisual()),
-                              const SizedBox(width: 24),
-                              Expanded(flex: 2, child: _buildOsMetricsCard()),
-                            ]),
-                            const SizedBox(height: 28),
-                            _buildSectionTitle('Indicadores de Performance'),
-                            const SizedBox(height: 16),
-                            _buildPerformanceIndicators(),
-                            const SizedBox(height: 28),
-                            _buildSectionTitle('Ações Rápidas'),
-                            const SizedBox(height: 16),
-                            _buildQuickActions(),
-                          ],
-                        ),
-                      ),
-          ),
-        ],
-      ),
+      child: Column(children: [
+        _buildHeader(auth, hora, now),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
+              : _error != null
+                  ? _buildError()
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.all(28),
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _buildFinanceRow(),
+                        const SizedBox(height: 24),
+                        _buildOsRow(),
+                        const SizedBox(height: 24),
+                        _buildTendenciaRow(),
+                        const SizedBox(height: 24),
+                        _buildBottomRow(auth),
+                        const SizedBox(height: 24),
+                        _buildQuickActions(),
+                      ]),
+                    ),
+        ),
+      ]),
     );
   }
 
-  Widget _buildWelcomeCard(AuthService auth) {
+  // ── Header ──────────────────────────────────────────────────────────────────
+  Widget _buildHeader(AuthService auth, String hora, DateTime now) {
+    final dia = '${now.day.toString().padLeft(2,'0')}/${now.month.toString().padLeft(2,'0')}/${now.year}';
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border)),
+      ),
+      child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          UpperText('$hora, ${(auth.nome?.isNotEmpty == true ? auth.nome!.split(' ').first : null) ?? 'Usuário'}',
+              style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+          UpperText(dia, style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
+        ])),
+        // Badge do plano
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.accent.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.accent.withValues(alpha: 0.2)),
+          ),
+          child: UpperText('Plano ${auth.plano ?? "FREE"}',
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.accent)),
+        ),
+        const SizedBox(width: 12),
+        IconButton(onPressed: _loadData, icon: const Icon(Icons.refresh_rounded, size: 20),
+            tooltip: 'Atualizar', style: IconButton.styleFrom(foregroundColor: AppColors.textSecondary)),
+        const SizedBox(width: 8),
+        FilledButton.icon(
+          onPressed: () => widget.onNavigate?.call(_idxNovaOs),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const UpperText('Nova OS'),
+        ),
+      ]),
+    );
+  }
+
+  // ── Linha financeira ─────────────────────────────────────────────────────────
+  Widget _buildFinanceRow() {
+    final entradasMes = _toDouble(_finance?['entradasMes']);
+    final saidasMes   = _toDouble(_finance?['saidasMes']);
+    final lucroMes    = _toDouble(_finance?['lucroMes']);
+    final saldoAtual  = _toDouble(_finance?['saldoAtual']);
+    final margem      = entradasMes > 0 ? (lucroMes / entradasMes * 100) : 0.0;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionTitle('Financeiro — Mês Atual'),
+      const SizedBox(height: 12),
+      Row(children: [
+        _FinCard(label: 'Receitas', value: formatCurrency(entradasMes),
+            icon: Icons.arrow_circle_down_rounded, color: AppColors.success,
+            onTap: () => widget.onNavigate?.call(_idxFinanceiro)),
+        const SizedBox(width: 12),
+        _FinCard(label: 'Despesas', value: formatCurrency(saidasMes),
+            icon: Icons.arrow_circle_up_rounded, color: AppColors.error,
+            onTap: () => widget.onNavigate?.call(_idxFinanceiro)),
+        const SizedBox(width: 12),
+        _FinCard(label: 'Lucro', value: formatCurrency(lucroMes),
+            icon: Icons.account_balance_wallet_rounded,
+            color: lucroMes >= 0 ? AppColors.success : AppColors.error,
+            onTap: () => widget.onNavigate?.call(_idxFluxoCaixa)),
+        const SizedBox(width: 12),
+        _FinCard(label: 'Saldo Acumulado', value: formatCurrency(saldoAtual),
+            icon: Icons.savings_rounded,
+            color: saldoAtual >= 0 ? AppColors.textPrimary : AppColors.error,
+            onTap: () => widget.onNavigate?.call(_idxFluxoCaixa)),
+        const SizedBox(width: 12),
+        _FinCard(label: 'Margem', value: '${margem.toStringAsFixed(1)}%',
+            icon: Icons.pie_chart_rounded,
+            color: margem >= 20 ? AppColors.success : AppColors.warning,
+            onTap: () => widget.onNavigate?.call(_idxRelatorios)),
+      ]),
+    ]);
+  }
+
+  // ── Linha de OS ──────────────────────────────────────────────────────────────
+  Widget _buildOsRow() {
+    final total            = _toInt(_stats?['total']);
+    final abertas          = _toInt(_stats?['abertas']);
+    final emAndamento      = _toInt(_stats?['emAndamento']);
+    final concluidas       = _toInt(_stats?['concluidas']);
+    final esteMes          = _toInt(_stats?['esteMes']);
+    final aguardandoPeca   = _toInt(_stats?['aguardandoPeca']);
+    final aguardandoAprov  = _toInt(_stats?['aguardandoAprovacao']);
+    final canceladas       = _toInt(_stats?['canceladas']);
+    final concluidasHoje   = _toInt(_stats?['concluidasHoje']);
+    final taxa             = total > 0 ? (concluidas / total * 100) : 0.0;
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionTitle('Ordens de Serviço'),
+      const SizedBox(height: 12),
+      Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        // Contadores
+        Expanded(flex: 3, child: Wrap(spacing: 12, runSpacing: 12, children: [
+          _OsCountCard(label: 'Total', value: total, color: AppColors.textSecondary,
+              icon: Icons.assignment_rounded, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Abertas', value: abertas, color: const Color(0xFFF59E0B),
+              icon: Icons.radio_button_unchecked_rounded, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Em Andamento', value: emAndamento, color: const Color(0xFF3B82F6),
+              icon: Icons.autorenew_rounded, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Ag. Peça', value: aguardandoPeca, color: const Color(0xFF8B5CF6),
+              icon: Icons.inventory_2_outlined, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Ag. Aprovação', value: aguardandoAprov, color: const Color(0xFFF97316),
+              icon: Icons.pending_outlined, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Concluídas', value: concluidas, color: AppColors.success,
+              icon: Icons.check_circle_outline_rounded, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Hoje', value: concluidasHoje, color: AppColors.accent,
+              icon: Icons.today_rounded, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Este Mês', value: esteMes, color: AppColors.textSecondary,
+              icon: Icons.calendar_today_rounded, onTap: () => widget.onNavigate?.call(_idxListaOs)),
+          _OsCountCard(label: 'Taxa Conclusão', value: null, valueStr: '${taxa.toStringAsFixed(0)}%',
+              color: taxa >= 70 ? AppColors.success : AppColors.warning,
+              icon: Icons.speed_rounded, onTap: () => widget.onNavigate?.call(_idxRelatorios)),
+        ])),
+        const SizedBox(width: 16),
+        // OS recentes
+        Expanded(flex: 2, child: _buildOsRecentes()),
+      ]),
+    ]);
+  }
+
+  Widget _buildOsRecentes() {
+    return Container(
       decoration: BoxDecoration(
-        gradient: const LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E40AF)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Olá, ${auth.nome ?? "Usuário"}! 👋', style: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w700, color: Colors.white)),
-                const SizedBox(height: 6),
-                Text('Acompanhe o desempenho da sua oficina', style: GoogleFonts.inter(fontSize: 14, color: Colors.white70)),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(20)),
-                  child: Text('Plano ${auth.plano ?? "PRO"}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
-                ),
-              ],
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Row(children: [
+            Flexible(
+              child: UpperText('OS em Aberto',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  overflow: TextOverflow.ellipsis),
             ),
-          ),
-          Container(width: 72, height: 72, decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(16)), child: const Icon(Icons.build_rounded, size: 36, color: Colors.white)),
-        ],
-      ),
+            const SizedBox(width: 8),
+            InkWell(
+              onTap: () => widget.onNavigate?.call(_idxListaOs),
+              child: UpperText('Ver todas', style: GoogleFonts.inter(fontSize: 12, color: AppColors.accent)),
+            ),
+          ]),
+        ),
+        const Divider(height: 1, color: AppColors.border),
+        if (_osRecentes.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Center(child: UpperText('Nenhuma OS aberta',
+                style: GoogleFonts.inter(fontSize: 13, color: AppColors.textMuted))),
+          )
+        else
+          ...(_osRecentes.map((os) => _OsRecenteTile(os: os,
+              onTap: () => widget.onNavigate?.call(_idxListaOs)))),
+      ]),
     );
   }
 
-  Widget _buildSectionTitle(String title) => Text(title, style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
+  // ── Tendência 7 dias ─────────────────────────────────────────────────────────
+  Widget _buildTendenciaRow() {
+    if (_tendencia.isEmpty) return const SizedBox.shrink();
 
-  Widget _buildFinanceMetrics() {
-    final totalReceitas = _financeSummary?['totalReceitas'] ?? 0;
-    final totalDespesas = _financeSummary?['totalDespesas'] ?? 0;
-    final lucro = totalReceitas - totalDespesas;
-    final margemLucro = totalReceitas > 0 ? (lucro / totalReceitas * 100) : 0;
+    final maxVal = _tendencia.fold<double>(0, (m, d) {
+      final e = _toDouble(d['entradas']);
+      final s = _toDouble(d['saidas']);
+      return [m, e, s].reduce((a, b) => a > b ? a : b);
+    });
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isWide = constraints.maxWidth > 800;
-        return Wrap(
-          spacing: 16, runSpacing: 16,
-          children: [
-            _FinanceMetricCard(label: 'Receitas do Mês', value: formatCurrency(totalReceitas), icon: Icons.trending_up_rounded, color: AppColors.success, trend: '+12%', isPositive: true, width: isWide ? 200 : null),
-            _FinanceMetricCard(label: 'Despesas do Mês', value: formatCurrency(totalDespesas), icon: Icons.trending_down_rounded, color: AppColors.error, trend: '-5%', isPositive: false, width: isWide ? 200 : null),
-            _FinanceMetricCard(label: 'Lucro do Mês', value: formatCurrency(lucro), icon: Icons.account_balance_wallet_rounded, color: lucro >= 0 ? AppColors.success : AppColors.error, trend: lucro >= 0 ? '+8%' : '-15%', isPositive: lucro >= 0, width: isWide ? 200 : null),
-            _FinanceMetricCard(label: 'Margem de Lucro', value: '${margemLucro.toStringAsFixed(1)}%', icon: Icons.pie_chart_rounded, color: margemLucro >= 20 ? AppColors.success : Colors.orange, trend: margemLucro >= 20 ? 'Excelente' : 'Atenção', isPositive: margemLucro >= 20, width: isWide ? 200 : null),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildOsStatusVisual() {
-    final total = _stats?['total'] ?? 0;
-    final abertas = _stats?['abertas'] ?? 0;
-    final emAndamento = _stats?['emAndamento'] ?? 0;
-    final concluidas = _stats?['concluidas'] ?? 0;
-
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Status das OS', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-          const SizedBox(height: 24),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionTitle('Receita vs Despesa — Últimos 7 dias'),
+      const SizedBox(height: 12),
+      Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(children: [
+          // Legenda
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            _LegendaDot(color: AppColors.success, label: 'Receita'),
+            const SizedBox(width: 16),
+            _LegendaDot(color: AppColors.error, label: 'Despesa'),
+          ]),
+          const SizedBox(height: 16),
+          // Barras
           SizedBox(
-            height: 180,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox(width: 160, height: 160, child: CircularProgressIndicator(value: 1, strokeWidth: 24, backgroundColor: Colors.transparent, valueColor: AlwaysStoppedAnimation<Color>(AppColors.border.withValues(alpha: 0.3)))),
-                if (total > 0) SizedBox(width: 160, height: 160, child: CircularProgressIndicator(value: concluidas / total, strokeWidth: 24, backgroundColor: Colors.transparent, valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success))),
-                Column(mainAxisSize: MainAxisSize.min, children: [
-                  Text('$total', style: GoogleFonts.inter(fontSize: 36, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                  Text('Total OS', style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
-                ]),
-              ],
+            height: 120,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: _tendencia.map((d) {
+                final entradas = _toDouble(d['entradas']);
+                final saidas   = _toDouble(d['saidas']);
+                final hE = maxVal > 0 ? (entradas / maxVal * 80) : 0.0;
+                final hS = maxVal > 0 ? (saidas   / maxVal * 80) : 0.0;
+                final data = d['data']?.toString() ?? '';
+                final dia  = data.length >= 10 ? data.substring(8, 10) : '';
+
+                return Expanded(child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        _Bar(height: hE, color: AppColors.success),
+                        const SizedBox(width: 2),
+                        _Bar(height: hS, color: AppColors.error),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    UpperText(dia, style: GoogleFonts.inter(fontSize: 10, color: AppColors.textMuted)),
+                  ],
+                ));
+              }).toList(),
             ),
           ),
-          const SizedBox(height: 20),
-          _LegendItem(color: AppColors.success, label: 'Concluídas', value: '$concluidas', percentage: total > 0 ? ((concluidas / total) * 100).toStringAsFixed(0) : '0'),
-          const SizedBox(height: 8),
-          _LegendItem(color: const Color(0xFF8B5CF6), label: 'Em Andamento', value: '$emAndamento', percentage: total > 0 ? ((emAndamento / total) * 100).toStringAsFixed(0) : '0'),
-          const SizedBox(height: 8),
-          _LegendItem(color: const Color(0xFFF59E0B), label: 'Abertas', value: '$abertas', percentage: total > 0 ? ((abertas / total) * 100).toStringAsFixed(0) : '0'),
-        ],
+        ]),
       ),
+    ]);
+  }
+
+  // ── Linha inferior: alertas + plano ──────────────────────────────────────────
+  Widget _buildBottomRow(AuthService auth) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Alertas de estoque
+      if (_alertasEstoque.isNotEmpty)
+        Expanded(child: _buildAlertasEstoque()),
+      if (_alertasEstoque.isNotEmpty) const SizedBox(width: 16),
+      // Indicador de plano FREE
+      if ((auth.plano ?? 'FREE') == 'FREE')
+        Expanded(child: _buildPlanoFreeCard(auth)),
+    ]);
+  }
+
+  Widget _buildAlertasEstoque() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.warning.withValues(alpha: 0.3)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+          child: Row(children: [
+            const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
+            const SizedBox(width: 6),
+            UpperText('Estoque Baixo (${_alertasEstoque.length})',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.warning)),
+            const Spacer(),
+            InkWell(
+              onTap: () => widget.onNavigate?.call(_idxAlertas),
+              child: UpperText('Ver todos', style: GoogleFonts.inter(fontSize: 12, color: AppColors.accent)),
+            ),
+          ]),
+        ),
+        const Divider(height: 1, color: AppColors.border),
+        ...(_alertasEstoque.map((item) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(children: [
+            Expanded(child: UpperText(item['nome'] ?? '-',
+                style: GoogleFonts.inter(fontSize: 13, color: AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis)),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: AppColors.error.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: UpperText('${item['quantidade'] ?? 0} un',
+                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.error)),
+            ),
+          ]),
+        ))),
+      ]),
     );
   }
 
-  Widget _buildOsMetricsCard() {
-    final total = _stats?['total'] ?? 0;
-    final esteMes = _stats?['esteMes'] ?? 0;
-    final abertas = _stats?['abertas'] ?? 0;
-    final emAndamento = _stats?['emAndamento'] ?? 0;
-    final concluidas = _stats?['concluidas'] ?? 0;
+  Widget _buildPlanoFreeCard(AuthService auth) {
+    final esteMes  = _toInt(_stats?['esteMes']);
+    const limiteOs = 10;
+    final restam   = (limiteOs - esteMes).clamp(0, limiteOs);
+    final progresso = esteMes / limiteOs;
 
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Métricas de OS', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: AppColors.accent.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                child: Text('Este mês: $esteMes OS', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.accent)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _ProgressBar(label: 'Concluídas', value: concluidas.toDouble(), maxValue: total > 0 ? total.toDouble() : 1, color: AppColors.success),
-          const SizedBox(height: 16),
-          _ProgressBar(label: 'Em Andamento', value: emAndamento.toDouble(), maxValue: total > 0 ? total.toDouble() : 1, color: const Color(0xFF8B5CF6)),
-          const SizedBox(height: 16),
-          _ProgressBar(label: 'Abertas', value: abertas.toDouble(), maxValue: total > 0 ? total.toDouble() : 1, color: const Color(0xFFF59E0B)),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              Expanded(child: _MiniStat(label: 'Média/Dia', value: total > 0 ? (total / 30).toStringAsFixed(1) : '0', icon: Icons.speed)),
-              const SizedBox(width: 12),
-              Expanded(child: _MiniStat(label: 'Taxa Conclusão', value: total > 0 ? '${((concluidas / total) * 100).toStringAsFixed(0)}%' : '0%', icon: Icons.check_circle_outline)),
-              const SizedBox(width: 12),
-              Expanded(child: _MiniStat(label: 'Em Andamento', value: '$emAndamento', icon: Icons.engineering)),
-            ],
-          ),
-        ],
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
       ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Icon(Icons.workspace_premium_rounded, size: 18, color: AppColors.accent),
+          const SizedBox(width: 8),
+          UpperText('Plano FREE', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+        ]),
+        const SizedBox(height: 12),
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+          UpperText('OS este mês', style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
+          UpperText('$esteMes / $limiteOs', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700,
+              color: restam <= 2 ? AppColors.error : AppColors.textPrimary)),
+        ]),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: progresso.clamp(0.0, 1.0),
+            backgroundColor: AppColors.border,
+            valueColor: AlwaysStoppedAnimation(restam <= 2 ? AppColors.error : AppColors.accent),
+            minHeight: 8,
+          ),
+        ),
+        const SizedBox(height: 8),
+        UpperText(restam <= 0 ? 'Limite atingido este mês' : 'Restam $restam OS este mês',
+            style: GoogleFonts.inter(fontSize: 12,
+                color: restam <= 2 ? AppColors.error : AppColors.textMuted)),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => widget.onNavigate?.call(17),
+            icon: const Icon(Icons.upgrade_rounded, size: 16),
+            label: const UpperText('Fazer Upgrade'),
+          ),
+        ),
+      ]),
     );
   }
 
-  Widget _buildPerformanceIndicators() {
-    final total = _stats?['total'] ?? 0;
-    final concluidas = _stats?['concluidas'] ?? 0;
-    final taxaConclusao = total > 0 ? (concluidas / total * 100) : 0;
-    final mediaDiaria = total > 0 ? total / 30 : 0;
-
-    return Row(
-      children: [
-        Expanded(child: _PerformanceCard(title: 'Taxa de Conclusão', value: '${taxaConclusao.toStringAsFixed(1)}%', subtitle: taxaConclusao >= 70 ? 'Excelente performance' : 'Precisa melhorar', icon: Icons.check_circle_outline, color: taxaConclusao >= 70 ? AppColors.success : Colors.orange, progress: taxaConclusao / 100)),
-        const SizedBox(width: 16),
-        Expanded(child: _PerformanceCard(title: 'Média Diária', value: mediaDiaria.toStringAsFixed(1), subtitle: 'OS por dia', icon: Icons.speed, color: AppColors.accent, progress: mediaDiaria / 10)),
-        const SizedBox(width: 16),
-        Expanded(child: _PerformanceCard(title: 'Eficiência', value: taxaConclusao >= 70 ? 'Alta' : 'Média', subtitle: taxaConclusao >= 70 ? '>70% concluídas' : '<70% concluídas', icon: Icons.trending_up, color: taxaConclusao >= 70 ? AppColors.success : Colors.orange, progress: taxaConclusao / 100)),
-      ],
-    );
-  }
-
+  // ── Ações rápidas ────────────────────────────────────────────────────────────
   Widget _buildQuickActions() {
-    return Wrap(
-      spacing: 12, runSpacing: 12,
-      children: [
-        _QuickAction(icon: Icons.add_circle_outline_rounded, label: 'Nova OS', onTap: () => widget.onNavigate?.call(2)),
-        _QuickAction(icon: Icons.list_alt_rounded, label: 'Ver todas OS', onTap: () => widget.onNavigate?.call(1)),
-        _QuickAction(icon: Icons.bar_chart_rounded, label: 'Financeiro', onTap: () => widget.onNavigate?.call(5)),
-        _QuickAction(icon: Icons.analytics_rounded, label: 'Relatórios', onTap: () => widget.onNavigate?.call(7)),
-        _QuickAction(icon: Icons.inventory_2_rounded, label: 'Estoque', onTap: () => widget.onNavigate?.call(8)),
-        _QuickAction(icon: Icons.people_rounded, label: 'Clientes', onTap: () => widget.onNavigate?.call(9)),
-      ],
-    );
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      _sectionTitle('Ações Rápidas'),
+      const SizedBox(height: 12),
+      Wrap(spacing: 10, runSpacing: 10, children: [
+        _QuickAction(icon: Icons.add_circle_outline_rounded, label: 'Nova OS',         onTap: () => widget.onNavigate?.call(_idxNovaOs)),
+        _QuickAction(icon: Icons.list_alt_rounded,           label: 'Ver OS',          onTap: () => widget.onNavigate?.call(_idxListaOs)),
+        _QuickAction(icon: Icons.bar_chart_rounded,          label: 'Financeiro',      onTap: () => widget.onNavigate?.call(_idxFinanceiro)),
+        _QuickAction(icon: Icons.trending_up_rounded,        label: 'Fluxo de Caixa', onTap: () => widget.onNavigate?.call(_idxFluxoCaixa)),
+        _QuickAction(icon: Icons.inventory_2_rounded,        label: 'Estoque',         onTap: () => widget.onNavigate?.call(_idxEstoque)),
+        _QuickAction(icon: Icons.engineering_rounded,        label: 'Mecânicos',       onTap: () => widget.onNavigate?.call(_idxMecanicos)),
+        _QuickAction(icon: Icons.analytics_rounded,          label: 'Relatórios',      onTap: () => widget.onNavigate?.call(_idxRelatorios)),
+      ]),
+    ]);
   }
+
+  Widget _buildError() => Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
+    const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+    const SizedBox(height: 12),
+    UpperText(_error!, style: GoogleFonts.inter(color: AppColors.textSecondary)),
+    const SizedBox(height: 12),
+    FilledButton.icon(onPressed: _loadData, icon: const Icon(Icons.refresh_rounded, size: 18), label: const UpperText('Tentar novamente')),
+  ]));
+
+  Widget _sectionTitle(String t) => UpperText(t,
+      style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.textPrimary));
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final bool primary;
-  final VoidCallback onTap;
-  const _ActionButton({required this.icon, required this.label, this.primary = false, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => primary ? FilledButton.icon(onPressed: onTap, icon: Icon(icon, size: 18), label: Text(label)) : OutlinedButton.icon(onPressed: onTap, icon: Icon(icon, size: 18), label: Text(label));
-}
-
-class _LegendItem extends StatelessWidget {
-  final Color color;
+// ── Card financeiro ───────────────────────────────────────────────────────────
+class _FinCard extends StatelessWidget {
   final String label;
   final String value;
-  final String percentage;
-  const _LegendItem({required this.color, required this.label, required this.value, required this.percentage});
-
-  @override
-  Widget build(BuildContext context) => Row(
-    children: [
-      Container(width: 12, height: 12, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
-      const SizedBox(width: 8),
-      Expanded(child: Text(label, style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary))),
-      Text('$value ($percentage%)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-    ],
-  );
-}
-
-class _ProgressBar extends StatelessWidget {
-  final String label;
-  final double value;
-  final double maxValue;
+  final IconData icon;
   final Color color;
-  const _ProgressBar({required this.label, required this.value, required this.maxValue, required this.color});
+  final VoidCallback? onTap;
+  const _FinCard({required this.label, required this.value, required this.icon,
+      required this.color, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    final percentage = maxValue > 0 ? value / maxValue : 0.0;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-          Text(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
-          Text(value.toInt().toString(), style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-        ]),
-        const SizedBox(height: 6),
-        ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: percentage, backgroundColor: color.withValues(alpha: 0.15), valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 8)),
-      ],
+    return Expanded(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              Container(
+                width: 34, height: 34,
+                decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(9)),
+                child: Icon(icon, color: color, size: 17),
+              ),
+              const Spacer(),
+              if (onTap != null)
+                Icon(Icons.arrow_forward_ios_rounded, size: 12, color: AppColors.textMuted),
+            ]),
+            const SizedBox(height: 10),
+            UpperText(value,
+                style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w800, color: color),
+                overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 2),
+            UpperText(label,
+                style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+          ]),
+        ),
+      ),
     );
   }
 }
 
-class _MiniStat extends StatelessWidget {
+// ── Card contador de OS ───────────────────────────────────────────────────────
+class _OsCountCard extends StatelessWidget {
   final String label;
-  final String value;
-  final IconData icon;
-  const _MiniStat({required this.label, required this.value, required this.icon});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(10)),
-    child: Row(children: [
-      Icon(icon, size: 18, color: AppColors.accent),
-      const SizedBox(width: 8),
-      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(value, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
-        Text(label, style: GoogleFonts.inter(fontSize: 10, color: AppColors.textSecondary)),
-      ])),
-    ]),
-  );
-}
-
-class _FinanceMetricCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
+  final int? value;
+  final String? valueStr;
   final Color color;
-  final String trend;
-  final bool isPositive;
-  final double? width;
-  const _FinanceMetricCard({required this.label, required this.value, required this.icon, required this.color, required this.trend, required this.isPositive, this.width});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: width,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-        Container(width: 40, height: 40, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, color: color, size: 20)),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(color: isPositive ? AppColors.success.withValues(alpha: 0.1) : AppColors.error.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
-            Icon(isPositive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded, size: 12, color: isPositive ? AppColors.success : AppColors.error),
-            const SizedBox(width: 2),
-            Text(trend, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: isPositive ? AppColors.success : AppColors.error)),
-          ]),
-        ),
-      ]),
-      const SizedBox(height: 16),
-      Text(value, style: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-      const SizedBox(height: 4),
-      Text(label, style: GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary)),
-    ]),
-  );
-}
-
-class _PerformanceCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String subtitle;
   final IconData icon;
-  final Color color;
-  final double progress;
-  const _PerformanceCard({required this.title, required this.value, required this.subtitle, required this.icon, required this.color, required this.progress});
+  final VoidCallback? onTap;
+  const _OsCountCard({required this.label, this.value, this.valueStr,
+      required this.color, required this.icon, this.onTap});
 
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(14), border: Border.all(color: AppColors.border)),
-    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textSecondary,
-              ),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 12),
-      Text(value, style: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-      Text(subtitle, style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
-      const SizedBox(height: 12),
-      ClipRRect(borderRadius: BorderRadius.circular(4), child: LinearProgressIndicator(value: progress.clamp(0.0, 1.0), backgroundColor: color.withValues(alpha: 0.15), valueColor: AlwaysStoppedAnimation<Color>(color), minHeight: 6)),
-    ]),
-  );
-}
-
-class _QuickAction extends StatefulWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _QuickAction({required this.icon, required this.label, required this.onTap});
-
-  @override
-  State<_QuickAction> createState() => _QuickActionState();
-}
-
-class _QuickActionState extends State<_QuickAction> {
-  bool _hovered = false;
-
-  @override
-  Widget build(BuildContext context) => MouseRegion(
-    onEnter: (_) => setState(() => _hovered = true),
-    onExit: (_) => setState(() => _hovered = false),
-    cursor: SystemMouseCursors.click,
-    child: GestureDetector(
-      onTap: widget.onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: 148,
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: _hovered ? AppColors.accent.withValues(alpha: 0.06) : AppColors.surface,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _hovered ? AppColors.accent.withValues(alpha: 0.3) : AppColors.border),
+          border: Border.all(color: AppColors.border),
         ),
-        child: Row(mainAxisSize: MainAxisSize.min, children: [
-          Icon(widget.icon, size: 20, color: AppColors.accent),
+        child: Row(children: [
+          Container(
+            width: 32, height: 32,
+            decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8)),
+            child: Icon(icon, color: color, size: 16),
+          ),
           const SizedBox(width: 10),
-          Text(widget.label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            UpperText(valueStr ?? '${value ?? 0}',
+                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w800, color: color)),
+            UpperText(label,
+                style: GoogleFonts.inter(fontSize: 10, color: AppColors.textSecondary),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1),
+          ])),
         ]),
       ),
-    ),
-  );
+    );
+  }
+}
+
+// ── Tile de OS recente ────────────────────────────────────────────────────────
+class _OsRecenteTile extends StatelessWidget {
+  final Map<String, dynamic> os;
+  final VoidCallback? onTap;
+  const _OsRecenteTile({required this.os, this.onTap});
+
+  static const _statusColors = {
+    'ABERTA':               Color(0xFFF59E0B),
+    'EM_ANDAMENTO':         Color(0xFF3B82F6),
+    'AGUARDANDO_PECA':      Color(0xFF8B5CF6),
+    'AGUARDANDO_APROVACAO': Color(0xFFF97316),
+  };
+  static const _statusLabels = {
+    'ABERTA': 'Aberta', 'EM_ANDAMENTO': 'Em And.',
+    'AGUARDANDO_PECA': 'Ag. Peça', 'AGUARDANDO_APROVACAO': 'Ag. Aprov.',
+  };
+
+  String _fmtDate(String? raw) {
+    if (raw == null) return '';
+    try {
+      final dt = DateTime.parse(raw);
+      return '${dt.day.toString().padLeft(2,'0')}/${dt.month.toString().padLeft(2,'0')}';
+    } catch (_) { return ''; }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = os['status'] ?? 'ABERTA';
+    final cor = _statusColors[status] ?? const Color(0xFF94A3B8);
+    final label = _statusLabels[status] ?? status;
+    final valor = double.tryParse(os['valor']?.toString() ?? '0') ?? 0;
+
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(children: [
+          Container(width: 3, height: 36,
+              decoration: BoxDecoration(color: cor, borderRadius: BorderRadius.circular(2))),
+          const SizedBox(width: 10),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            UpperText(os['clienteNome'] ?? '-',
+                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary),
+                overflow: TextOverflow.ellipsis),
+            UpperText(
+              [
+                '${os['modelo'] ?? '-'} • ${os['placa'] ?? '-'}',
+                if (os['criadoEm'] != null) _fmtDate(os['criadoEm'].toString()),
+              ].join('  '),
+              style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ])),
+          const SizedBox(width: 8),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(
+                  color: cor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6)),
+              child: UpperText(label,
+                  style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: cor)),
+            ),
+            if (valor > 0) ...[
+              const SizedBox(height: 2),
+              UpperText(formatCurrency(valor),
+                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700,
+                      color: AppColors.textSecondary)),
+            ],
+          ]),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Ação rápida ───────────────────────────────────────────────────────────────
+class _QuickAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback? onTap;
+  const _QuickAction({required this.icon, required this.label, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 18, color: AppColors.accent),
+          const SizedBox(width: 8),
+          UpperText(label, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Widgets do mini gráfico ───────────────────────────────────────────────────
+class _Bar extends StatelessWidget {
+  final double height;
+  final Color color;
+  const _Bar({required this.height, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      width: 10,
+      height: height.clamp(2.0, 90.0),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(3)),
+      ),
+    );
+  }
+}
+
+class _LegendaDot extends StatelessWidget {
+  final Color color;
+  final String label;
+  const _LegendaDot({required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Container(width: 10, height: 10,
+          decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(3))),
+      const SizedBox(width: 4),
+      UpperText(label, style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary)),
+    ]);
+  }
 }

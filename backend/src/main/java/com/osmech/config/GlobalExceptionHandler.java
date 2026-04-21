@@ -107,7 +107,11 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleRuntime(RuntimeException ex) {
         log.error("Erro de execução não esperado: ", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("error", "Ocorreu um erro inesperado no servidor."));
+                .body(Map.of(
+                    "error", "Ocorreu um erro inesperado no servidor.",
+                    "detail", ex.getMessage(),
+                    "type", ex.getClass().getSimpleName()
+                ));
     }
 
     /**

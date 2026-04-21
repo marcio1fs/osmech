@@ -11,6 +11,12 @@ spring:
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
 
+  # Desabilita auto-config do Redis em dev (sem Redis local)
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+
 app:
   jwt:
     secret: ${JWT_SECRET:osmech-dev-secret-key-change-before-production}

@@ -16,7 +16,7 @@ import java.util.Map;
  * Gerencia itens, movimentações e alertas.
  */
 @RestController
-@RequestMapping("/api/stock")
+@RequestMapping("/stock")
 @RequiredArgsConstructor
 public class StockController {
 

@@ -5,7 +5,11 @@ import 'services/auth_service.dart';
 import 'pages/login_page.dart';
 import 'pages/checkout_return_page.dart';
 import 'widgets/app_shell.dart';
+import 'widgets/upper_text.dart';
 import 'theme/app_theme.dart';
+
+/// Notifier global para navegação por atalho de teclado.
+final globalNavNotifier = ValueNotifier<int?>(null);
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,17 +53,30 @@ class OsmechApp extends StatelessWidget {
       title: 'OSMECH',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      themeMode: ThemeMode.light,
+      darkTheme: AppTheme.lightTheme,
+      themeMode: ThemeMode.dark,
       initialRoute: _resolveInitialRoute(),
       builder: (context, child) {
         return Shortcuts(
           shortcuts: const <ShortcutActivator, Intent>{
+            // Enter avança foco em campos de texto simples
             SingleActivator(LogicalKeyboardKey.enter): NextFocusIntent(),
             SingleActivator(LogicalKeyboardKey.numpadEnter): NextFocusIntent(),
+            // Navegação global entre módulos
+            SingleActivator(LogicalKeyboardKey.f1): _NavIntent(0),   // Dashboard
+            SingleActivator(LogicalKeyboardKey.f2): _NavIntent(1),   // OS
+            SingleActivator(LogicalKeyboardKey.f3): _NavIntent(2),   // Nova OS
+            SingleActivator(LogicalKeyboardKey.f4): _NavIntent(5),   // Mecânicos
+            SingleActivator(LogicalKeyboardKey.f6): _NavIntent(6),   // Financeiro
+            SingleActivator(LogicalKeyboardKey.f7): _NavIntent(11),  // Estoque
+            SingleActivator(LogicalKeyboardKey.f8): _NavIntent(15),  // IA
+            SingleActivator(LogicalKeyboardKey.f9): _NavIntent(18),  // Relatórios
+            SingleActivator(LogicalKeyboardKey.f10): _NavIntent(16), // Perfil
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
               NextFocusIntent: _EnterNextFocusAction(),
+              _NavIntent: _NavAction(),
             },
             child: child ?? const SizedBox.shrink(),
           ),
@@ -100,6 +117,23 @@ class _EnterNextFocusAction extends Action<NextFocusIntent> {
   }
 }
 
+/// Intent para navegação global por tecla de função.
+class _NavIntent extends Intent {
+  final int pageIndex;
+  const _NavIntent(this.pageIndex);
+}
+
+/// Action que notifica o AppShell para trocar de página via ValueNotifier global.
+class _NavAction extends Action<_NavIntent> {
+  @override
+  Object? invoke(_NavIntent intent) {
+    globalNavNotifier.value = intent.pageIndex;
+    // Reset para permitir navegar para o mesmo índice novamente
+    Future.microtask(() => globalNavNotifier.value = null);
+    return null;
+  }
+}
+
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
 
@@ -115,7 +149,7 @@ class _AuthGate extends StatelessWidget {
           );
         }
         if (auth.isAuthenticated) {
-          return const AppShell();
+          return const UpperCaseScope(enabled: true, child: AppShell());
         }
         return const LoginPage();
       },

@@ -49,7 +49,7 @@ public class UserService {
             usuario.setNomeOficina(request.getNomeOficina());
         }
         if (request.getCnpjOficina() != null) {
-            usuario.setCnpjOficina(normalizarOpcional(request.getCnpjOficina()));
+            usuario.setCnpjOficina(normalizarDocumento(request.getCnpjOficina()));
         }
         if (request.getEnderecoLogradouro() != null) {
             usuario.setEnderecoLogradouro(normalizarOpcional(request.getEnderecoLogradouro()));
@@ -135,5 +135,10 @@ public class UserService {
     private String normalizarOpcional(String valor) {
         final String trimmed = valor == null ? "" : valor.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private String normalizarDocumento(String valor) {
+        final String digits = valor == null ? "" : valor.replaceAll("\\D", "");
+        return digits.isBlank() ? null : digits;
     }
 }

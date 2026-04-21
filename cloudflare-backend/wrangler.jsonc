@@ -1,0 +1,27 @@
+{
+  "name": "osmech-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-01-10",
+  "containers": [
+    {
+      "class_name": "OsmechContainer",
+      "image": "../backend/Dockerfile",
+      "instance_type": "standard-1",
+      "max_instances": 3
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "OSMECH_CONTAINER",
+        "class_name": "OsmechContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["OsmechContainer"]
+    }
+  ]
+}

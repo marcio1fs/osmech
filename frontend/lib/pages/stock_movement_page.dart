@@ -4,6 +4,7 @@ import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de movimentação de estoque (entrada/saída manual).
 class StockMovementPage extends StatefulWidget {
@@ -98,7 +99,7 @@ class _StockMovementPageState extends State<StockMovementPage>
     if (_selectedItemId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Selecione um item', style: GoogleFonts.inter()),
+            content: UpperText('Selecione um item', style: GoogleFonts.inter()),
             backgroundColor: AppColors.warning),
       );
       return;
@@ -121,7 +122,7 @@ class _StockMovementPageState extends State<StockMovementPage>
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
-                  Text('Movimentação registrada!', style: GoogleFonts.inter()),
+                  UpperText('Movimentação registrada!', style: GoogleFonts.inter()),
               backgroundColor: AppColors.success),
         );
         // Limpar form e recarregar
@@ -135,7 +136,7 @@ class _StockMovementPageState extends State<StockMovementPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(e.toString().replaceAll('Exception: ', ''),
+                content: UpperText(e.toString().replaceAll('Exception: ', ''),
                     style: GoogleFonts.inter()),
                 backgroundColor: AppColors.error),
           );
@@ -162,7 +163,7 @@ class _StockMovementPageState extends State<StockMovementPage>
             ),
             child: Row(
               children: [
-                Text('Movimentação de Estoque',
+                UpperText('Movimentação de Estoque',
                     style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -183,20 +184,20 @@ class _StockMovementPageState extends State<StockMovementPage>
                             const Icon(Icons.error_outline_rounded,
                                 size: 64, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text('Erro ao carregar dados',
+                            UpperText('Erro ao carregar dados',
                                 style: GoogleFonts.inter(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary)),
                             const SizedBox(height: 4),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     fontSize: 13, color: AppColors.textMuted)),
                             const SizedBox(height: 16),
                             FilledButton.icon(
                               onPressed: _loadData,
                               icon: const Icon(Icons.refresh_rounded, size: 16),
-                              label: const Text('Tentar novamente'),
+                              label: const UpperText('Tentar novamente'),
                               style: FilledButton.styleFrom(
                                 backgroundColor: AppColors.accent,
                                 foregroundColor: Colors.white,
@@ -260,7 +261,7 @@ class _StockMovementPageState extends State<StockMovementPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Nova Movimentação',
+          UpperText('Nova Movimentação',
               style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -306,7 +307,7 @@ class _StockMovementPageState extends State<StockMovementPage>
             items: _itens
                 .map((i) => DropdownMenuItem<int>(
                     value: i['id'] as int,
-                    child: Text(
+                    child: UpperText(
                         '${i['codigo']} - ${i['nome']} (${i['quantidade']} un)',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -344,7 +345,7 @@ class _StockMovementPageState extends State<StockMovementPage>
                   ),
                   items: _motivosAtuais.entries
                       .map((e) =>
-                          DropdownMenuItem(value: e.key, child: Text(e.value)))
+                          DropdownMenuItem(value: e.key, child: UpperText(e.value)))
                       .toList(),
                   onChanged: (v) => setState(() => _motivo = v!),
                 ),
@@ -370,7 +371,7 @@ class _StockMovementPageState extends State<StockMovementPage>
                     child: CircularProgressIndicator(
                         strokeWidth: 2, color: Colors.white))
                 : const Icon(Icons.check_rounded, size: 18),
-            label: Text(_saving ? 'Registrando...' : 'Registrar Movimentação'),
+            label: UpperText(_saving ? 'Registrando...' : 'Registrar Movimentação'),
           ),
         ],
       ),
@@ -381,7 +382,7 @@ class _StockMovementPageState extends State<StockMovementPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Últimas Movimentações',
+        UpperText('Últimas Movimentações',
             style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -391,7 +392,7 @@ class _StockMovementPageState extends State<StockMovementPage>
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 32),
             child: Center(
-              child: Text('Nenhuma movimentação',
+              child: UpperText('Nenhuma movimentação',
                   style: GoogleFonts.inter(color: AppColors.textMuted)),
             ),
           )
@@ -419,13 +420,13 @@ class _StockMovementPageState extends State<StockMovementPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
+                        UpperText(
                           '${m['stockItemCodigo']} - ${m['stockItemNome']}',
                           style: GoogleFonts.inter(
                               fontSize: 13, fontWeight: FontWeight.w600),
                           overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
+                        UpperText(
                           '${m['motivo']} • ${formatDateTimeBR(m['criadoEm']?.toString())}',
                           style: GoogleFonts.inter(
                               fontSize: 11, color: AppColors.textMuted),
@@ -433,7 +434,7 @@ class _StockMovementPageState extends State<StockMovementPage>
                       ],
                     ),
                   ),
-                  Text(
+                  UpperText(
                     '${isEntrada ? '+' : '-'}${m['quantidade']}',
                     style: GoogleFonts.inter(
                       fontSize: 14,
@@ -442,7 +443,7 @@ class _StockMovementPageState extends State<StockMovementPage>
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
+                  UpperText(
                     '${m['quantidadeAnterior']} → ${m['quantidadePosterior']}',
                     style: GoogleFonts.inter(
                         fontSize: 11, color: AppColors.textMuted),
@@ -493,7 +494,7 @@ class _TipoButton extends StatelessWidget {
           children: [
             Icon(icon, size: 18, color: selected ? color : AppColors.textMuted),
             const SizedBox(width: 8),
-            Text(label,
+            UpperText(label,
                 style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w400,

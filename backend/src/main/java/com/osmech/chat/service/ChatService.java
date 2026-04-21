@@ -44,10 +44,13 @@ public class ChatService {
     @Value("${ai.openai.api-key:}")
     private String apiKey;
 
-    @Value("${ai.openai.model:gpt-4o-mini}")
+    @Value("${ai.openai.model:gemini-2.0-flash}")
     private String model;
 
-    @Value("${ai.openai.base-url:https://api.openai.com/v1/chat/completions}")
+    @Value("${ai.provider:gemini}")
+    private String provider;
+
+    @Value("${ai.openai.base-url:https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}")
     private String chatCompletionsUrl;
 
     private static final String SYSTEM_PROMPT = """

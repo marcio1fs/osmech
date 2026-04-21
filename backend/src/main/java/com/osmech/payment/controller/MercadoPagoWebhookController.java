@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/mercadopago")
+@RequestMapping("/mercadopago")
 @RequiredArgsConstructor
 @Slf4j
 public class MercadoPagoWebhookController {

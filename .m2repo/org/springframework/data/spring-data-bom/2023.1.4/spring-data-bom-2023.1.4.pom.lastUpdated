@@ -1,0 +1,7 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Sat Mar 14 20:14:21 BRT 2026
+@default-spring-releases-https\://repo.spring.io/release/.lastUpdated=1773530061555
+https\://repo.maven.apache.org/maven2/.lastUpdated=1773530061750
+https\://repo.spring.io/libs-milestone-local/.error=
+https\://repo.spring.io/libs-milestone-local/.lastUpdated=1773530061393
+https\://repo.spring.io/release/.error=Could not transfer artifact org.springframework.data\:spring-data-bom\:pom\:2023.1.4 from/to spring-releases (https\://repo.spring.io/release)\: status code\: 401, reason phrase\:  (401)

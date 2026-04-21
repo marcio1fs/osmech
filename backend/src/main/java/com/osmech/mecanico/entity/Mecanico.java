@@ -3,6 +3,7 @@ package com.osmech.mecanico.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -27,6 +28,10 @@ public class Mecanico {
     private String telefone;
 
     private String especialidade;
+
+    @Column(name = "percentual_comissao", nullable = false, precision = 5, scale = 2)
+    @Builder.Default
+    private BigDecimal percentualComissao = BigDecimal.ZERO;
 
     @Column(nullable = false)
     @Builder.Default

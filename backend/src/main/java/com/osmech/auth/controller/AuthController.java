@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
  * Rotas públicas: não exigem JWT.
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 

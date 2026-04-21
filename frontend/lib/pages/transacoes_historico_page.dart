@@ -4,6 +4,7 @@ import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de histórico de transações financeiras com filtros e estorno.
 class TransacoesHistoricoPage extends StatefulWidget {
@@ -62,17 +63,17 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Estornar Transação'),
-        content: const Text(
+        title: const UpperText('Estornar Transação'),
+        content: const UpperText(
             'Deseja estornar esta transação? Uma transação inversa será criada automaticamente.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
+              child: const UpperText('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
-            child: const Text('Estornar'),
+            child: const UpperText('Estornar'),
           ),
         ],
       ),
@@ -86,7 +87,7 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Transação estornada com sucesso!',
+              content: UpperText('Transação estornada com sucesso!',
                   style: GoogleFonts.inter()),
               backgroundColor: AppColors.success),
         );
@@ -96,7 +97,7 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(
+                content: UpperText(
                     'Erro: ${e.toString().replaceAll('Exception: ', '')}',
                     style: GoogleFonts.inter()),
                 backgroundColor: AppColors.error),
@@ -117,10 +118,7 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.accent,
-              onPrimary: Colors.white,
-            ),
+            colorScheme: const ColorScheme.dark(primary: AppColors.primary, onPrimary: Colors.white, surface: AppColors.surface, onSurface: AppColors.textPrimary),
           ),
           child: child!,
         );
@@ -181,12 +179,12 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Histórico de Transações',
+                    UpperText('Histórico de Transações',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('${_transacoes.length} transações encontradas',
+                    UpperText('${_transacoes.length} transações encontradas',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -205,13 +203,13 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _filtroTipo,
-                      hint: Text('Tipo',
+                      hint: UpperText('Tipo',
                           style: GoogleFonts.inter(
                               fontSize: 13, color: AppColors.textMuted)),
                       items: const [
                         DropdownMenuItem(
-                            value: 'ENTRADA', child: Text('Entradas')),
-                        DropdownMenuItem(value: 'SAIDA', child: Text('Saídas')),
+                            value: 'ENTRADA', child: UpperText('Entradas')),
+                        DropdownMenuItem(value: 'SAIDA', child: UpperText('Saídas')),
                       ],
                       onChanged: (v) {
                         setState(() => _filtroTipo = v);
@@ -224,7 +222,7 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                 OutlinedButton.icon(
                   onPressed: _selecionarPeriodo,
                   icon: const Icon(Icons.date_range_rounded, size: 18),
-                  label: const Text('Período'),
+                  label: const UpperText('Período'),
                 ),
                 if (_filtroTipo != null || _dataInicio != null) ...[
                   const SizedBox(width: 8),
@@ -251,13 +249,13 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadTransacoes,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -271,12 +269,12 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
                                     color: AppColors.textMuted
                                         .withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),
-                                Text('Nenhuma transação encontrada',
+                                UpperText('Nenhuma transação encontrada',
                                     style: GoogleFonts.inter(
                                         fontSize: 16,
                                         color: AppColors.textSecondary)),
                                 const SizedBox(height: 4),
-                                Text('Crie um lançamento para começar',
+                                UpperText('Crie um lançamento para começar',
                                     style: GoogleFonts.inter(
                                         fontSize: 13,
                                         color: AppColors.textMuted)),
@@ -372,7 +370,7 @@ class _TransacaoCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Expanded(
-                      child: Text(
+                      child: UpperText(
                         tx['descricao'] ?? '',
                         style: GoogleFonts.inter(
                             fontSize: 15,
@@ -381,7 +379,7 @@ class _TransacaoCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    Text(
+                    UpperText(
                       '${isEntrada ? '+' : '-'} ${formatCurrency(tx['valor'])}',
                       style: GoogleFonts.inter(
                           fontSize: 16,
@@ -424,7 +422,7 @@ class _TransacaoCard extends StatelessWidget {
                 if (tx['observacoes'] != null &&
                     tx['observacoes'].toString().isNotEmpty) ...[
                   const SizedBox(height: 6),
-                  Text(tx['observacoes'],
+                  UpperText(tx['observacoes'],
                       style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.textMuted,
@@ -462,7 +460,7 @@ class _InfoChip extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: color ?? AppColors.textMuted),
         const SizedBox(width: 4),
-        Text(text,
+        UpperText(text,
             style: GoogleFonts.inter(
                 fontSize: 12, color: color ?? AppColors.textSecondary)),
       ],

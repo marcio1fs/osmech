@@ -1,0 +1,17 @@
+spring:
+  config:
+    import: vault://
+
+  cloud:
+    vault:
+      uri: ${VAULT_URI:http://127.0.0.1:8200}
+      token: ${VAULT_TOKEN:dev-root-token}
+      authentication: TOKEN
+      fail-fast: true
+      kv:
+        enabled: true
+        backend: secret
+        default-context: osmech
+        profile-separator: /
+        application-name: osmech-backend
+        backend-version: 2

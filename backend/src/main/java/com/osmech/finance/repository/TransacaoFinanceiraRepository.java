@@ -74,4 +74,13 @@ public interface TransacaoFinanceiraRepository extends JpaRepository<TransacaoFi
 
     /** Buscar por ID e usuário */
     Optional<TransacaoFinanceira> findByIdAndUsuarioId(Long id, Long usuarioId);
+
+    /** Transações de um dia específico */
+    @Query("SELECT t FROM TransacaoFinanceira t " +
+           "WHERE t.usuarioId = :uid " +
+           "AND t.dataMovimentacao BETWEEN :inicio AND :fim " +
+           "ORDER BY t.dataMovimentacao DESC")
+    List<TransacaoFinanceira> findByUsuarioIdAndDia(@Param("uid") Long usuarioId,
+                                                    @Param("inicio") LocalDateTime inicio,
+                                                    @Param("fim") LocalDateTime fim);
 }

@@ -6,6 +6,7 @@ import 'os_form_page.dart';
 import 'os_detail_page.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Lista de OS com layout moderno — sem AppBar, renderiza dentro do AppShell.
 class OsListPage extends StatefulWidget {
@@ -78,20 +79,20 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Excluir Ordem de Serviço',
+        title: UpperText('Excluir Ordem de Serviço',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(
+        content: UpperText(
           'Tem certeza que deseja excluir a OS do cliente "${os['clienteNome'] ?? '-'}" (placa ${os['placa'] ?? '-'})?\n\nEssa ação não pode ser desfeita.',
           style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
+              child: const UpperText('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Excluir'),
+            child: const UpperText('Excluir'),
           ),
         ],
       ),
@@ -105,7 +106,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('OS excluída com sucesso'),
+              content: UpperText('OS excluída com sucesso'),
               backgroundColor: AppColors.success),
         );
         _loadOrdens();
@@ -114,7 +115,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Erro ao excluir: $e'),
+              content: UpperText('Erro ao excluir: $e'),
               backgroundColor: AppColors.error),
         );
       }
@@ -181,7 +182,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
+                          UpperText(
                             'Ordens de Serviço',
                             style: GoogleFonts.inter(
                                 fontSize: 20,
@@ -189,7 +190,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                 color: AppColors.textPrimary),
                           ),
                           const SizedBox(height: 2),
-                          Text(
+                          UpperText(
                             '${_ordens.length} registro(s)',
                             style: GoogleFonts.inter(
                                 fontSize: 13, color: AppColors.textSecondary),
@@ -200,7 +201,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                     OutlinedButton.icon(
                       onPressed: _loadOrdens,
                       icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Atualizar'),
+                      label: const UpperText('Atualizar'),
                     ),
                     const SizedBox(width: 12),
                     FilledButton.icon(
@@ -212,7 +213,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                         _loadOrdens();
                       },
                       icon: const Icon(Icons.add_rounded, size: 18),
-                      label: const Text('Nova OS'),
+                      label: const UpperText('Nova OS'),
                     ),
                   ],
                 ),
@@ -268,37 +269,37 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                         ),
                         items: const [
                           DropdownMenuItem(
-                              value: 'TODOS', child: Text('Todos')),
+                              value: 'TODOS', child: UpperText('Todos')),
                           DropdownMenuItem(
-                              value: 'ABERTA', child: Text('Aberta')),
+                              value: 'ABERTA', child: UpperText('Aberta')),
                           DropdownMenuItem(
                               value: 'EM_ANDAMENTO',
-                              child: Text('Em Andamento')),
+                              child: UpperText('Em Andamento')),
                           DropdownMenuItem(
                               value: 'AGUARDANDO_PECA',
-                              child: Text('Ag. Peça')),
+                              child: UpperText('Ag. Peça')),
                           DropdownMenuItem(
                               value: 'AGUARDANDO_APROVACAO',
-                              child: Text('Ag. Aprovação')),
+                              child: UpperText('Ag. Aprovação')),
                           DropdownMenuItem(
-                              value: 'CONCLUIDA', child: Text('Concluída')),
+                              value: 'CONCLUIDA', child: UpperText('Concluída')),
                           DropdownMenuItem(
-                              value: 'CANCELADA', child: Text('Cancelada')),
+                              value: 'CANCELADA', child: UpperText('Cancelada')),
                         ],
                         selectedItemBuilder: (context) => const [
-                          Text('Todos',
+                          UpperText('Todos',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Aberta',
+                          UpperText('Aberta',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Em Andamento',
+                          UpperText('Em Andamento',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Ag. Peca',
+                          UpperText('Ag. Peca',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Ag. Aprovacao',
+                          UpperText('Ag. Aprovacao',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Concluida',
+                          UpperText('Concluida',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
-                          Text('Cancelada',
+                          UpperText('Cancelada',
                               maxLines: 1, overflow: TextOverflow.ellipsis),
                         ],
                         onChanged: (v) => setState(() {
@@ -326,13 +327,13 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadOrdens,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -344,7 +345,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                 const Icon(Icons.inbox_rounded,
                                     size: 56, color: AppColors.textMuted),
                                 const SizedBox(height: 12),
-                                Text('Nenhuma OS encontrada',
+                                UpperText('Nenhuma OS encontrada',
                                     style: GoogleFonts.inter(
                                         fontSize: 15,
                                         color: AppColors.textSecondary)),
@@ -376,28 +377,28 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                     columnSpacing: 24,
                                     horizontalMargin: 20,
                                     columns: const [
-                                      DataColumn(label: Text('CLIENTE')),
-                                      DataColumn(label: Text('VEÍCULO')),
-                                      DataColumn(label: Text('PLACA')),
-                                      DataColumn(label: Text('STATUS')),
+                                      DataColumn(label: UpperText('CLIENTE')),
+                                      DataColumn(label: UpperText('VEÍCULO')),
+                                      DataColumn(label: UpperText('PLACA')),
+                                      DataColumn(label: UpperText('STATUS')),
                                       DataColumn(
-                                          label: Text('VALOR'), numeric: true),
-                                      DataColumn(label: Text('AÇÕES')),
+                                          label: UpperText('VALOR'), numeric: true),
+                                      DataColumn(label: UpperText('AÇÕES')),
                                     ],
                                     rows: _filtered.map((os) {
                                       final status = os['status'] ?? 'ABERTA';
                                       final color = _statusColor(status);
                                       return DataRow(
                                         cells: [
-                                          DataCell(Text(
+                                          DataCell(UpperText(
                                               os['clienteNome'] ?? '-',
                                               style: GoogleFonts.inter(
                                                   fontWeight:
                                                       FontWeight.w600))),
-                                          DataCell(Text(
+                                          DataCell(UpperText(
                                               '${os['modelo'] ?? '-'} ${os['ano'] ?? ''}'
                                                   .trim())),
-                                          DataCell(Text(os['placa'] ?? '-',
+                                          DataCell(UpperText(os['placa'] ?? '-',
                                               style: GoogleFonts.inter(
                                                   fontWeight: FontWeight.w600,
                                                   letterSpacing: 0.5))),
@@ -413,7 +414,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                                 borderRadius:
                                                     BorderRadius.circular(20),
                                               ),
-                                              child: Text(
+                                              child: UpperText(
                                                 _statusLabel(status),
                                                 style: GoogleFonts.inter(
                                                     fontSize: 12,
@@ -422,7 +423,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                                               ),
                                             ),
                                           ),
-                                          DataCell(Text(
+                                          DataCell(UpperText(
                                             formatCurrency(os['valor'] ?? 0),
                                             style: GoogleFonts.inter(
                                                 fontWeight: FontWeight.w700),

@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
 import 'os_form_page.dart';
+import '../widgets/upper_text.dart';
 
 /// Página de detalhes da OS com design moderno e profissional.
 class OsDetailPage extends StatefulWidget {
@@ -21,7 +22,6 @@ class OsDetailPage extends StatefulWidget {
 class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
   late Map<String, dynamic> _os;
   bool _loading = false;
-  String? _error;
   bool _encerrando = false;
 
   @override
@@ -37,6 +37,8 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
 
   Future<void> _encerrarOs() async {
     final metodoController = TextEditingController();
+    final descontoController = TextEditingController(text: '0');
+    double descontoPerc = 0;
     bool enviarWhatsapp = _os['whatsappConsentimento'] == true;
     String? telefoneWhatsapp = _os['clienteTelefone'];
 
@@ -45,7 +47,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
       barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(
+          title: UpperText(
             'Encerrar OS',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700),
           ),
@@ -54,7 +56,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                UpperText(
                   'Método de pagamento',
                   style: GoogleFonts.inter(
                     fontSize: 14,
@@ -73,11 +75,11 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                   ),
                   items: const [
-                    DropdownMenuItem(value: 'DINHEIRO', child: Text('Dinheiro')),
-                    DropdownMenuItem(value: 'PIX', child: Text('PIX')),
-                    DropdownMenuItem(value: 'CREDITO', child: Text('Cartão de Crédito')),
-                    DropdownMenuItem(value: 'DEBITO', child: Text('Cartão de Débito')),
-                    DropdownMenuItem(value: 'TRANSFERENCIA', child: Text('Transferência')),
+                    DropdownMenuItem(value: 'DINHEIRO', child: UpperText('Dinheiro')),
+                    DropdownMenuItem(value: 'PIX', child: UpperText('PIX')),
+                    DropdownMenuItem(value: 'CREDITO', child: UpperText('Cartão de Crédito')),
+                    DropdownMenuItem(value: 'DEBITO', child: UpperText('Cartão de Débito')),
+                    DropdownMenuItem(value: 'TRANSFERENCIA', child: UpperText('Transferência')),
                   ],
                   onChanged: (v) {
                     setDialogState(() {
@@ -89,11 +91,11 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                 if (_os['whatsappConsentimento'] == true) ...[
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: Text(
+                    title: UpperText(
                       'Enviar recibo via WhatsApp',
                       style: GoogleFonts.inter(fontWeight: FontWeight.w500),
                     ),
-                    subtitle: Text(
+                    subtitle: UpperText(
                       'Cliente autorizou mensagens',
                       style: GoogleFonts.inter(
                         fontSize: 12,
@@ -131,7 +133,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                         const Icon(Icons.info_outline, color: AppColors.warning, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(
+                          child: UpperText(
                             'Cliente não autorizou envio de recibo via WhatsApp',
                             style: GoogleFonts.inter(
                               fontSize: 13,
@@ -143,6 +145,56 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                     ),
                   ),
                 const SizedBox(height: 16),
+                // Campo de desconto
+                UpperText(
+                  'Desconto (0% a 10%)',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(children: [
+                  SizedBox(
+                    width: 80,
+                    child: TextField(
+                      controller: descontoController,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      textAlign: TextAlign.center,
+                      decoration: InputDecoration(
+                        suffixText: '%',
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
+                      ),
+                      onChanged: (v) {
+                        final val = double.tryParse(v.replaceAll(',', '.')) ?? 0;
+                        setDialogState(() {
+                          descontoPerc = val.clamp(0, 10);
+                          if (val > 10) descontoController.text = '10';
+                          if (val < 0) descontoController.text = '0';
+                        });
+                      },
+                    ),
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: descontoPerc.clamp(0, 10),
+                      min: 0,
+                      max: 10,
+                      divisions: 10,
+                      label: '${descontoPerc.toStringAsFixed(0)}%',
+                      activeColor: AppColors.primary,
+                      onChanged: (v) {
+                        setDialogState(() {
+                          descontoPerc = v;
+                          descontoController.text = v.toStringAsFixed(0);
+                        });
+                      },
+                    ),
+                  ),
+                ]),
+                const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -152,7 +204,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
+                      UpperText(
                         'Resumo',
                         style: GoogleFonts.inter(
                           fontSize: 14,
@@ -164,33 +216,50 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Cliente:', style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                          Text(_os['clienteNome'] ?? '-', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                          UpperText('Cliente:', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+                          UpperText(_os['clienteNome'] ?? '-', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Veículo:', style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                          Text('${_os['modelo'] ?? '-'} (${_os['placa'] ?? '-'})', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+                          UpperText('Veículo:', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+                          UpperText('${_os['modelo'] ?? '-'} (${_os['placa'] ?? '-'})', style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text('Valor total:', style: GoogleFonts.inter(color: AppColors.textSecondary)),
-                          Text(
+                          UpperText('Valor total:', style: GoogleFonts.inter(color: AppColors.textSecondary)),
+                          UpperText(
                             formatCurrency(_os['valor'] ?? 0),
-                            style: GoogleFonts.inter(
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.success,
-                              fontSize: 16,
-                            ),
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: AppColors.textPrimary),
                           ),
                         ],
                       ),
+                      // Desconto
+                      if (descontoPerc > 0) ...[
+                        const SizedBox(height: 4),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          UpperText('Desconto (${descontoPerc.toStringAsFixed(0)}%):',
+                              style: GoogleFonts.inter(color: AppColors.error, fontSize: 13)),
+                          UpperText(
+                            '- ${formatCurrency(((_os['valor'] ?? 0) as num).toDouble() * descontoPerc / 100)}',
+                            style: GoogleFonts.inter(color: AppColors.error, fontSize: 13),
+                          ),
+                        ]),
+                        const Divider(height: 12),
+                        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                          UpperText('Valor final:',
+                              style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
+                          UpperText(
+                            formatCurrency(((_os['valor'] ?? 0) as num).toDouble() * (1 - descontoPerc / 100)),
+                            style: GoogleFonts.inter(fontWeight: FontWeight.w800, color: AppColors.success, fontSize: 16),
+                          ),
+                        ]),
+                      ],
                     ],
                   ),
                 ),
@@ -200,7 +269,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: const UpperText('Cancelar'),
             ),
             FilledButton(
               onPressed: metodoController.text.isEmpty
@@ -208,6 +277,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                   : () {
                       Navigator.pop(ctx, {
                         'metodoPagamento': metodoController.text,
+                        'descontoPercentual': descontoPerc,
                         'enviarReciboWhatsapp': enviarWhatsapp,
                         'telefoneWhatsapp': telefoneWhatsapp,
                       });
@@ -218,7 +288,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : const Text('Encerrar OS'),
+                  : const UpperText('Encerrar OS'),
             ),
           ],
         ),
@@ -249,7 +319,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(mensagem),
+          content: UpperText(mensagem),
           backgroundColor: AppColors.success,
           behavior: SnackBarBehavior.floating,
         ),
@@ -261,11 +331,10 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
       _mostrarRecibo(response['recibo'] ?? '', result['enviarReciboWhatsapp'] == true);
     } catch (e) {
       if (!handleAuthError(e)) {
-        setState(() => _error = e.toString());
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao encerrar OS: $e'),
+            content: UpperText('Erro ao encerrar OS: $e'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -305,7 +374,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  UpperText(
                     'Recibo da OS',
                     style: GoogleFonts.inter(
                       fontSize: 18,
@@ -327,15 +396,15 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AppColors.border),
                   ),
-                  child: Text(
+                  child: UpperText(
                     recibo,
                     style: GoogleFonts.courierPrime(
                       fontSize: 12,
-                      color: Colors.black87,
+                      color: AppColors.textPrimary,
                       height: 1.5,
                     ),
                   ),
@@ -363,7 +432,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                         _imprimirRecibo(recibo);
                       },
                       icon: const Icon(Icons.print),
-                      label: const Text('Imprimir'),
+                      label: const UpperText('Imprimir'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -374,13 +443,13 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                         Navigator.pop(ctx);
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                            content: Text('Recibo copiado para a área de transferência!'),
+                            content: UpperText('Recibo copiado para a área de transferência!'),
                             behavior: SnackBarBehavior.floating,
                           ),
                         );
                       },
                       icon: const Icon(Icons.copy),
-                      label: const Text('Copiar'),
+                      label: const UpperText('Copiar'),
                     ),
                   ),
                 ],
@@ -397,12 +466,12 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Imprimir Recibo'),
-        content: const Text('Para imprimir o recibo, você pode usar a função de impressão do navegador (Ctrl+P) ou salvar como PDF.'),
+        title: const UpperText('Imprimir Recibo'),
+        content: const UpperText('Para imprimir o recibo, você pode usar a função de impressão do navegador (Ctrl+P) ou salvar como PDF.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
+            child: const UpperText('OK'),
           ),
         ],
       ),
@@ -413,7 +482,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
     if (_os['whatsappConsentimento'] != true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cliente não autorizou envio de mensagens via WhatsApp'),
+          content: UpperText('Cliente não autorizou envio de mensagens via WhatsApp'),
           backgroundColor: AppColors.warning,
           behavior: SnackBarBehavior.floating,
         ),
@@ -427,7 +496,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(
+          title: UpperText(
             'Enviar Recibo via WhatsApp',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700),
           ),
@@ -435,7 +504,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              UpperText(
                 'O recibo será enviado para o número:',
                 style: GoogleFonts.inter(color: AppColors.textSecondary),
               ),
@@ -465,7 +534,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                     const Icon(Icons.info_outline, color: AppColors.info, size: 20),
                     const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
+                      child: UpperText(
                         'O sistema tentará enviar o recibo mesmo que a OS já esteja encerrada.',
                         style: GoogleFonts.inter(
                           fontSize: 12,
@@ -481,13 +550,13 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancelar'),
+              child: const UpperText('Cancelar'),
             ),
             FilledButton(
               onPressed: () {
                 Navigator.pop(ctx, {'telefoneWhatsapp': telefoneWhatsapp});
               },
-              child: const Text('Enviar'),
+              child: const UpperText('Enviar'),
             ),
           ],
         ),
@@ -512,7 +581,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
       if (response['enviado'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Recibo enviado via WhatsApp para ${response['destino']}'),
+            content: UpperText('Recibo enviado via WhatsApp para ${response['destino']}'),
             backgroundColor: AppColors.success,
             behavior: SnackBarBehavior.floating,
           ),
@@ -520,7 +589,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Falha ao enviar: ${response['detalhe']}'),
+            content: UpperText('Falha ao enviar: ${response['detalhe']}'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -531,7 +600,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao enviar recibo: $e'),
+            content: UpperText('Erro ao enviar recibo: $e'),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
@@ -558,7 +627,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
           icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context, _os),
         ),
-        title: Text(
+        title: UpperText(
           'OS #${_os['id']}',
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w700,
@@ -586,90 +655,103 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Status Card
+                  // Status compacto no topo
                   _buildStatusCard(status, statusColor),
                   const SizedBox(height: 20),
 
-                  // Client Info Card
-                  _buildInfoCard(
-                    title: 'Cliente',
-                    icon: Icons.person_outline,
-                    children: [
-                      _buildInfoRow('Nome', _os['clienteNome'] ?? '-'),
-                      _buildInfoRow('CPF', _os['clienteCpf'] ?? '-'),
-                      _buildInfoRow('Telefone', _os['clienteTelefone'] ?? '-'),
-                      _buildInfoRow(
-                        'WhatsApp',
-                        _os['whatsappConsentimento'] == true ? 'Autorizado' : 'Não autorizado',
-                        valueColor: _os['whatsappConsentimento'] == true ? AppColors.success : AppColors.textMuted,
-                      ),
-                    ],
-                  ),
+                  // Duas colunas: Cliente + Veículo
+                  LayoutBuilder(builder: (ctx, constraints) {
+                    final wide = constraints.maxWidth > 640;
+                    final clienteCard = _buildInfoCard(
+                      title: 'Cliente',
+                      icon: Icons.person_outline,
+                      children: [
+                        _buildInfoRow('Nome', _os['clienteNome'] ?? '-'),
+                        if ((_os['clienteCpf'] ?? '').toString().isNotEmpty)
+                          _buildInfoRow('CPF', _os['clienteCpf']),
+                        _buildInfoRow('Telefone', _os['clienteTelefone'] ?? '-'),
+                        _buildInfoRow(
+                          'WhatsApp',
+                          _os['whatsappConsentimento'] == true ? 'Autorizado' : 'Não autorizado',
+                          valueColor: _os['whatsappConsentimento'] == true ? AppColors.success : AppColors.textMuted,
+                        ),
+                      ],
+                    );
+                    final veiculoCard = _buildInfoCard(
+                      title: 'Veículo',
+                      icon: Icons.directions_car_outlined,
+                      children: [
+                        _buildInfoRow('Modelo', _os['modelo'] ?? '-'),
+                        if ((_os['montadora'] ?? '').toString().isNotEmpty)
+                          _buildInfoRow('Montadora', _os['montadora']),
+                        _buildInfoRow('Placa', _os['placa'] ?? '-'),
+                        if ((_os['corVeiculo'] ?? '').toString().isNotEmpty)
+                          _buildInfoRow('Cor', _os['corVeiculo']),
+                        if (_os['ano'] != null)
+                          _buildInfoRow('Ano', _os['ano'].toString()),
+                        if (_os['quilometragem'] != null)
+                          _buildInfoRow('Km', _os['quilometragem'].toString()),
+                      ],
+                    );
+                    if (wide) {
+                      return IntrinsicHeight(
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          Expanded(child: clienteCard),
+                          const SizedBox(width: 16),
+                          Expanded(child: veiculoCard),
+                        ]),
+                      );
+                    }
+                    return Column(children: [clienteCard, const SizedBox(height: 16), veiculoCard]);
+                  }),
                   const SizedBox(height: 16),
 
-                  // Vehicle Info Card
-                  _buildInfoCard(
-                    title: 'Veículo',
-                    icon: Icons.directions_car_outlined,
-                    children: [
-                      _buildInfoRow('Modelo', _os['modelo'] ?? '-'),
-                      _buildInfoRow('Marca/Montadora', _os['montadora'] ?? '-'),
-                      _buildInfoRow('Placa', _os['placa'] ?? '-'),
-                      _buildInfoRow('Cor', _os['corVeiculo'] ?? '-'),
-                      _buildInfoRow('Ano', _os['ano']?.toString() ?? '-'),
-                      _buildInfoRow('Quilometragem', _os['quilometragem']?.toString() ?? '-'),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
+                  // Serviços + Valores lado a lado
+                  LayoutBuilder(builder: (ctx, constraints) {
+                    final wide = constraints.maxWidth > 640;
+                    final servicoCard = _buildInfoCard(
+                      title: 'Serviço',
+                      icon: Icons.build_outlined,
+                      children: [
+                        if ((_os['mecanicoResponsavel'] ?? '').toString().isNotEmpty)
+                          _buildInfoRow('Mecânico', _os['mecanicoResponsavel']),
+                        _buildInfoRow('Descrição', _os['descricao'] ?? '-'),
+                        if ((_os['diagnostico'] ?? '').toString().isNotEmpty)
+                          _buildInfoRow('Diagnóstico', _os['diagnostico']),
+                      ],
+                    );
+                    final valorCard = _buildInfoCard(
+                      title: 'Financeiro',
+                      icon: Icons.attach_money,
+                      children: [
+                        _buildInfoRow('Valor Total', formatCurrency(_os['valor'] ?? 0),
+                            isTotal: true, valueColor: AppColors.success),
+                        _buildInfoRow('Criado em', _formatDateTime(_os['criadoEm'])),
+                        if (_os['concluidoEm'] != null)
+                          _buildInfoRow('Concluído em', _formatDateTime(_os['concluidoEm'])),
+                      ],
+                    );
+                    if (wide) {
+                      return IntrinsicHeight(
+                        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+                          Expanded(flex: 2, child: servicoCard),
+                          const SizedBox(width: 16),
+                          Expanded(child: valorCard),
+                        ]),
+                      );
+                    }
+                    return Column(children: [servicoCard, const SizedBox(height: 16), valorCard]);
+                  }),
+                  const SizedBox(height: 24),
 
-                  // Service Info Card
-                  _buildInfoCard(
-                    title: 'Serviços',
-                    icon: Icons.build_outlined,
-                    children: [
-                      _buildInfoRow('Mecânico', _os['mecanicoResponsavel'] ?? 'Não atribuído'),
-                      _buildInfoRow('Descrição', _os['descricao'] ?? '-'),
-                      if (_os['diagnostico'] != null && _os['diagnostico'].toString().isNotEmpty)
-                        _buildInfoRow('Diagnóstico', _os['diagnostico']),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Financial Info Card
-                  _buildInfoCard(
-                    title: 'Valores',
-                    icon: Icons.attach_money,
-                    children: [
-                      _buildInfoRow(
-                        'Valor Total',
-                        formatCurrency(_os['valor'] ?? 0),
-                        isTotal: true,
-                        valueColor: AppColors.success,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Dates Info Card
-                  _buildInfoCard(
-                    title: 'Datas',
-                    icon: Icons.calendar_today_outlined,
-                    children: [
-                      _buildInfoRow('Criado em', _formatDateTime(_os['criadoEm'])),
-                      if (_os['concluidoEm'] != null)
-                        _buildInfoRow('Concluído em', _formatDateTime(_os['concluidoEm'])),
-                    ],
-                  ),
-                  const SizedBox(height: 32),
-
-                  // Action Buttons
+                  // Botões de ação
                   if (status != 'CONCLUIDA' && status != 'CANCELADA') ...[
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: _encerrarOs,
                         icon: const Icon(Icons.check_circle_outline),
-                        label: const Text('Encerrar OS'),
+                        label: const UpperText('Encerrar OS'),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.success,
                           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -687,7 +769,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                               _mostrarRecibo('Recibo da OS #${_os['id']}\n\nCliente: ${_os['clienteNome']}\nValor: ${formatCurrency(_os['valor'] ?? 0)}', false);
                             },
                             icon: const Icon(Icons.receipt_long),
-                            label: const Text('Ver Recibo'),
+                            label: const UpperText('Ver Recibo'),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -695,7 +777,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                           child: FilledButton.icon(
                             onPressed: () => _enviarReciboWhatsApp(),
                             icon: const Icon(Icons.send),
-                            label: const Text('WhatsApp'),
+                            label: const UpperText('WhatsApp'),
                             style: FilledButton.styleFrom(
                               backgroundColor: AppColors.success,
                             ),
@@ -713,78 +795,37 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
   Widget _buildStatusCard(String status, Color color) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            color.withValues(alpha: 0.8),
-            color,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.3),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(12),
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              _statusIcon(status),
-              color: Colors.white,
-              size: 28,
-            ),
+            child: Icon(_statusIcon(status), color: color, size: 22),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Status',
-                  style: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _statusLabel(status),
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
+                UpperText(_statusLabel(status),
+                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
+                UpperText('OS #${_os['id']}  •  ${_os['clienteNome'] ?? '-'}  •  ${_os['placa'] ?? '-'}',
+                    style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Text(
-              'OS #${_os['id']}',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                fontSize: 12,
-              ),
-            ),
-          ),
+          UpperText(formatCurrency(_os['valor'] ?? 0),
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w800,
+                  color: status == 'CONCLUIDA' ? AppColors.success : AppColors.textPrimary)),
         ],
       ),
     );
@@ -814,7 +855,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
               children: [
                 Icon(icon, size: 20, color: AppColors.accent),
                 const SizedBox(width: 8),
-                Text(
+                UpperText(
                   title,
                   style: GoogleFonts.inter(
                     fontWeight: FontWeight.w700,
@@ -842,7 +883,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
         children: [
           Expanded(
             flex: 2,
-            child: Text(
+            child: UpperText(
               label,
               style: GoogleFonts.inter(
                 color: AppColors.textSecondary,
@@ -852,7 +893,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
           ),
           Expanded(
             flex: 3,
-            child: Text(
+            child: UpperText(
               value,
               style: GoogleFonts.inter(
                 color: valueColor ?? AppColors.textPrimary,

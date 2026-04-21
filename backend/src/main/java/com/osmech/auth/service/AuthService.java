@@ -29,9 +29,9 @@ public class AuthService {
      */
     @Transactional
     public AuthResponse register(RegisterRequest request) {
-        // Verifica se email já existe
+        // Verifica se email já existe - mensagem genérica para evitar enumeração
         if (usuarioRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email já cadastrado");
+            throw new IllegalArgumentException("Ja existe uma conta com este email");
         }
 
         // Cria o usuário com senha criptografada
@@ -66,13 +66,19 @@ public class AuthService {
      * @throws IllegalArgumentException se credenciais forem inválidas
      */
     public AuthResponse login(LoginRequest request) {
-        // Busca usuário pelo email
+        // Busca usuário pelo email - mensagem genérica para evitar enumeração
         Usuario usuario = usuarioRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new IllegalArgumentException("Credenciais inválidas"));
+                .orElse(null);
 
-        // Verifica senha
-        if (!passwordEncoder.matches(request.getSenha(), usuario.getSenha())) {
-            throw new IllegalArgumentException("Credenciais inválidas");
+        // Verifica senha - mensagem genérica em ambos os casos
+        if (usuario == null || !passwordEncoder.matches(request.getSenha(), usuario.getSenha())) {
+            // Introduz um pequeno delay para prevenir timing attacks
+            try {
+                Thread.sleep(100);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            throw new IllegalArgumentException("Email ou senha incorretos");
         }
 
         // Verifica se está ativo

@@ -67,7 +67,7 @@ public class OrdemServicoRequest {
     @Valid
     private List<ItemOSRequest> itens;
 
-    @AssertTrue(message = "Telefone do cliente deve ter 10 ou 11 dÃ­gitos")
+    @AssertTrue(message = "Telefone do cliente deve ter 10 ou 11 dígitos")
     public boolean isClienteTelefoneValido() {
         if (clienteTelefone == null || clienteTelefone.isBlank()) {
             return true;
@@ -76,7 +76,7 @@ public class OrdemServicoRequest {
         return digits.length() == 10 || digits.length() == 11;
     }
 
-    @AssertTrue(message = "CPF invÃ¡lido")
+    @AssertTrue(message = "CPF inválido")
     public boolean isClienteCpfValido() {
         if (clienteCpf == null || clienteCpf.isBlank()) {
             return true;
@@ -84,7 +84,7 @@ public class OrdemServicoRequest {
         return validarCpf(digitsOnly(clienteCpf));
     }
 
-    @AssertTrue(message = "CNPJ invÃ¡lido")
+    @AssertTrue(message = "CNPJ inválido")
     public boolean isClienteCnpjValido() {
         if (clienteCnpj == null || clienteCnpj.isBlank()) {
             return true;

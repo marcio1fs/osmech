@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de gerenciamento de categorias financeiras.
 class CategoriasPage extends StatefulWidget {
@@ -49,16 +50,16 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Excluir Categoria'),
-        content: const Text('Deseja realmente excluir esta categoria?'),
+        title: const UpperText('Excluir Categoria'),
+        content: const UpperText('Deseja realmente excluir esta categoria?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
+              child: const UpperText('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Excluir'),
+            child: const UpperText('Excluir'),
           ),
         ],
       ),
@@ -72,7 +73,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Categoria excluída', style: GoogleFonts.inter()),
+              content: UpperText('Categoria excluída', style: GoogleFonts.inter()),
               backgroundColor: AppColors.success),
         );
       }
@@ -81,7 +82,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(
+                content: UpperText(
                     'Erro: ${e.toString().replaceAll('Exception: ', '')}',
                     style: GoogleFonts.inter()),
                 backgroundColor: AppColors.error),
@@ -99,13 +100,13 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialogState) => AlertDialog(
-          title: Text('Nova Categoria',
+          title: UpperText('Nova Categoria',
               style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Nome',
+              UpperText('Nome',
                   style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -120,7 +121,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                 ),
               ),
               const SizedBox(height: 16),
-              Text('Tipo',
+              UpperText('Tipo',
                   style: GoogleFonts.inter(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -130,7 +131,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                 children: [
                   Expanded(
                     child: ChoiceChip(
-                      label: const Text('Entrada'),
+                      label: const UpperText('Entrada'),
                       selected: tipo == 'ENTRADA',
                       selectedColor: AppColors.success.withValues(alpha: 0.2),
                       onSelected: (_) => setDialogState(() => tipo = 'ENTRADA'),
@@ -139,7 +140,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ChoiceChip(
-                      label: const Text('Saída'),
+                      label: const UpperText('Saída'),
                       selected: tipo == 'SAIDA',
                       selectedColor: AppColors.error.withValues(alpha: 0.2),
                       onSelected: (_) => setDialogState(() => tipo = 'SAIDA'),
@@ -152,7 +153,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
           actions: [
             TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: const Text('Cancelar')),
+                child: const UpperText('Cancelar')),
             FilledButton(
               onPressed: () async {
                 if (nomeCtrl.text.trim().isEmpty) return;
@@ -167,7 +168,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                          content: Text('Categoria criada!',
+                          content: UpperText('Categoria criada!',
                               style: GoogleFonts.inter()),
                           backgroundColor: AppColors.success),
                     );
@@ -177,7 +178,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                     if (mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text(
+                            content: UpperText(
                                 'Erro: ${e.toString().replaceAll('Exception: ', '')}',
                                 style: GoogleFonts.inter()),
                             backgroundColor: AppColors.error),
@@ -187,7 +188,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                 }
               },
               style: FilledButton.styleFrom(backgroundColor: AppColors.accent),
-              child: const Text('Criar'),
+              child: const UpperText('Criar'),
             ),
           ],
         ),
@@ -218,12 +219,12 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Categorias',
+                    UpperText('Categorias',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('Gerencie categorias de entradas e saídas',
+                    UpperText('Gerencie categorias de entradas e saídas',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -232,7 +233,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                 FilledButton.icon(
                   onPressed: _showCriarDialog,
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Nova Categoria'),
+                  label: const UpperText('Nova Categoria'),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     shape: RoundedRectangleBorder(
@@ -256,13 +257,13 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadCategorias,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -338,7 +339,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                 child: Icon(icon, color: color, size: 18),
               ),
               const SizedBox(width: 12),
-              Text(title,
+              UpperText(title,
                   style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
@@ -350,7 +351,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
                   color: color.withValues(alpha: 0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: Text('${items.length}',
+                child: UpperText('${items.length}',
                     style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -363,7 +364,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 20),
               child: Center(
-                child: Text('Nenhuma categoria',
+                child: UpperText('Nenhuma categoria',
                     style: GoogleFonts.inter(
                         color: AppColors.textMuted, fontSize: 13)),
               ),
@@ -412,13 +413,13 @@ class _CategoriaItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(cat['nome'] ?? '',
+                UpperText(cat['nome'] ?? '',
                     style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary)),
                 if (isSistema)
-                  Text('Categoria do sistema',
+                  UpperText('Categoria do sistema',
                       style: GoogleFonts.inter(
                           fontSize: 11, color: AppColors.textMuted)),
               ],

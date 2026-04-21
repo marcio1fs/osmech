@@ -12,7 +12,7 @@ Frontend web do OSMECH.
 ```powershell
 cd frontend
 flutter pub get
-flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:8081/api
+flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:8081
 ```
 
 ## Build de producao
@@ -20,7 +20,7 @@ flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:808
 ```powershell
 cd frontend
 flutter pub get
-flutter build web --release --dart-define=API_URL=https://SEU_BACKEND/api
+flutter build web --release --dart-define=API_URL=https://SEU_BACKEND
 ```
 
 Artefato gerado em:
@@ -32,7 +32,7 @@ Artefato gerado em:
 A URL da API e controlada por `--dart-define`:
 
 - chave: `API_URL`
-- fallback no codigo: `http://localhost:8081/api`
+- fallback no codigo: `http://localhost:8081`
 
 Arquivo relacionado:
 

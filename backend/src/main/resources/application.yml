@@ -1,9 +1,14 @@
 server:
-  port: 8081
+  port: ${PORT:8081}
+  servlet:
+    context-path: /api
 
 spring:
   application:
     name: osmech-backend
+  cloud:
+    vault:
+      enabled: ${SPRING_CLOUD_VAULT_ENABLED:false}
 
   datasource:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/oficina_db}
@@ -20,7 +25,7 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: ${JPA_DDL_AUTO:validate}
+      ddl-auto: ${JPA_DDL_AUTO:update}
     show-sql: false
     properties:
       hibernate:
@@ -31,19 +36,19 @@ spring:
       write-dates-as-timestamps: false
 
   flyway:
-    enabled: ${FLYWAY_ENABLED:true}
+    enabled: ${FLYWAY_ENABLED:false}
     locations: classpath:db/migration
     baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:true}
     baseline-version: ${FLYWAY_BASELINE_VERSION:1}
 
-# Configuração JWT — Em produção, defina JWT_SECRET via variável de ambiente!
-# IMPORTANTE: A variável JWT_SECRET é obrigatória. Sem ela, o app não inicia.
+# Configuracao JWT - Em producao, defina JWT_SECRET via variavel de ambiente!
+# IMPORTANTE: A variavel JWT_SECRET e obrigatoria. Sem ela, o app nao inicia.
 app:
   jwt:
     secret: ${JWT_SECRET}
     expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 horas
 
-# Actuator (health checks e métricas)
+# Actuator (health checks e metricas)
 management:
   endpoints:
     web:
@@ -57,7 +62,7 @@ management:
 cors:
   allowed-origins: ${CORS_ORIGINS:http://localhost:8083,http://localhost:3000}
 
-# Configuração futura WhatsApp (Twilio / Meta)
+# Configuracao futura WhatsApp (Twilio / Meta)
 whatsapp:
   enabled: false
   provider: twilio  # twilio | meta
@@ -69,16 +74,19 @@ whatsapp:
     phone-number-id: ""
     access-token: ""
 
-# Configuração futura IA (OpenAI)
+# Configuracao futura IA (OpenAI)
 ai:
   enabled: ${AI_ENABLED:false}
-  provider: ${AI_PROVIDER:openai}
+  provider: ${AI_PROVIDER:gemini}
   openai:
     api-key: ${AI_OPENAI_API_KEY:}
-    model: ${AI_OPENAI_MODEL:gpt-4o-mini}
-    base-url: ${AI_OPENAI_BASE_URL:https://api.openai.com/v1/chat/completions}
+    model: ${AI_OPENAI_MODEL:gemini-1.5-flash}
+    base-url: ${AI_OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}
 
-# Configuração Mercado Pago (Checkout Pro)
+# Configuracao Mercado Pago (Checkout Pro)
+# IMPORTANTE: webhook-secret e OBRIGATORIO em producao e staging
+# Em desenvolvimento, a validacao pode ser pulada se secret nao estiver configurado
+# Configure MERCADOPAGO_WEBHOOK_SECRET para ativar validacao de assinatura HMAC
 mercadopago:
   access-token: ${MERCADOPAGO_ACCESS_TOKEN}
   public-key: ${MERCADOPAGO_PUBLIC_KEY}
@@ -91,5 +99,6 @@ mercadopago:
 
 logging:
   level:
-    com.osmech.payment.service: DEBUG
-
+    com.osmech: DEBUG
+    com.osmech.mecanico: DEBUG
+    com.osmech.payment.service: INFO

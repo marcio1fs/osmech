@@ -33,7 +33,10 @@ function Import-DotEnv {
             $value = $value.Substring(1, $value.Length - 2)
         }
 
-        Set-Item -Path "Env:$key" -Value $value
+         Set-Item -Path "Env:$key" -Value $value
+         if ($key -eq 'JWT_SECRET') {
+             Write-Host "[run-dev] JWT_SECRET set (length: $($value.Length))" -ForegroundColor Green
+         }
     }
 }
 

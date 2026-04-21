@@ -16,7 +16,7 @@ import java.util.Map;
  * Controller REST para gerenciamento de perfil do usuário.
  */
 @RestController
-@RequestMapping("/api/usuario")
+@RequestMapping("/usuario")
 @RequiredArgsConstructor
 public class UserController {
 

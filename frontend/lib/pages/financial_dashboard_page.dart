@@ -4,6 +4,7 @@ import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Dashboard Financeiro completo — módulo financeiro.
 class FinancialDashboardPage extends StatefulWidget {
@@ -84,12 +85,12 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Dashboard Financeiro',
+                    UpperText('Dashboard Financeiro',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('Visão geral das finanças da oficina',
+                    UpperText('Visão geral das finanças da oficina',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -98,7 +99,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                 FilledButton.icon(
                   onPressed: widget.onNavigateNovaTransacao,
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Novo Lançamento'),
+                  label: const UpperText('Novo Lançamento'),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     shape: RoundedRectangleBorder(
@@ -109,7 +110,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                 OutlinedButton.icon(
                   onPressed: _loadData,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Atualizar'),
+                  label: const UpperText('Atualizar'),
                 ),
               ],
             ),
@@ -128,13 +129,13 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadData,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -253,14 +254,14 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('Últimas Transações',
+              UpperText('Últimas Transações',
                   style: GoogleFonts.inter(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.textPrimary)),
               TextButton(
                 onPressed: widget.onNavigateTransacoes,
-                child: Text('Ver todas',
+                child: UpperText('Ver todas',
                     style: GoogleFonts.inter(
                         color: AppColors.accent, fontWeight: FontWeight.w600)),
               ),
@@ -277,7 +278,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                         size: 48,
                         color: AppColors.textMuted.withValues(alpha: 0.5)),
                     const SizedBox(height: 8),
-                    Text('Nenhuma transação registrada',
+                    UpperText('Nenhuma transação registrada',
                         style: GoogleFonts.inter(
                             color: AppColors.textSecondary, fontSize: 14)),
                   ],
@@ -306,7 +307,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Resumo Geral',
+              UpperText('Resumo Geral',
                   style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -352,7 +353,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Ações Rápidas',
+              UpperText('Ações Rápidas',
                   style: GoogleFonts.inter(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
@@ -425,19 +426,19 @@ class _MetricCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(label,
+                UpperText(label,
                     style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 4),
-                Text(value,
+                UpperText(value,
                     style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary),
                     overflow: TextOverflow.ellipsis),
-                Text(subtitle,
+                UpperText(subtitle,
                     style: GoogleFonts.inter(
                         fontSize: 11, color: AppColors.textMuted)),
               ],
@@ -492,19 +493,19 @@ class _TransacaoItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(tx['descricao'] ?? '',
+                UpperText(tx['descricao'] ?? '',
                     style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary),
                     overflow: TextOverflow.ellipsis),
-                Text(tx['categoriaNome'] ?? 'Sem categoria',
+                UpperText(tx['categoriaNome'] ?? 'Sem categoria',
                     style: GoogleFonts.inter(
                         fontSize: 11, color: AppColors.textMuted)),
               ],
             ),
           ),
-          Text(
+          UpperText(
             '${isEntrada ? '+' : '-'} ${formatCurrency(tx['valor'] ?? 0)}',
             style: GoogleFonts.inter(
                 fontSize: 14, fontWeight: FontWeight.w700, color: color),
@@ -527,10 +528,10 @@ class _IndicatorRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label,
+        UpperText(label,
             style: GoogleFonts.inter(
                 fontSize: 14, color: AppColors.textSecondary)),
-        Text(value,
+        UpperText(value,
             style: GoogleFonts.inter(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
@@ -557,7 +558,7 @@ class _ActionButton extends StatelessWidget {
           children: [
             Icon(icon, size: 20, color: AppColors.accent),
             const SizedBox(width: 12),
-            Text(label,
+            UpperText(label,
                 style: GoogleFonts.inter(
                     fontSize: 13,
                     fontWeight: FontWeight.w500,

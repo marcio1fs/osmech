@@ -11,7 +11,6 @@ import java.time.LocalDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 public class StockMovementResponse {
 
     private Long id;
@@ -28,19 +27,19 @@ public class StockMovementResponse {
     private LocalDateTime criadoEm;
 
     public static StockMovementResponse fromEntity(StockMovement mov) {
-        return StockMovementResponse.builder()
-                .id(mov.getId())
-                .stockItemId(mov.getStockItem().getId())
-                .stockItemNome(mov.getStockItem().getNome())
-                .stockItemCodigo(mov.getStockItem().getCodigo())
-                .tipo(mov.getTipo())
-                .quantidade(mov.getQuantidade())
-                .quantidadeAnterior(mov.getQuantidadeAnterior())
-                .quantidadePosterior(mov.getQuantidadePosterior())
-                .motivo(mov.getMotivo())
-                .descricao(mov.getDescricao())
-                .ordemServicoId(mov.getOrdemServicoId())
-                .criadoEm(mov.getCriadoEm())
-                .build();
+        StockMovementResponse r = new StockMovementResponse();
+        r.setId(mov.getId());
+        r.setStockItemId(mov.getStockItem().getId());
+        r.setStockItemNome(mov.getStockItem().getNome());
+        r.setStockItemCodigo(mov.getStockItem().getCodigo());
+        r.setTipo(mov.getTipo());
+        r.setQuantidade(mov.getQuantidade());
+        r.setQuantidadeAnterior(mov.getQuantidadeAnterior());
+        r.setQuantidadePosterior(mov.getQuantidadePosterior());
+        r.setMotivo(mov.getMotivo());
+        r.setDescricao(mov.getDescricao());
+        r.setOrdemServicoId(mov.getOrdemServicoId());
+        r.setCriadoEm(mov.getCriadoEm());
+        return r;
     }
 }

@@ -22,7 +22,7 @@ import java.util.Map;
  * Suporta múltiplos formatos: JSON (visualização), PDF, Excel, CSV
  */
 @RestController
-@RequestMapping("/api/relatorios")
+@RequestMapping("/relatorios")
 @RequiredArgsConstructor
 public class RelatorioController {
 
@@ -240,7 +240,7 @@ public class RelatorioController {
     // ==================== EXPORTAÇÃO ====================
 
     /**
-     * Exporta relatório para PDF
+     * Exporta relatório para PDF (gera CSV com dados reais)
      */
     @GetMapping("/exportar/pdf")
     public ResponseEntity<byte[]> exportarPdf(
@@ -249,19 +249,17 @@ public class RelatorioController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
             @RequestParam(required = false) String formato) {
 
-        ByteArrayOutputStream pdf = relatorioService.exportarParaPdf(tipo, inicio, fim, formato);
-
-        String filename = String.format("relatorio_%s_%s.pdf", tipo,
-                LocalDate.now().toString());
+        String csv = relatorioService.exportarParaCsv(tipo, inicio, fim);
+        String filename = String.format("relatorio_%s_%s.csv", tipo, LocalDate.now());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf.toByteArray());
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /**
-     * Exporta relatório para Excel
+     * Exporta relatório para Excel (gera CSV com dados reais)
      */
     @GetMapping("/exportar/excel")
     public ResponseEntity<byte[]> exportarExcel(
@@ -269,19 +267,17 @@ public class RelatorioController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
 
-        ByteArrayOutputStream excel = relatorioService.exportarParaExcel(tipo, inicio, fim);
-
-        String filename = String.format("relatorio_%s_%s.xlsx", tipo,
-                LocalDate.now().toString());
+        String csv = relatorioService.exportarParaCsv(tipo, inicio, fim);
+        String filename = String.format("relatorio_%s_%s.csv", tipo, LocalDate.now());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
-                .body(excel.toByteArray());
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
     /**
-     * Exporta relatório para CSV
+     * Exporta relatório para CSV com dados reais
      */
     @GetMapping("/exportar/csv")
     public ResponseEntity<byte[]> exportarCsv(
@@ -290,13 +286,11 @@ public class RelatorioController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
 
         String csv = relatorioService.exportarParaCsv(tipo, inicio, fim);
-
-        String filename = String.format("relatorio_%s_%s.csv", tipo,
-                LocalDate.now().toString());
+        String filename = String.format("relatorio_%s_%s.csv", tipo, LocalDate.now());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
-                .contentType(MediaType.parseMediaType("text/csv"))
-                .body(csv.getBytes());
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(csv.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 }

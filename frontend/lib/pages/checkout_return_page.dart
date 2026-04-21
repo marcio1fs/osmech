@@ -5,6 +5,7 @@ import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_shell.dart';
+import '../widgets/upper_text.dart';
 
 class CheckoutReturnPage extends StatefulWidget {
   final String result;
@@ -135,7 +136,7 @@ class _CheckoutReturnPageState extends State<CheckoutReturnPage>
                   else
                     Icon(_resultIcon(), size: 56, color: _resultColor()),
                   const SizedBox(height: 12),
-                  Text(
+                  UpperText(
                     _resultTitle(),
                     style: const TextStyle(
                       fontSize: 20,
@@ -144,7 +145,7 @@ class _CheckoutReturnPageState extends State<CheckoutReturnPage>
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
+                  UpperText(
                     _resultDescription(),
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: AppColors.textSecondary),
@@ -160,7 +161,7 @@ class _CheckoutReturnPageState extends State<CheckoutReturnPage>
                           ),
                         );
                       },
-                      child: const Text('Ir para Assinatura'),
+                      child: const UpperText('Ir para Assinatura'),
                     ),
                   ),
                 ],

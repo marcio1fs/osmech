@@ -4,6 +4,7 @@ import com.osmech.mecanico.entity.Mecanico;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -13,6 +14,7 @@ public class MecanicoResponse {
     private String nome;
     private String telefone;
     private String especialidade;
+    private BigDecimal percentualComissao;
     private Boolean ativo;
     private LocalDateTime criadoEm;
     private LocalDateTime atualizadoEm;
@@ -23,6 +25,7 @@ public class MecanicoResponse {
                 .nome(m.getNome())
                 .telefone(m.getTelefone())
                 .especialidade(m.getEspecialidade())
+                .percentualComissao(m.getPercentualComissao())
                 .ativo(m.getAtivo())
                 .criadoEm(m.getCriadoEm())
                 .atualizadoEm(m.getAtualizadoEm())

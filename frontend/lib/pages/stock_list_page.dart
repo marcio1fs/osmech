@@ -4,6 +4,7 @@ import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Lista de itens de estoque com busca, filtro por categoria e indicadores visuais.
 class StockListPage extends StatefulWidget {
@@ -102,9 +103,6 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
     });
     try {
       final token = safeToken;
-      final tokenPreview =
-          token.length <= 20 ? token : token.substring(0, 20);
-      debugPrint('[StockList] Carregando itens com token: $tokenPreview...');
       final service = StockService(token: token);
       debugPrint('[StockList] Chamando API /api/stock');
       final data = await service.listarItens(
@@ -131,17 +129,17 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Desativar Item'),
+        title: const UpperText('Desativar Item'),
         content:
-            Text('Deseja desativar "$nome"? Ele não aparecerá mais na lista.'),
+            UpperText('Deseja desativar "$nome"? Ele não aparecerá mais na lista.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
+              child: const UpperText('Cancelar')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Desativar'),
+            child: const UpperText('Desativar'),
           ),
         ],
       ),
@@ -155,7 +153,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Item desativado', style: GoogleFonts.inter()),
+              content: UpperText('Item desativado', style: GoogleFonts.inter()),
               backgroundColor: AppColors.success),
         );
       }
@@ -165,7 +163,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content:
-                    Text('Erro ao desativar item', style: GoogleFonts.inter()),
+                    UpperText('Erro ao desativar item', style: GoogleFonts.inter()),
                 backgroundColor: AppColors.error),
           );
         }
@@ -197,12 +195,12 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Estoque',
+                    UpperText('Estoque',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('${_itens.length} itens cadastrados',
+                    UpperText('${_itens.length} itens cadastrados',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -227,7 +225,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                           const Icon(Icons.warning_amber_rounded,
                               size: 16, color: AppColors.warning),
                           const SizedBox(width: 4),
-                          Text('$alertCount alertas',
+                          UpperText('$alertCount alertas',
                               style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -281,13 +279,13 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                   child: DropdownButtonHideUnderline(
                     child: DropdownButton<String>(
                       value: _filtroCategoria,
-                      hint: Text('Categoria',
+                      hint: UpperText('Categoria',
                           style: GoogleFonts.inter(
                               fontSize: 13, color: AppColors.textMuted)),
                       items: _categorias
                           .map((c) => DropdownMenuItem(
                               value: c,
-                              child: Text(_categoriaLabels[c] ?? c,
+                              child: UpperText(_categoriaLabels[c] ?? c,
                                   style: GoogleFonts.inter(fontSize: 13))))
                           .toList(),
                       onChanged: (v) {
@@ -330,7 +328,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                 FilledButton.icon(
                   onPressed: widget.onNavigateNovaPeca,
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Nova Peça'),
+                  label: const UpperText('Nova Peça'),
                 ),
                 ],
               ),
@@ -350,13 +348,13 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadItens,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -370,7 +368,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                                     color: AppColors.textMuted
                                         .withValues(alpha: 0.4)),
                                 const SizedBox(height: 12),
-                                Text('Nenhuma peça cadastrada',
+                                UpperText('Nenhuma peça cadastrada',
                                     style: GoogleFonts.inter(
                                         fontSize: 16,
                                         color: AppColors.textSecondary)),
@@ -378,7 +376,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                                 FilledButton.icon(
                                   onPressed: widget.onNavigateNovaPeca,
                                   icon: const Icon(Icons.add_rounded),
-                                  label: const Text('Cadastrar Peça'),
+                                  label: const UpperText('Cadastrar Peça'),
                                 ),
                               ],
                             ),
@@ -475,7 +473,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
                         else if (estoqueBaixo)
                           const Icon(Icons.warning_rounded, size: 14, color: AppColors.warning),
                         if (estoqueBaixo || estoqueZerado) const SizedBox(width: 4),
-                        Text(
+                        UpperText(
                           '${item['quantidade']}',
                           style: GoogleFonts.inter(
                             fontSize: 13,
@@ -522,7 +520,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
   Widget _colHeader(String text, {required double width}) {
     return SizedBox(
       width: width,
-      child: Text(
+      child: UpperText(
         text,
         style: GoogleFonts.inter(
           fontSize: 12,
@@ -537,7 +535,7 @@ class _StockListPageState extends State<StockListPage> with AuthErrorMixin {
   Widget _colCell(String text, {required double width, bool bold = false}) {
     return SizedBox(
       width: width,
-      child: Text(
+      child: UpperText(
         text,
         style: GoogleFonts.inter(
           fontSize: 13,

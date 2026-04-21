@@ -66,19 +66,20 @@ Na pasta `frontend`:
 
 ```powershell
 flutter pub get
-flutter build web --release --dart-define=API_URL=https://SEU_BACKEND/api
+flutter build web --release --dart-define=API_URL=https://SEU_BACKEND
 ```
 
 Para desenvolvimento local:
 
 ```powershell
-flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:8081/api
+flutter run -d chrome --web-port 8083 --dart-define=API_URL=http://localhost:8081
 ```
 
 ## 5) Validacoes antes de publicar
 
 - Backend compila: `mvn -f backend\pom.xml -DskipTests compile`
 - Frontend builda: `flutter build web --release ...`
+- Flyway sobe schema base em banco vazio (migração `V1__init_schema.sql`)
 - Webhook Mercado Pago responde 200 para notificacoes validas
 - Pagamento aprovado atualiza:
   - `pagamentos.status = PAGO`

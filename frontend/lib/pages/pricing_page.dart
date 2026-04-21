@@ -9,6 +9,7 @@ import '../services/auth_service.dart';
 import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de Planos — design moderno com grid de pricing cards.
 class PricingPage extends StatefulWidget {
@@ -94,7 +95,7 @@ class _PricingPageState extends State<PricingPage> {
     final auth = Provider.of<AuthService>(context, listen: false);
     if (!auth.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Faça login para assinar um plano')),
+        const SnackBar(content: UpperText('Faça login para assinar um plano')),
       );
       return;
     }
@@ -103,7 +104,7 @@ class _PricingPageState extends State<PricingPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
+            content: UpperText(
                 'O plano Gratuito nao precisa de pagamento. Ele ja e o plano base da conta.'),
           ),
         );
@@ -134,7 +135,7 @@ class _PricingPageState extends State<PricingPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Redirecionando para o pagamento do plano $codigo...'),
+            content: UpperText('Redirecionando para o pagamento do plano $codigo...'),
             backgroundColor: AppColors.success,
           ),
         );
@@ -143,7 +144,7 @@ class _PricingPageState extends State<PricingPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Erro ao assinar: $e'),
+            content: UpperText('Erro ao assinar: $e'),
             backgroundColor: AppColors.error,
           ),
         );
@@ -171,7 +172,7 @@ class _PricingPageState extends State<PricingPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(
+                    UpperText(
                       'Planos',
                       style: GoogleFonts.inter(
                         fontSize: 20,
@@ -179,7 +180,7 @@ class _PricingPageState extends State<PricingPage> {
                         color: AppColors.textPrimary,
                       ),
                     ),
-                    Text(
+                    UpperText(
                       'Escolha o melhor plano para sua oficina',
                       style: GoogleFonts.inter(
                         fontSize: 13,
@@ -192,7 +193,7 @@ class _PricingPageState extends State<PricingPage> {
                 OutlinedButton.icon(
                   onPressed: _loadPlanos,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Atualizar'),
+                  label: const UpperText('Atualizar'),
                 ),
               ],
             ),
@@ -215,7 +216,7 @@ class _PricingPageState extends State<PricingPage> {
                               color: AppColors.error,
                             ),
                             const SizedBox(height: 12),
-                            Text(
+                            UpperText(
                               _error!,
                               style: GoogleFonts.inter(
                                 color: AppColors.textSecondary,
@@ -224,7 +225,7 @@ class _PricingPageState extends State<PricingPage> {
                             const SizedBox(height: 12),
                             FilledButton(
                               onPressed: _loadPlanos,
-                              child: const Text('Tentar novamente'),
+                              child: const UpperText('Tentar novamente'),
                             ),
                           ],
                         ),
@@ -292,7 +293,7 @@ class _PricingPageState extends State<PricingPage> {
                                               top: Radius.circular(14),
                                             ),
                                           ),
-                                          child: Text(
+                                          child: UpperText(
                                             'RECOMENDADO',
                                             textAlign: TextAlign.center,
                                             style: GoogleFonts.inter(
@@ -327,7 +328,7 @@ class _PricingPageState extends State<PricingPage> {
                                                   ),
                                                 ),
                                                 const SizedBox(height: 14),
-                                                Text(
+                                                UpperText(
                                                   plano['nome'] ?? '',
                                                   style: GoogleFonts.inter(
                                                     fontSize: 18,
@@ -363,7 +364,7 @@ class _PricingPageState extends State<PricingPage> {
                                                   ),
                                                 ),
                                                 const SizedBox(height: 10),
-                                                Text(
+                                                UpperText(
                                                   plano['descricao'] ?? '',
                                                   textAlign: TextAlign.center,
                                                   style: GoogleFonts.inter(
@@ -422,7 +423,7 @@ class _PricingPageState extends State<PricingPage> {
                                                             backgroundColor:
                                                                 color,
                                                           ),
-                                                          child: Text(
+                                                          child: UpperText(
                                                             codigo == 'FREE'
                                                                 ? 'Plano base'
                                                                 : 'Assinar',
@@ -440,7 +441,7 @@ class _PricingPageState extends State<PricingPage> {
                                                               : () =>
                                                                   _assinarPlano(
                                                                       codigo),
-                                                          child: Text(
+                                                          child: UpperText(
                                                             codigo == 'FREE'
                                                                 ? 'Plano base'
                                                                 : 'Assinar',
@@ -494,7 +495,7 @@ class _FeatureItem extends StatelessWidget {
             color: enabled ? AppColors.success : AppColors.textMuted,
           ),
           const SizedBox(width: 8),
-          Text(
+          UpperText(
             label,
             style: GoogleFonts.inter(
               fontSize: 12,
@@ -502,7 +503,7 @@ class _FeatureItem extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          Text(
+          UpperText(
             value,
             style: GoogleFonts.inter(
               fontSize: 12,

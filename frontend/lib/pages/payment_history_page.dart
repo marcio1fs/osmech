@@ -4,6 +4,7 @@ import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de histórico de pagamentos — design moderno com tabs.
 class PaymentHistoryPage extends StatefulWidget {
@@ -63,19 +64,19 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Confirmar Pagamento',
+        title: UpperText('Confirmar Pagamento',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(
+        content: UpperText(
           'Tem certeza que deseja confirmar este pagamento?',
           style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Não')),
+              child: const UpperText('Não')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sim, confirmar'),
+            child: const UpperText('Sim, confirmar'),
           ),
         ],
       ),
@@ -88,7 +89,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Pagamento confirmado!'),
+              content: UpperText('Pagamento confirmado!'),
               backgroundColor: AppColors.success),
         );
         _loadPagamentos();
@@ -96,7 +97,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Erro: $e'), backgroundColor: AppColors.error));
+            content: UpperText('Erro: $e'), backgroundColor: AppColors.error));
       }
     }
   }
@@ -105,20 +106,20 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Cancelar Pagamento',
+        title: UpperText('Cancelar Pagamento',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(
+        content: UpperText(
           'Tem certeza que deseja cancelar este pagamento? Essa ação não pode ser desfeita.',
           style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Não')),
+              child: const UpperText('Não')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Sim, cancelar'),
+            child: const UpperText('Sim, cancelar'),
           ),
         ],
       ),
@@ -131,7 +132,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Pagamento cancelado'),
+              content: UpperText('Pagamento cancelado'),
               backgroundColor: AppColors.warning),
         );
         _loadPagamentos();
@@ -139,7 +140,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text('Erro: $e'), backgroundColor: AppColors.error));
+            content: UpperText('Erro: $e'), backgroundColor: AppColors.error));
       }
     }
   }
@@ -218,12 +219,12 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Pagamentos',
+                        UpperText('Pagamentos',
                             style: GoogleFonts.inter(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.textPrimary)),
-                        Text('${_todos.length} registro(s)',
+                        UpperText('${_todos.length} registro(s)',
                             style: GoogleFonts.inter(
                                 fontSize: 13, color: AppColors.textSecondary)),
                       ],
@@ -232,7 +233,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
                     OutlinedButton.icon(
                       onPressed: _loadPagamentos,
                       icon: const Icon(Icons.refresh_rounded, size: 18),
-                      label: const Text('Atualizar'),
+                      label: const UpperText('Atualizar'),
                     ),
                   ],
                 ),
@@ -270,13 +271,13 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadPagamentos,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -303,7 +304,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
             const Icon(Icons.receipt_long_outlined,
                 size: 56, color: AppColors.textMuted),
             const SizedBox(height: 12),
-            Text('Nenhum pagamento encontrado',
+            UpperText('Nenhum pagamento encontrado',
                 style: GoogleFonts.inter(
                     fontSize: 15, color: AppColors.textSecondary)),
           ],
@@ -335,23 +336,23 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
               columnSpacing: 20,
               horizontalMargin: 20,
               columns: const [
-                DataColumn(label: Text('DESCRIÇÃO')),
-                DataColumn(label: Text('TIPO')),
-                DataColumn(label: Text('MÉTODO')),
-                DataColumn(label: Text('STATUS')),
-                DataColumn(label: Text('VALOR'), numeric: true),
-                DataColumn(label: Text('DATA')),
-                DataColumn(label: Text('AÇÕES')),
+                DataColumn(label: UpperText('DESCRIÇÃO')),
+                DataColumn(label: UpperText('TIPO')),
+                DataColumn(label: UpperText('MÉTODO')),
+                DataColumn(label: UpperText('STATUS')),
+                DataColumn(label: UpperText('VALOR'), numeric: true),
+                DataColumn(label: UpperText('DATA')),
+                DataColumn(label: UpperText('AÇÕES')),
               ],
               rows: pagamentos.map((p) {
                 final status = p['status'] as String?;
                 final color = _statusColor(status);
                 return DataRow(
                   cells: [
-                    DataCell(Text(p['descricao'] ?? p['tipo'] ?? 'Pagamento',
+                    DataCell(UpperText(p['descricao'] ?? p['tipo'] ?? 'Pagamento',
                         style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
-                    DataCell(Text(p['tipo'] ?? '-')),
-                    DataCell(Text(_metodoPagamentoLabel(p['metodoPagamento']))),
+                    DataCell(UpperText(p['tipo'] ?? '-')),
+                    DataCell(UpperText(_metodoPagamentoLabel(p['metodoPagamento']))),
                     DataCell(
                       Container(
                         padding: const EdgeInsets.symmetric(
@@ -359,16 +360,16 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
                         decoration: BoxDecoration(
                             color: color.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(20)),
-                        child: Text(_statusLabel(status),
+                        child: UpperText(_statusLabel(status),
                             style: GoogleFonts.inter(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
                                 color: color)),
                       ),
                     ),
-                    DataCell(Text(formatCurrency(p['valor'] ?? 0),
+                    DataCell(UpperText(formatCurrency(p['valor'] ?? 0),
                         style: GoogleFonts.inter(fontWeight: FontWeight.w700))),
-                    DataCell(Text(formatDateTimeBR(p['criadoEm']),
+                    DataCell(UpperText(formatDateTimeBR(p['criadoEm']),
                         style: GoogleFonts.inter(
                             fontSize: 12, color: AppColors.textSecondary))),
                     DataCell(

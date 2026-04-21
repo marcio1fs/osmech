@@ -5,6 +5,7 @@ import '../services/payment_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de assinatura — design moderno.
 class SubscriptionPage extends StatefulWidget {
@@ -53,20 +54,20 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Cancelar Assinatura',
+        title: UpperText('Cancelar Assinatura',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
-        content: Text(
+        content: UpperText(
           'Tem certeza que deseja cancelar sua assinatura? Você perderá acesso aos recursos do plano atual.',
           style: GoogleFonts.inter(color: AppColors.textSecondary, height: 1.5),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Manter')),
+              child: const UpperText('Manter')),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-            child: const Text('Sim, cancelar'),
+            child: const UpperText('Sim, cancelar'),
           ),
         ],
       ),
@@ -79,7 +80,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Assinatura cancelada com sucesso'),
+              content: UpperText('Assinatura cancelada com sucesso'),
               backgroundColor: AppColors.success),
         );
         _loadAssinatura();
@@ -87,7 +88,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: UpperText('Erro: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -98,7 +99,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     if (planoCodigo == 'FREE') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
+          content: UpperText(
               'O plano Gratuito nao usa checkout. Para voltar ao FREE, cancele a assinatura atual.'),
         ),
       );
@@ -127,7 +128,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: UpperText('Erro: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -185,12 +186,12 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Minha Assinatura',
+                    UpperText('Minha Assinatura',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('Gerencie seu plano e pagamentos',
+                    UpperText('Gerencie seu plano e pagamentos',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -199,7 +200,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                 OutlinedButton.icon(
                   onPressed: _loadAssinatura,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Atualizar'),
+                  label: const UpperText('Atualizar'),
                 ),
               ],
             ),
@@ -218,13 +219,13 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadAssinatura,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -261,7 +262,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                               _assinatura?['status'])),
                                     ),
                                     const SizedBox(height: 16),
-                                    Text(
+                                    UpperText(
                                       _assinatura?['planoNome'] ?? 'Sem plano',
                                       style: GoogleFonts.inter(
                                           fontSize: 24,
@@ -278,7 +279,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                                 .withValues(alpha: 0.1),
                                         borderRadius: BorderRadius.circular(20),
                                       ),
-                                      child: Text(
+                                      child: UpperText(
                                         _statusLabel(_assinatura?['status']),
                                         style: GoogleFonts.inter(
                                             fontSize: 13,
@@ -288,7 +289,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                       ),
                                     ),
                                     const SizedBox(height: 16),
-                                    Text(
+                                    UpperText(
                                       '${formatCurrency(_assinatura?['valorMensal'] ?? 0)}/mês',
                                       style: GoogleFonts.inter(
                                           fontSize: 28,
@@ -312,7 +313,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Detalhes',
+                                    UpperText('Detalhes',
                                         style: GoogleFonts.inter(
                                             fontSize: 15,
                                             fontWeight: FontWeight.w700,
@@ -362,7 +363,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                           color: AppColors.warning),
                                       const SizedBox(width: 12),
                                       Expanded(
-                                        child: Text(
+                                        child: UpperText(
                                           _assinatura?['status'] == 'PAST_DUE'
                                               ? 'Seu pagamento está atrasado. Regularize para evitar a suspensão.'
                                               : 'Sua conta está suspensa por inadimplência.',
@@ -387,7 +388,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                                     onPressed: _cancelarAssinatura,
                                     icon: const Icon(Icons.cancel_outlined,
                                         color: AppColors.error, size: 18),
-                                    label: Text('Cancelar Assinatura',
+                                    label: UpperText('Cancelar Assinatura',
                                         style: GoogleFonts.inter(
                                             color: AppColors.error,
                                             fontWeight: FontWeight.w600)),
@@ -402,7 +403,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                               const Divider(),
                               const SizedBox(height: 24),
 
-                              Text('Planos Disponíveis',
+                              UpperText('Planos Disponíveis',
                                   style: GoogleFonts.inter(
                                       fontSize: 18,
                                       fontWeight: FontWeight.w700,
@@ -469,10 +470,10 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(plano['nome'] as String,
+                    UpperText(plano['nome'] as String,
                         style: GoogleFonts.inter(
                             fontSize: 16, fontWeight: FontWeight.w700)),
-                    Text(formatCurrency(plano['preco']),
+                    UpperText(formatCurrency(plano['preco']),
                         style: GoogleFonts.inter(
                             fontSize: 14, color: AppColors.textSecondary)),
                   ],
@@ -486,7 +487,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                     color: AppColors.success.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text('Atual',
+                  child: UpperText('Atual',
                       style: GoogleFonts.inter(
                           color: AppColors.success,
                           fontWeight: FontWeight.w600,
@@ -506,7 +507,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
                           height: 16,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
-                      : Text(
+                      : UpperText(
                           plano['codigo'] == 'FREE' ? 'Plano base' : 'Assinar'),
                 ),
             ],
@@ -532,11 +533,11 @@ class _DetailItem extends StatelessWidget {
         children: [
           Icon(icon, size: 18, color: AppColors.textMuted),
           const SizedBox(width: 12),
-          Text('$label:',
+          UpperText('$label:',
               style: GoogleFonts.inter(
                   fontSize: 13, color: AppColors.textSecondary)),
           const SizedBox(width: 8),
-          Text(value,
+          UpperText(value,
               style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,

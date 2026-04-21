@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/v1/assinaturas")
+@RequestMapping("/v1/assinaturas")
 @RequiredArgsConstructor
 public class AssinaturaController {
 

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de alertas de estoque (itens críticos e com estoque baixo).
 class StockAlertsPage extends StatefulWidget {
@@ -66,7 +67,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
             ),
             child: Row(
               children: [
-                Text('Alertas de Estoque',
+                UpperText('Alertas de Estoque',
                     style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -75,7 +76,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                 FilledButton.icon(
                   onPressed: _loadAlertas,
                   icon: const Icon(Icons.refresh_rounded, size: 16),
-                  label: const Text('Atualizar'),
+                  label: const UpperText('Atualizar'),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     foregroundColor: Colors.white,
@@ -101,20 +102,20 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                             const Icon(Icons.error_outline_rounded,
                                 size: 64, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text('Erro ao carregar alertas',
+                            UpperText('Erro ao carregar alertas',
                                 style: GoogleFonts.inter(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary)),
                             const SizedBox(height: 4),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     fontSize: 13, color: AppColors.textMuted)),
                             const SizedBox(height: 16),
                             FilledButton.icon(
                               onPressed: _loadAlertas,
                               icon: const Icon(Icons.refresh_rounded, size: 16),
-                              label: const Text('Tentar novamente'),
+                              label: const UpperText('Tentar novamente'),
                               style: FilledButton.styleFrom(
                                 backgroundColor: AppColors.accent,
                                 foregroundColor: Colors.white,
@@ -131,13 +132,13 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                                 const Icon(Icons.check_circle_outline_rounded,
                                     size: 64, color: AppColors.success),
                                 const SizedBox(height: 12),
-                                Text('Estoque está em dia!',
+                                UpperText('Estoque está em dia!',
                                     style: GoogleFonts.inter(
                                         fontSize: 18,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.textPrimary)),
                                 const SizedBox(height: 4),
-                                Text('Nenhum alerta encontrado',
+                                UpperText('Nenhum alerta encontrado',
                                     style: GoogleFonts.inter(
                                         fontSize: 13,
                                         color: AppColors.textMuted)),
@@ -183,7 +184,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                                       const Icon(Icons.error_rounded,
                                           size: 20, color: AppColors.error),
                                       const SizedBox(width: 8),
-                                      Text('Estoque Zerado (Crítico)',
+                                      UpperText('Estoque Zerado (Crítico)',
                                           style: GoogleFonts.inter(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
@@ -206,7 +207,7 @@ class _StockAlertsPageState extends State<StockAlertsPage> with AuthErrorMixin {
                                       const Icon(Icons.warning_rounded,
                                           size: 20, color: AppColors.warning),
                                       const SizedBox(width: 8),
-                                      Text('Estoque Baixo (Alerta)',
+                                      UpperText('Estoque Baixo (Alerta)',
                                           style: GoogleFonts.inter(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
@@ -268,12 +269,12 @@ class _SummaryCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$count',
+                UpperText('$count',
                     style: GoogleFonts.inter(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: color)),
-                Text(label,
+                UpperText(label,
                     style: GoogleFonts.inter(
                         fontSize: 12, color: AppColors.textMuted)),
               ],
@@ -324,7 +325,7 @@ class _AlertaCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    Text('${alerta['codigo']}',
+                    UpperText('${alerta['codigo']}',
                         style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -337,7 +338,7 @@ class _AlertaCard extends StatelessWidget {
                         color: iconColor.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(4),
                       ),
-                      child: Text(alerta['categoria'] ?? '',
+                      child: UpperText(alerta['categoria'] ?? '',
                           style: GoogleFonts.inter(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -346,13 +347,13 @@ class _AlertaCard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('${alerta['nome']}',
+                UpperText('${alerta['nome']}',
                     style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary)),
                 const SizedBox(height: 2),
-                Text(alerta['mensagem'] ?? '',
+                UpperText(alerta['mensagem'] ?? '',
                     style: GoogleFonts.inter(
                         fontSize: 12, color: AppColors.textMuted)),
               ],
@@ -361,15 +362,15 @@ class _AlertaCard extends StatelessWidget {
           const SizedBox(width: 12),
           Column(
             children: [
-              Text('Atual',
+              UpperText('Atual',
                   style: GoogleFonts.inter(
                       fontSize: 10, color: AppColors.textMuted)),
-              Text('${alerta['quantidade']}',
+              UpperText('${alerta['quantidade']}',
                   style: GoogleFonts.inter(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
                       color: iconColor)),
-              Text('Mín: ${alerta['quantidadeMinima']}',
+              UpperText('Mín: ${alerta['quantidadeMinima']}',
                   style: GoogleFonts.inter(
                       fontSize: 10, color: AppColors.textMuted)),
             ],
@@ -378,7 +379,7 @@ class _AlertaCard extends StatelessWidget {
           OutlinedButton.icon(
             onPressed: onEntrada,
             icon: const Icon(Icons.add_rounded, size: 16),
-            label: Text('Dar entrada', style: GoogleFonts.inter(fontSize: 12)),
+            label: UpperText('Dar entrada', style: GoogleFonts.inter(fontSize: 12)),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.success,
               side: const BorderSide(color: AppColors.success),

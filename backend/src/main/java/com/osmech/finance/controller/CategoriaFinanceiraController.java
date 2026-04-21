@@ -16,7 +16,7 @@ import java.util.Map;
  * Controller REST para categorias financeiras.
  */
 @RestController
-@RequestMapping("/api/finance/category")
+@RequestMapping("/finance/category")
 @RequiredArgsConstructor
 public class CategoriaFinanceiraController {
 

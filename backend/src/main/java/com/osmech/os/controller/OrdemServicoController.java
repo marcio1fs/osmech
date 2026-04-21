@@ -4,6 +4,7 @@ import com.osmech.os.dto.OrdemServicoRequest;
 import com.osmech.os.dto.OrdemServicoResponse;
 import com.osmech.os.dto.EncerrarOsRequest;
 import com.osmech.os.dto.EncerrarOsResponse;
+import com.osmech.os.dto.StatusUpdateRequest;
 import com.osmech.os.service.OrdemServicoService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +20,7 @@ import java.util.Map;
  * Todas as rotas exigem JWT.
  */
 @RestController
-@RequestMapping("/api/os")
+@RequestMapping("/os")
 @RequiredArgsConstructor
 public class OrdemServicoController {
 
@@ -71,5 +72,13 @@ public class OrdemServicoController {
     @GetMapping("/dashboard")
     public ResponseEntity<OrdemServicoService.DashboardStats> dashboard(Authentication auth) {
         return ResponseEntity.ok(osService.getDashboardStats(auth.getName()));
+    }
+
+    /** PATCH /api/os/{id}/status - Atualizar apenas o status da OS */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<OrdemServicoResponse> atualizarStatus(Authentication auth,
+                                                                 @PathVariable Long id,
+                                                                 @Valid @RequestBody StatusUpdateRequest request) {
+        return ResponseEntity.ok(osService.atualizarStatus(auth.getName(), id, request.getStatus()));
     }
 }

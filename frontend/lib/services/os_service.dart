@@ -4,8 +4,9 @@ import 'api_client.dart';
 /// Serviço para comunicação com a API de Ordens de Serviço.
 class OsService {
   final ApiClient _api;
-
   OsService({required String token}) : _api = ApiClient(token: token);
+
+  int _normalizeId(num id) => id.toInt();
 
   /// Lista todas as OS do usuário logado.
   Future<List<Map<String, dynamic>>> listar() async {
@@ -20,8 +21,9 @@ class OsService {
   }
 
   /// Busca uma OS por ID.
-  Future<Map<String, dynamic>> buscarPorId(int id) async {
-    final response = await _api.get('/api/os/$id');
+  Future<Map<String, dynamic>> buscarPorId(num id) async {
+    final idValue = _normalizeId(id);
+    final response = await _api.get('/api/os/$idValue');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -43,10 +45,11 @@ class OsService {
 
   /// Atualiza uma OS existente.
   Future<Map<String, dynamic>> atualizar(
-    int id,
+    num id,
     Map<String, dynamic> dados,
   ) async {
-    final response = await _api.put('/api/os/$id', body: dados);
+    final idValue = _normalizeId(id);
+    final response = await _api.put('/api/os/$idValue', body: dados);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -56,8 +59,9 @@ class OsService {
   }
 
   /// Exclui uma OS.
-  Future<void> excluir(int id) async {
-    final response = await _api.delete('/api/os/$id');
+  Future<void> excluir(num id) async {
+    final idValue = _normalizeId(id);
+    final response = await _api.delete('/api/os/$idValue');
 
     if (response.statusCode != 200) {
       final body = jsonDecode(response.body);
@@ -67,10 +71,11 @@ class OsService {
 
   /// Encerra uma OS com método de pagamento e recibo.
   Future<Map<String, dynamic>> encerrar(
-    int id,
+    num id,
     Map<String, dynamic> dados,
   ) async {
-    final response = await _api.post('/api/os/$id/encerrar', body: dados);
+    final idValue = _normalizeId(id);
+    final response = await _api.post('/api/os/$idValue/encerrar', body: dados);
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
@@ -91,9 +96,10 @@ class OsService {
   }
 
   /// Envia o recibo via WhatsApp para uma OS já concluída.
-  Future<Map<String, dynamic>> enviarReciboWhatsApp(int id, {String? telefoneWhatsapp}) async {
+  Future<Map<String, dynamic>> enviarReciboWhatsApp(num id, {String? telefoneWhatsapp}) async {
+    final idValue = _normalizeId(id);
     final response = await _api.post(
-      '/api/os/$id/enviar-recibo-whatsapp',
+      '/api/os/$idValue/enviar-recibo-whatsapp',
       body: {
         if (telefoneWhatsapp != null) 'telefoneWhatsapp': telefoneWhatsapp,
       },
@@ -106,3 +112,4 @@ class OsService {
     throw Exception(body['error'] ?? 'Erro ao enviar recibo via WhatsApp');
   }
 }
+

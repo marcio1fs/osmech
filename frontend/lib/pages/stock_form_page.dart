@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../services/stock_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../widgets/upper_text.dart';
 
 /// Formulário de cadastro e edição de peça/item de estoque.
 class StockFormPage extends StatefulWidget {
@@ -100,7 +101,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
                 content:
-                    Text('Erro ao carregar item', style: GoogleFonts.inter()),
+                    UpperText('Erro ao carregar item', style: GoogleFonts.inter()),
                 backgroundColor: AppColors.error),
           );
         }
@@ -148,7 +149,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text(isEditing ? 'Item atualizado!' : 'Item cadastrado!',
+              content: UpperText(isEditing ? 'Item atualizado!' : 'Item cadastrado!',
                   style: GoogleFonts.inter()),
               backgroundColor: AppColors.success),
         );
@@ -159,7 +160,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text(e.toString().replaceAll('Exception: ', ''),
+                content: UpperText(e.toString().replaceAll('Exception: ', ''),
                     style: GoogleFonts.inter()),
                 backgroundColor: AppColors.error),
           );
@@ -186,7 +187,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
             ),
             child: Row(
               children: [
-                Text(isEditing ? 'Editar Peça' : 'Nova Peça',
+                UpperText(isEditing ? 'Editar Peça' : 'Nova Peça',
                     style: GoogleFonts.inter(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
@@ -194,7 +195,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                 const Spacer(),
                 OutlinedButton(
                   onPressed: widget.onCancel ?? widget.onSaved,
-                  child: const Text('Cancelar'),
+                  child: const UpperText('Cancelar'),
                 ),
                 const SizedBox(width: 8),
                 FilledButton.icon(
@@ -206,7 +207,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: Colors.white))
                       : const Icon(Icons.save_rounded, size: 18),
-                  label: Text(_saving ? 'Salvando...' : 'Salvar'),
+                  label: UpperText(_saving ? 'Salvando...' : 'Salvar'),
                 ),
               ],
             ),
@@ -233,7 +234,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Text('Informações da Peça',
+                              UpperText('Informações da Peça',
                                   style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -274,7 +275,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                                       items: _categoriaLabels.entries
                                           .map((e) => DropdownMenuItem(
                                               value: e.key,
-                                              child: Text(e.value)))
+                                              child: UpperText(e.value)))
                                           .toList(),
                                       onChanged: (v) =>
                                           setState(() => _categoria = v!),
@@ -298,7 +299,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                               ),
                               const SizedBox(height: 24),
 
-                              Text('Quantidades',
+                              UpperText('Quantidades',
                                   style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -355,7 +356,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                               ),
                               const SizedBox(height: 24),
 
-                              Text('Preços',
+                              UpperText('Preços',
                                   style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -395,7 +396,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                               ),
                               const SizedBox(height: 24),
 
-                              Text('Localização',
+                              UpperText('Localização',
                                   style: GoogleFonts.inter(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,

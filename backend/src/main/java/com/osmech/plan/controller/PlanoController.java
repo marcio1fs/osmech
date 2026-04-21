@@ -13,7 +13,7 @@ import java.util.List;
  * Rotas públicas (não exigem JWT) — para exibir na tela de pricing.
  */
 @RestController
-@RequestMapping("/api/planos")
+@RequestMapping("/planos")
 @RequiredArgsConstructor
 public class PlanoController {
 

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../services/mecanico_service.dart';
 import '../theme/app_theme.dart';
+import '../widgets/upper_text.dart';
 
 class MecanicosPage extends StatefulWidget {
   const MecanicosPage({super.key});
@@ -45,17 +46,26 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
     }
   }
 
+  double? _parsePercentualComissao(String raw) {
+    final normalized = raw.replaceAll(',', '.').trim();
+    if (normalized.isEmpty) return 0;
+    return double.tryParse(normalized);
+  }
+
   Future<void> _abrirDialogo({Map<String, dynamic>? mecanico}) async {
     final nomeCtrl = TextEditingController(text: mecanico?['nome'] ?? '');
     final telCtrl = TextEditingController(text: mecanico?['telefone'] ?? '');
     final espCtrl =
         TextEditingController(text: mecanico?['especialidade'] ?? '');
+    final comissaoCtrl = TextEditingController(
+      text: (mecanico?['percentualComissao'] ?? 0).toString(),
+    );
     final isEdit = mecanico != null;
 
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text(isEdit ? 'Editar Mecânico' : 'Novo Mecânico',
+        title: UpperText(isEdit ? 'Editar Mecânico' : 'Novo Mecânico',
             style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
         content: SizedBox(
           width: 460,
@@ -76,32 +86,63 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                 controller: espCtrl,
                 decoration: const InputDecoration(labelText: 'Especialidade'),
               ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: comissaoCtrl,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(
+                  labelText: 'Comissao (%)',
+                  hintText: '0 a 100',
+                ),
+              ),
             ],
           ),
         ),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar')),
+              child: const UpperText('Cancelar')),
           FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Salvar'),
+            onPressed: () {
+              final nome = nomeCtrl.text.trim();
+              if (nome.isEmpty) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: UpperText('Nome do mecânico é obrigatório'),
+                        backgroundColor: AppColors.error),
+                  );
+                }
+                return;
+              }
+
+              final percentualComissao =
+                  _parsePercentualComissao(comissaoCtrl.text);
+              if (percentualComissao == null ||
+                  percentualComissao < 0 ||
+                  percentualComissao > 100) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                        content: UpperText('Informe uma comissao entre 0 e 100%'),
+                        backgroundColor: AppColors.error),
+                  );
+                }
+                return;
+              }
+
+              Navigator.pop(ctx, true);
+            },
+            child: const UpperText('Salvar'),
           ),
         ],
       ),
     );
 
     if (ok != true) return;
-    if (nomeCtrl.text.trim().isEmpty) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Nome do mecânico é obrigatório'),
-              backgroundColor: AppColors.error),
-        );
-      }
-      return;
-    }
+    final percentualComissao =
+        _parsePercentualComissao(comissaoCtrl.text) ?? 0;
 
     try {
       final service = MecanicoService(token: safeToken);
@@ -109,6 +150,7 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
         'nome': nomeCtrl.text.trim(),
         'telefone': telCtrl.text.trim(),
         'especialidade': espCtrl.text.trim(),
+        'percentualComissao': percentualComissao,
       };
       if (isEdit) {
         await service.atualizar(mecanico['id'] as int, payload);
@@ -120,14 +162,14 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
               content:
-                  Text(isEdit ? 'Mecânico atualizado' : 'Mecânico cadastrado'),
+                  UpperText(isEdit ? 'Mecânico atualizado' : 'Mecânico cadastrado'),
               backgroundColor: AppColors.success),
         );
       }
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: UpperText('Erro: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -146,7 +188,7 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
     } catch (e) {
       if (!handleAuthError(e) && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro: $e'), backgroundColor: AppColors.error),
+          SnackBar(content: UpperText('Erro: $e'), backgroundColor: AppColors.error),
         );
       }
     }
@@ -171,12 +213,12 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Mecânicos',
+                    UpperText('Mecânicos',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text('${_mecanicos.length} registro(s)',
+                    UpperText('${_mecanicos.length} registro(s)',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
@@ -189,18 +231,18 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                     _loadMecanicos();
                   },
                 ),
-                Text('Somente ativos', style: GoogleFonts.inter(fontSize: 12)),
+                UpperText('Somente ativos', style: GoogleFonts.inter(fontSize: 12)),
                 const SizedBox(width: 12),
                 OutlinedButton.icon(
                   onPressed: _loadMecanicos,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Atualizar'),
+                  label: const UpperText('Atualizar'),
                 ),
                 const SizedBox(width: 10),
                 FilledButton.icon(
                   onPressed: () => _abrirDialogo(),
                   icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-                  label: const Text('Novo Mecânico'),
+                  label: const UpperText('Novo Mecânico'),
                 ),
               ],
             ),
@@ -210,7 +252,7 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.accent))
                 : _error != null
-                    ? Center(child: Text(_error!, style: GoogleFonts.inter()))
+                    ? Center(child: UpperText(_error!, style: GoogleFonts.inter()))
                     : ListView.separated(
                         padding: const EdgeInsets.all(24),
                         itemCount: _mecanicos.length,
@@ -231,11 +273,11 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                 child: const Icon(Icons.engineering_rounded,
                                     color: AppColors.accent),
                               ),
-                              title: Text(m['nome'] ?? '-',
+                              title: UpperText(m['nome'] ?? '-',
                                   style: GoogleFonts.inter(
                                       fontWeight: FontWeight.w600)),
-                              subtitle: Text(
-                                '${m['especialidade'] ?? 'Sem especialidade'} • ${m['telefone'] ?? 'Sem telefone'}',
+                              subtitle: UpperText(
+                                '${m['especialidade'] ?? 'Sem especialidade'} • ${m['telefone'] ?? 'Sem telefone'} • Comissao: ${m['percentualComissao'] ?? 0}%',
                                 style: GoogleFonts.inter(fontSize: 12),
                               ),
                               trailing: Row(
@@ -252,7 +294,7 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                               .withValues(alpha: 0.12),
                                       borderRadius: BorderRadius.circular(20),
                                     ),
-                                    child: Text(
+                                    child: UpperText(
                                       ativo ? 'Ativo' : 'Inativo',
                                       style: GoogleFonts.inter(
                                           fontSize: 12,
@@ -289,3 +331,6 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
     );
   }
 }
+
+
+

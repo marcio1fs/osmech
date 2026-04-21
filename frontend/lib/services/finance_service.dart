@@ -113,6 +113,19 @@ class FinanceService {
     throw Exception(body['error'] ?? 'Erro ao carregar fluxo de caixa');
   }
 
+  /// Retorna as transações de um dia específico.
+  Future<List<Map<String, dynamic>>> getTransacoesDia(String data) async {
+    final response = await _api
+        .get('/api/finance/cashflow/day', queryParams: {'data': data});
+
+    if (response.statusCode == 200) {
+      final List<dynamic> d = jsonDecode(response.body);
+      return d.cast<Map<String, dynamic>>();
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao carregar transações do dia');
+  }
+
   // ==========================================
   // RESUMO FINANCEIRO
   // ==========================================
@@ -126,5 +139,15 @@ class FinanceService {
     }
     final body = jsonDecode(response.body);
     throw Exception(body['error'] ?? 'Erro ao carregar resumo financeiro');
+  }
+
+  /// Retorna receita/despesa dos últimos 7 dias para o mini gráfico.
+  Future<List<Map<String, dynamic>>> getTendencia7Dias() async {
+    final response = await _api.get('/api/finance/tendencia');
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao carregar tendência');
   }
 }

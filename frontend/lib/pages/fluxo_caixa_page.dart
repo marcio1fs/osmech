@@ -4,6 +4,7 @@ import '../services/finance_service.dart';
 import '../theme/app_theme.dart';
 import '../mixins/auth_error_mixin.dart';
 import '../utils/formatters.dart';
+import '../widgets/upper_text.dart';
 
 /// Tela de Fluxo de Caixa com visualização diária.
 class FluxoCaixaPage extends StatefulWidget {
@@ -65,9 +66,11 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.accent,
+            colorScheme: const ColorScheme.dark(
+              primary: AppColors.primary,
               onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
             ),
           ),
           child: child!,
@@ -112,12 +115,12 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Fluxo de Caixa',
+                    UpperText('Fluxo de Caixa',
                         style: GoogleFonts.inter(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary)),
-                    Text(
+                    UpperText(
                         '${formatDateBR(_formatDate(_inicio))} a ${formatDateBR(_formatDate(_fim))}',
                         style: GoogleFonts.inter(
                             fontSize: 13, color: AppColors.textSecondary)),
@@ -127,13 +130,13 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                 OutlinedButton.icon(
                   onPressed: _selecionarPeriodo,
                   icon: const Icon(Icons.date_range_rounded, size: 18),
-                  label: const Text('Período'),
+                  label: const UpperText('Período'),
                 ),
                 const SizedBox(width: 8),
                 OutlinedButton.icon(
                   onPressed: _loadFluxo,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
-                  label: const Text('Atualizar'),
+                  label: const UpperText('Atualizar'),
                 ),
               ],
             ),
@@ -152,13 +155,13 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                             const Icon(Icons.error_outline_rounded,
                                 size: 48, color: AppColors.error),
                             const SizedBox(height: 12),
-                            Text(_error!,
+                            UpperText(_error!,
                                 style: GoogleFonts.inter(
                                     color: AppColors.textSecondary)),
                             const SizedBox(height: 12),
                             FilledButton(
                                 onPressed: _loadFluxo,
-                                child: const Text('Tentar novamente')),
+                                child: const UpperText('Tentar novamente')),
                           ],
                         ),
                       )
@@ -225,7 +228,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
                                                 color: AppColors.textMuted
                                                     .withValues(alpha: 0.5)),
                                             const SizedBox(height: 8),
-                                            Text(
+                                            UpperText(
                                                 'Nenhum dado no período selecionado',
                                                 style: GoogleFonts.inter(
                                                     color: AppColors
@@ -312,7 +315,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
   Widget _tableHeader(String text) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-      child: Text(text,
+      child: UpperText(text,
           style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w700,
@@ -323,7 +326,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
   Widget _tableCell(String text, {Color? color, bool bold = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-      child: Text(text,
+      child: UpperText(text,
           style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
@@ -368,13 +371,13 @@ class _SummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
+                UpperText(label,
                     style: GoogleFonts.inter(
                         fontSize: 12,
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
-                Text(value,
+                UpperText(value,
                     style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,

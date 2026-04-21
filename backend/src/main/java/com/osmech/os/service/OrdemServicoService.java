@@ -5,6 +5,8 @@ import com.osmech.finance.dto.TransacaoRequest;
 import com.osmech.finance.dto.TransacaoResponse;
 import com.osmech.finance.repository.TransacaoFinanceiraRepository;
 import com.osmech.finance.service.FinanceiroService;
+import com.osmech.mecanico.entity.Mecanico;
+import com.osmech.mecanico.repository.MecanicoRepository;
 import com.osmech.notification.service.WhatsAppService;
 import com.osmech.os.dto.*;
 import com.osmech.os.entity.ItemOS;
@@ -30,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.YearMonth;
@@ -52,6 +55,7 @@ public class OrdemServicoService {
     private final PlanoRepository planoRepository;
     private final ServicoOSRepository servicoOSRepository;
     private final ItemOSRepository itemOSRepository;
+    private final MecanicoRepository mecanicoRepository;
     private final StockItemRepository stockItemRepository;
     private final StockService stockService;
     private final TransacaoFinanceiraRepository transacaoFinanceiraRepository;
@@ -65,12 +69,15 @@ public class OrdemServicoService {
     @Transactional
     public OrdemServicoResponse criar(String emailUsuario, OrdemServicoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
+        String placaNormalizada = normalizarPlaca(request.getPlaca());
+        String clienteCpf = normalizarDocumento(request.getClienteCpf(), 11);
+        String clienteCnpj = normalizarDocumento(request.getClienteCnpj(), 14);
 
         // Verificar limite do plano
         verificarLimitePlano(usuario);
 
         // Validar campo obrigatório placa
-        if (request.getPlaca() == null || request.getPlaca().isBlank()) {
+        if (placaNormalizada == null || placaNormalizada.isBlank()) {
             throw new IllegalArgumentException("Placa é obrigatória");
         }
 
@@ -88,10 +95,10 @@ public class OrdemServicoService {
         OrdemServico os = OrdemServico.builder()
                 .usuarioId(usuario.getId())
                 .clienteNome(request.getClienteNome())
-                .clienteCpf(request.getClienteCpf())
-                .clienteCnpj(request.getClienteCnpj())
+                .clienteCpf(clienteCpf)
+                .clienteCnpj(clienteCnpj)
                 .clienteTelefone(request.getClienteTelefone())
-                .placa(request.getPlaca().toUpperCase())
+                .placa(placaNormalizada)
                 .modelo(request.getModelo())
                 .montadora(request.getMontadora())
                 .corVeiculo(request.getCorVeiculo())
@@ -129,9 +136,15 @@ public class OrdemServicoService {
         return osRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
                 .stream()
                 .map(os -> {
-                    List<ServicoOS> servicos = servicoOSRepository.findByOrdemServicoId(os.getId());
-                    List<ItemOS> itens = itemOSRepository.findByOrdemServicoId(os.getId());
-                    return toResponse(os, servicos, itens);
+                    try {
+                        List<ServicoOS> servicos = servicoOSRepository.findByOrdemServicoId(os.getId());
+                        List<ItemOS> itens = itemOSRepository.findByOrdemServicoId(os.getId());
+                        return toResponse(os, servicos, itens);
+                    } catch (Exception e) {
+                        log.warn("Falha ao carregar relacionamentos da OS #{} para o usuario {}. Retornando dados basicos. Motivo: {}",
+                                os.getId(), usuario.getId(), e.getMessage());
+                        return toResponse(os, List.of(), List.of());
+                    }
                 })
                 .toList();
     }
@@ -171,13 +184,18 @@ public class OrdemServicoService {
 
         // Captura status anterior para detectar mudança para CONCLUIDA
         String statusAnterior = os.getStatus();
+        String placaNormalizada = normalizarPlaca(request.getPlaca());
+        String clienteCpf = normalizarDocumento(request.getClienteCpf(), 11);
+        String clienteCnpj = normalizarDocumento(request.getClienteCnpj(), 14);
 
         // Atualiza campos básicos
         if (request.getClienteNome() != null) os.setClienteNome(request.getClienteNome());
-        if (request.getClienteCpf() != null) os.setClienteCpf(request.getClienteCpf());
-        if (request.getClienteCnpj() != null) os.setClienteCnpj(request.getClienteCnpj());
+        if (request.getClienteCpf() != null) os.setClienteCpf(clienteCpf);
+        if (request.getClienteCnpj() != null) os.setClienteCnpj(clienteCnpj);
         if (request.getClienteTelefone() != null) os.setClienteTelefone(request.getClienteTelefone());
-        if (request.getPlaca() != null) os.setPlaca(request.getPlaca().toUpperCase());
+        if (request.getPlaca() != null && placaNormalizada != null && !placaNormalizada.isBlank()) {
+            os.setPlaca(placaNormalizada);
+        }
         if (request.getModelo() != null) os.setModelo(request.getModelo());
         if (request.getMontadora() != null) os.setMontadora(request.getMontadora());
         if (request.getCorVeiculo() != null) os.setCorVeiculo(request.getCorVeiculo());
@@ -293,14 +311,27 @@ public class OrdemServicoService {
         metodoPagamento = metodoPagamento.trim().toUpperCase();
         TransacaoResponse transacao = null;
 
+        // Calcula desconto (0–10%)
+        BigDecimal descontoPerc = request.getDescontoPercentual() != null
+                ? request.getDescontoPercentual().min(BigDecimal.TEN).max(BigDecimal.ZERO)
+                : BigDecimal.ZERO;
+        BigDecimal valorOriginal = os.getValor() != null ? os.getValor() : BigDecimal.ZERO;
+        BigDecimal valorDesconto = valorOriginal.multiply(descontoPerc)
+                .divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal valorFinal = valorOriginal.subtract(valorDesconto);
+
         boolean jaTemTransacaoOs = transacaoFinanceiraRepository
                 .existsByUsuarioIdAndReferenciaTipoAndReferenciaIdAndEstornoFalse(usuario.getId(), "OS", os.getId());
 
-        if (!jaTemTransacaoOs && os.getValor() != null && os.getValor().signum() > 0) {
+        if (!jaTemTransacaoOs && valorFinal.signum() > 0) {
             TransacaoRequest transacaoRequest = new TransacaoRequest();
             transacaoRequest.setTipo("ENTRADA");
-            transacaoRequest.setDescricao("Recebimento OS #" + os.getId() + " - " + os.getClienteNome());
-            transacaoRequest.setValor(os.getValor());
+            String descricao = "Recebimento OS #" + os.getId() + " - " + os.getClienteNome();
+            if (descontoPerc.signum() > 0) {
+                descricao += " (desconto " + descontoPerc.stripTrailingZeros().toPlainString() + "%)";
+            }
+            transacaoRequest.setDescricao(descricao);
+            transacaoRequest.setValor(valorFinal);
             transacaoRequest.setReferenciaTipo("OS");
             transacaoRequest.setReferenciaId(os.getId());
             transacaoRequest.setMetodoPagamento(metodoPagamento);
@@ -342,6 +373,9 @@ public class OrdemServicoService {
                 .whatsappEnviado(whatsappEnviado)
                 .whatsappDestino(whatsappDestino)
                 .whatsappDetalhe(whatsappDetalhe)
+                .descontoPercentual(descontoPerc)
+                .valorDesconto(valorDesconto)
+                .valorFinal(valorFinal)
                 .build();
     }
 
@@ -371,6 +405,39 @@ public class OrdemServicoService {
     }
 
     /**
+     * Atualiza apenas o status de uma Ordem de Serviço.
+     */
+    @Transactional
+    public OrdemServicoResponse atualizarStatus(String emailUsuario, Long osId, String novoStatus) {
+        Usuario usuario = getUsuario(emailUsuario);
+        OrdemServico os = osRepository.findById(osId)
+                .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
+
+        if (!os.getUsuarioId().equals(usuario.getId())) {
+            throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
+        }
+
+        // Validação de transição de status
+        StatusOS statusAtual = StatusOS.fromString(os.getStatus());
+        StatusOS novoStatusEnum = StatusOS.fromString(novoStatus);
+        
+        if (!statusAtual.podeTransicionarPara(novoStatusEnum)) {
+            throw new IllegalArgumentException(
+                    "Transição de status inválida: " + os.getStatus() + " → " + novoStatus +
+                    ". Transições permitidas: " + getTransicoesPermitidas(statusAtual));
+        }
+        
+        os.setStatus(novoStatusEnum.name());
+        os.setAtualizadoEm(LocalDateTime.now());
+        
+        osRepository.save(os);
+        
+        return toResponse(os, 
+                servicoOSRepository.findByOrdemServicoId(osId),
+                itemOSRepository.findByOrdemServicoId(osId));
+    }
+
+    /**
      * Retorna estatísticas do dashboard.
      */
     @Transactional(readOnly = true)
@@ -388,7 +455,13 @@ public class OrdemServicoService {
                 osRepository.countByUsuarioIdAndStatus(uid, "ABERTA"),
                 osRepository.countByUsuarioIdAndStatus(uid, "EM_ANDAMENTO"),
                 osRepository.countByUsuarioIdAndStatus(uid, "CONCLUIDA"),
-                osRepository.countByUsuarioIdAndCriadoEmBetween(uid, inicioMes, fimMes)
+                osRepository.countByUsuarioIdAndCriadoEmBetween(uid, inicioMes, fimMes),
+                osRepository.countByUsuarioIdAndStatus(uid, "AGUARDANDO_PECA"),
+                osRepository.countByUsuarioIdAndStatus(uid, "AGUARDANDO_APROVACAO"),
+                osRepository.countByUsuarioIdAndStatus(uid, "CANCELADA"),
+                osRepository.countByUsuarioIdAndCriadoEmBetween(uid,
+                        LocalDate.now().atStartOfDay(),
+                        LocalDate.now().atTime(LocalTime.MAX))
         );
     }
 
@@ -442,6 +515,10 @@ public class OrdemServicoService {
                         .quantidade(s.getQuantidade())
                         .valorUnitario(s.getValorUnitario())
                         .valorTotal(s.getValorTotal())
+                        .mecanicoId(s.getMecanicoId())
+                        .mecanicoNome(s.getMecanicoNome())
+                        .percentualComissao(s.getPercentualComissao())
+                        .valorComissao(s.getValorComissao())
                         .build())
                 .toList() : List.of();
 
@@ -577,6 +654,35 @@ public class OrdemServicoService {
         return usuario.getNome();
     }
 
+    private Mecanico resolverMecanicoServico(Long usuarioId, Long mecanicoId) {
+        if (mecanicoId == null) {
+            return null;
+        }
+
+        Mecanico mecanico = mecanicoRepository.findById(mecanicoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Mecanico nao encontrado: " + mecanicoId));
+
+        if (!mecanico.getUsuarioId().equals(usuarioId)) {
+            throw new AccessDeniedException("Mecanico nao pertence a esta oficina");
+        }
+
+        if (!Boolean.TRUE.equals(mecanico.getAtivo())) {
+            throw new IllegalArgumentException("Mecanico inativo nao pode receber comissao");
+        }
+
+        return mecanico;
+    }
+
+    private BigDecimal resolverPercentualComissao(ServicoOSRequest request, Mecanico mecanico) {
+        if (request.getPercentualComissao() != null) {
+            return request.getPercentualComissao();
+        }
+        if (mecanico != null && mecanico.getPercentualComissao() != null) {
+            return mecanico.getPercentualComissao();
+        }
+        return BigDecimal.ZERO;
+    }
+
     private String montarEnderecoOficina(Usuario usuario) {
         List<String> partes = new ArrayList<>();
         String logradouro = defaultText(usuario.getEnderecoLogradouro());
@@ -624,11 +730,16 @@ public class OrdemServicoService {
 
         List<ServicoOS> servicos = new ArrayList<>();
         for (ServicoOSRequest req : servicoRequests) {
+            Mecanico mecanico = resolverMecanicoServico(os.getUsuarioId(), req.getMecanicoId());
+            BigDecimal percentualComissao = resolverPercentualComissao(req, mecanico);
             ServicoOS servico = ServicoOS.builder()
                     .ordemServico(os)
                     .descricao(req.getDescricao())
                     .quantidade(req.getQuantidade())
                     .valorUnitario(req.getValorUnitario())
+                    .mecanicoId(mecanico != null ? mecanico.getId() : null)
+                    .mecanicoNome(mecanico != null ? mecanico.getNome() : null)
+                    .percentualComissao(percentualComissao)
                     .build();
             servico.calcularTotal();
             servicos.add(servicoOSRepository.save(servico));
@@ -751,5 +862,37 @@ public class OrdemServicoService {
     /**
      * Record para estatísticas do dashboard.
      */
-    public record DashboardStats(long total, long abertas, long emAndamento, long concluidas, long esteMes) {}
+    public record DashboardStats(
+        long total,
+        long abertas,
+        long emAndamento,
+        long concluidas,
+        long esteMes,
+        long aguardandoPeca,
+        long aguardandoAprovacao,
+        long canceladas,
+        long concluidasHoje
+    ) {}
+
+    private String normalizarDocumento(String documento, int tamanhoEsperado) {
+        if (documento == null) {
+            return null;
+        }
+
+        String digits = documento.replaceAll("\\D", "");
+        if (digits.isBlank()) {
+            return null;
+        }
+
+        return digits.length() == tamanhoEsperado ? digits : documento.trim();
+    }
+
+    private String normalizarPlaca(String placa) {
+        if (placa == null) {
+            return null;
+        }
+
+        String normalizada = placa.replaceAll("[^A-Za-z0-9]", "").toUpperCase().trim();
+        return normalizada.isBlank() ? null : normalizada;
+    }
 }
