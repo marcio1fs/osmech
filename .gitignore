@@ -75,6 +75,7 @@ backend-*.log
 frontend-*.log
 
 # === Maven local repo e temporários na raiz ===
+.m2/
 .m2repo/
 tmp/
 export
