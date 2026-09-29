@@ -83,6 +83,30 @@ public class Usuario {
     @Builder.Default
     private Boolean ativo = true;
 
+    // --- Campos de verificação de e-mail e recuperação de senha (migration V7) ---
+
+    /**
+     * Indica se o e-mail do usuário foi verificado.
+     * Mantido nullable de propósito: em bancos legados com ddl-auto=update,
+     * uma coluna nova NOT NULL falharia no ALTER TABLE com linhas existentes.
+     * Leituras devem usar Boolean.TRUE.equals(...) (null = não verificado).
+     */
+    @Column(name = "email_verificado")
+    @Builder.Default
+    private Boolean emailVerificado = false;
+
+    /** Token único de verificação de e-mail (null após verificado) */
+    @Column(name = "verification_token")
+    private String verificationToken;
+
+    /** Token único de recuperação de senha (null após uso/expiração) */
+    @Column(name = "reset_password_token")
+    private String resetPasswordToken;
+
+    /** Expiração do token de recuperação de senha */
+    @Column(name = "reset_password_token_expiry")
+    private LocalDateTime resetPasswordTokenExpiry;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime criadoEm = LocalDateTime.now();

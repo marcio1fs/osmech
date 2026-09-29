@@ -14,11 +14,12 @@ import java.util.stream.Collectors;
 
 /**
  * Controller para operações administrativas restritas aos administradores do sistema.
+ * O papel é referenciado via enum Papel (fonte única de verdade) em vez de String solta.
  */
 @RestController
 @RequestMapping("/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
+@PreAuthorize("hasRole(T(com.osmech.user.entity.Papel).ADMIN.name())")
 public class AdminController {
 
     private final UsuarioRepository usuarioRepository;

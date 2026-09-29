@@ -32,19 +32,44 @@ public class JwtUtil {
     }
 
     /**
-     * Gera um token JWT para o usuário informado.
+     * Gera um token JWT para o usuário informado (sem claim de id).
      */
     public String generateToken(String email, String role) {
+        return generateToken(email, role, null);
+    }
+
+    /**
+     * Gera um token JWT para o usuário informado.
+     *
+     * @param email  subject do token
+     * @param role   papel atual (claim "role") — útil para UX no frontend;
+     *               a autorização server-side usa sempre o papel do banco
+     * @param userId id do usuário (claim "uid"); pode ser null
+     */
+    public String generateToken(String email, String role, Long userId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(email)
                 .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(key)
-                .compact();
+                .signWith(key);
+
+        if (userId != null) {
+            builder.claim("uid", userId);
+        }
+
+        return builder.compact();
+    }
+
+    /**
+     * Extrai o id do usuário (claim "uid") do token, se presente.
+     */
+    public Long getUserIdFromToken(String token) {
+        Object uid = parseClaims(token).get("uid");
+        return uid instanceof Number number ? number.longValue() : null;
     }
 
     /**
