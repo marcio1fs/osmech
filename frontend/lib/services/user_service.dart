@@ -54,6 +54,16 @@ class UserService {
   }
 
   /// Altera a senha do usuário.
+  /// Ativa ou desativa o 2FA por código de e-mail (Fase 4). Exige a senha.
+  Future<void> alterar2fa({required String senha, required bool ativar}) async {
+    final path = ativar ? '/api/usuario/2fa/ativar' : '/api/usuario/2fa/desativar';
+    final response = await _api.put(path, body: {'senha': senha});
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Erro ao alterar 2FA');
+    }
+  }
+
   Future<void> alterarSenha({
     required String senhaAtual,
     required String novaSenha,

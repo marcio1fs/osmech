@@ -1,5 +1,6 @@
 package com.osmech.security;
 
+import com.osmech.user.entity.Papel;
 import com.osmech.user.entity.Usuario;
 import com.osmech.user.repository.UsuarioRepository;
 import jakarta.servlet.FilterChain;
@@ -21,6 +22,15 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Filtro que intercepta requisições HTTP e valida o token JWT no header Authorization.
+ *
+ * O usuário é carregado do banco a cada request, o que garante:
+ *  - conta inativada perde acesso no próximo request;
+ *  - o papel usado na autorização é SEMPRE o do banco (não o do token, que
+ *    poderia ficar defasado até a expiração do JWT).
+ *
+ * O principal exposto é {@link UsuarioAutenticado} (id + email + papel);
+ * como ele implementa {@link java.security.Principal}, {@code auth.getName()}
+ * continua retornando o e-mail para os services existentes.
  */
 @Component
 @RequiredArgsConstructor
@@ -43,15 +53,26 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (jwtUtil.validateToken(token)) {
                 String email = jwtUtil.getEmailFromToken(token);
-                String role = jwtUtil.getRoleFromToken(token);
 
-                // Verifica se o usuário ainda existe no banco
+                // Usuário precisa existir e estar ativo — papel vem do banco (sempre fresco)
                 Usuario usuario = usuarioRepository.findByEmail(email).orElse(null);
 
                 if (usuario != null && Boolean.TRUE.equals(usuario.getAtivo())) {
-                    var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-                    var authToken = new UsernamePasswordAuthenticationToken(email, null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                    if (usuario.getOficinaId() == null) {
+                        // Tenant obrigatório desde a Fase 1 — OficinaBackfillRunner normalmente resolve no boot
+                        log.error("Usuário {} sem oficina vinculada; acesso negado até o backfill.", email);
+                    } else {
+                        Papel papel = Papel.from(usuario.getRole());
+                        // ADMIN da plataforma herda todas as permissões de DONO
+                        var authorities = papel == Papel.ADMIN
+                                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"),
+                                          new SimpleGrantedAuthority("ROLE_DONO"))
+                                : List.of(new SimpleGrantedAuthority("ROLE_" + papel.name()));
+                        var principal = new UsuarioAutenticado(
+                                usuario.getId(), usuario.getOficinaId(), usuario.getEmail(), papel.name());
+                        var authToken = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                        SecurityContextHolder.getContext().setAuthentication(authToken);
+                    }
                 } else {
                     log.warn("JWT válido mas usuário não encontrado ou inativo: {}", email);
                 }

@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'pages/login_page.dart';
 import 'pages/checkout_return_page.dart';
+import 'pages/aceitar_convite_page.dart';
+import 'pages/dois_fa_page.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/upper_text.dart';
 import 'theme/app_theme.dart';
@@ -44,6 +46,12 @@ class OsmechApp extends StatelessWidget {
       return path;
     }
 
+    // Aceite de convite: /aceitar-convite?token=... (fragment ou path)
+    final fragmentBase = fragment.split('?').first;
+    if (fragmentBase == '/aceitar-convite' || path == '/aceitar-convite') {
+      return '/aceitar-convite';
+    }
+
     return '/';
   }
 
@@ -69,12 +77,12 @@ class OsmechApp extends StatelessWidget {
             SingleActivator(LogicalKeyboardKey.f4): _NavIntent(3),   // Pagamentos
             SingleActivator(LogicalKeyboardKey.f5): _NavIntent(4),   // Assinatura
             SingleActivator(LogicalKeyboardKey.f6): _NavIntent(5),   // Mecânicos
-            SingleActivator(LogicalKeyboardKey.f7): _NavIntent(6),   // Financeiro
-            SingleActivator(LogicalKeyboardKey.f8): _NavIntent(11),  // Estoque
-            SingleActivator(LogicalKeyboardKey.f9): _NavIntent(15),  // IA OSMECH
-            SingleActivator(LogicalKeyboardKey.f10): _NavIntent(18), // Relatórios
-            SingleActivator(LogicalKeyboardKey.f11): _NavIntent(19), // Administração
-            SingleActivator(LogicalKeyboardKey.f12): _NavIntent(16), // Meu Perfil
+            SingleActivator(LogicalKeyboardKey.f7): _NavIntent(7),   // Financeiro
+            SingleActivator(LogicalKeyboardKey.f8): _NavIntent(12),  // Estoque
+            SingleActivator(LogicalKeyboardKey.f9): _NavIntent(16),  // IA OSMECH
+            SingleActivator(LogicalKeyboardKey.f10): _NavIntent(19), // Relatórios
+            SingleActivator(LogicalKeyboardKey.f11): _NavIntent(20), // Administração
+            SingleActivator(LogicalKeyboardKey.f12): _NavIntent(17), // Meu Perfil
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
@@ -87,6 +95,7 @@ class OsmechApp extends StatelessWidget {
       },
       routes: {
         '/': (context) => const _AuthGate(),
+        '/aceitar-convite': (context) => const AceitarConvitePage(),
         '/assinatura/sucesso': (context) =>
             const CheckoutReturnPage(result: 'sucesso'),
         '/assinatura/pendente': (context) =>
@@ -153,6 +162,10 @@ class _AuthGate extends StatelessWidget {
         }
         if (auth.isAuthenticated) {
           return const UpperCaseScope(enabled: true, child: AppShell());
+        }
+        if (auth.requer2fa) {
+          // Senha correta, aguardando o código de verificação (Fase 4)
+          return const DoisFaPage();
         }
         return const LoginPage();
       },

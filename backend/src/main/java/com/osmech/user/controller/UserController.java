@@ -1,6 +1,7 @@
 package com.osmech.user.controller;
 
 import com.osmech.user.dto.ChangePasswordRequest;
+import com.osmech.user.dto.SenhaConfirmacaoRequest;
 import com.osmech.user.dto.UserProfileRequest;
 import com.osmech.user.dto.UserProfileResponse;
 import com.osmech.user.service.UserService;
@@ -41,6 +42,22 @@ public class UserController {
                                                               @Valid @RequestBody ChangePasswordRequest request) {
         userService.alterarSenha(auth.getName(), request);
         return ResponseEntity.ok(Map.of("message", "Senha alterada com sucesso"));
+    }
+
+    /** PUT /api/usuario/2fa/ativar - Ativa 2FA por e-mail (exige senha atual) */
+    @PutMapping("/2fa/ativar")
+    public ResponseEntity<Map<String, String>> ativar2fa(Authentication auth,
+                                                           @Valid @RequestBody SenhaConfirmacaoRequest request) {
+        userService.alterarDoisFa(auth.getName(), request.getSenha(), true);
+        return ResponseEntity.ok(Map.of("message", "Verificação em duas etapas ativada"));
+    }
+
+    /** PUT /api/usuario/2fa/desativar - Desativa 2FA (exige senha atual) */
+    @PutMapping("/2fa/desativar")
+    public ResponseEntity<Map<String, String>> desativar2fa(Authentication auth,
+                                                           @Valid @RequestBody SenhaConfirmacaoRequest request) {
+        userService.alterarDoisFa(auth.getName(), request.getSenha(), false);
+        return ResponseEntity.ok(Map.of("message", "Verificação em duas etapas desativada"));
     }
 
     /** POST /api/usuario/logo - Faz upload da logo da oficina */

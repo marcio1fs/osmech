@@ -5,6 +5,7 @@ import com.osmech.auth.dto.LoginRequest;
 import com.osmech.auth.dto.RegisterRequest;
 import com.osmech.auth.dto.ForgotPasswordRequest;
 import com.osmech.auth.dto.ResetPasswordRequest;
+import com.osmech.auth.dto.SessaoDtos;
 import com.osmech.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -33,11 +34,52 @@ public class AuthController {
 
     /**
      * POST /api/auth/login
-     * Autentica o usuário e retorna o token JWT.
+     * Autentica o usuário e retorna o token JWT + refresh token.
+     * Com 2FA ativo, retorna o desafio (sem tokens).
      */
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ResponseEntity.ok(authService.login(request));
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request,
+                                              @RequestHeader(value = "User-Agent", required = false) String userAgent) {
+        return ResponseEntity.ok(authService.login(request, userAgent));
+    }
+
+    /**
+     * POST /api/auth/refresh
+     * Troca o refresh token por novo par access+refresh (rotação).
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refresh(@Valid @RequestBody SessaoDtos.RefreshRequest request,
+                                                @RequestHeader(value = "User-Agent", required = false) String userAgent) {
+        return ResponseEntity.ok(authService.refresh(request.getRefreshToken(), userAgent));
+    }
+
+    /**
+     * POST /api/auth/logout
+     * Revoga a sessão identificada pelo refresh token.
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout(@RequestBody(required = false) SessaoDtos.RefreshRequest request) {
+        authService.logout(request == null ? null : request.getRefreshToken());
+        return ResponseEntity.ok().build();
+    }
+
+    /**
+     * POST /api/auth/2fa/verificar
+     * Conclui o login de quem tem 2FA ativo.
+     */
+    @PostMapping("/2fa/verificar")
+    public ResponseEntity<AuthResponse> verificar2fa(@Valid @RequestBody SessaoDtos.DoisFaVerificarRequest request,
+                                                     @RequestHeader(value = "User-Agent", required = false) String userAgent) {
+        return ResponseEntity.ok(authService.verificar2fa(request.getSessao(), request.getCodigo(), userAgent));
+    }
+
+    /**
+     * POST /api/auth/2fa/reenviar
+     */
+    @PostMapping("/2fa/reenviar")
+    public ResponseEntity<Void> reenviar2fa(@Valid @RequestBody SessaoDtos.DoisFaReenviarRequest request) {
+        authService.reenviar2fa(request.getSessao());
+        return ResponseEntity.ok().build();
     }
 
     /**
