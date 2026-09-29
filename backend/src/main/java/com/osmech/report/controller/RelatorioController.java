@@ -16,6 +16,8 @@ import java.io.ByteArrayOutputStream;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller para geração de relatórios do sistema.
@@ -23,17 +25,22 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/relatorios")
+@PreAuthorize(PapeisSeguranca.GESTORES)
 @RequiredArgsConstructor
 public class RelatorioController {
 
     private final RelatorioService relatorioService;
     private final UsuarioRepository usuarioRepository;
 
+    /**
+     * Resolve o identificador do TENANT (oficina) do usuário autenticado.
+     * O método mantém o nome histórico, mas retorna o oficina_id.
+     */
     private Long getUsuarioId(Authentication auth) {
         if (auth == null) return null;
         String email = auth.getName();
         return usuarioRepository.findByEmail(email)
-            .map(Usuario::getId)
+            .map(Usuario::getOficinaId)
             .orElse(null);
     }
 

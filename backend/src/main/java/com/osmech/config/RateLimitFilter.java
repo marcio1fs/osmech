@@ -42,8 +42,12 @@ public abstract class RateLimitFilter implements Filter {
             return;
         }
 
-        // Verifica rate limiting para login
-        if (path.contains("/auth/login") || path.contains("/auth/register")) {
+        // Verifica rate limiting para rotas sensíveis (login, cadastro, recuperação, convites, sessão e 2FA)
+        if (path.contains("/auth/login") || path.contains("/auth/register")
+                || path.contains("/auth/forgot-password") || path.contains("/auth/reset-password")
+                || path.contains("/auth/verify-email") || path.contains("/auth/convites")
+                || path.contains("/auth/refresh") || path.contains("/auth/logout")
+                || path.contains("/auth/2fa") || path.contains("/auth/reenviar-verificacao")) {
             if (!checkLoginRateLimit(clientIp, httpResponse)) {
                 return;
             }
