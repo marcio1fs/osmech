@@ -56,7 +56,7 @@ public class OsWhatsAppController {
         OrdemServico os = osRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordem de Servico nao encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new IllegalArgumentException("Acesso negado a esta Ordem de Servico");
         }
 
@@ -96,7 +96,7 @@ public class OsWhatsAppController {
         OrdemServico os = osRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordem de Servico nao encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new IllegalArgumentException("Acesso negado a esta Ordem de Servico");
         }
 

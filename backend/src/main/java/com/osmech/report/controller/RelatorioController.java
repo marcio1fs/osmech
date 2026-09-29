@@ -29,11 +29,15 @@ public class RelatorioController {
     private final RelatorioService relatorioService;
     private final UsuarioRepository usuarioRepository;
 
+    /**
+     * Resolve o identificador do TENANT (oficina) do usuário autenticado.
+     * O método mantém o nome histórico, mas retorna o oficina_id.
+     */
     private Long getUsuarioId(Authentication auth) {
         if (auth == null) return null;
         String email = auth.getName();
         return usuarioRepository.findByEmail(email)
-            .map(Usuario::getId)
+            .map(Usuario::getOficinaId)
             .orElse(null);
     }
 
