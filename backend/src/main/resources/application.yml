@@ -58,6 +58,18 @@ app:
     expiration-ms: ${JWT_EXPIRATION:86400000}  # 24 horas
   upload:
     logo-dir: ${UPLOAD_LOGO_DIR:uploads/logos}
+  frontend:
+    # URL publica do frontend (usada nos links de e-mail de verificacao/recuperacao)
+    url: ${APP_FRONTEND_URL:https://www.osmech.com.br}
+  admin:
+    # Email da conta de administrador protegida pelo AdminBootstrap
+    email: ${ADMIN_EMAIL:marciofs426@gmail.com}
+    # Senha inicial do admin: redefine a senha seed exposta (V10) ou cria a conta.
+    # NUNCA sobrescreve uma senha que o dono ja tenha trocado.
+    initial-password: ${ADMIN_INITIAL_PASSWORD:}
+  auth:
+    # true = exige e-mail verificado no login (default false p/ nao quebrar contas legadas)
+    require-verified-email: ${AUTH_REQUIRE_VERIFIED_EMAIL:false}
 
 # Dev/local: não exigir configuração de envio de e-mail
 # (evita falha de startup quando JavaMailSender não está configurado)

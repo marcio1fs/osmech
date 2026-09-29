@@ -1,6 +1,8 @@
 package com.osmech.user.service;
 
 import com.osmech.config.ResourceNotFoundException;
+import com.osmech.oficina.entity.Oficina;
+import com.osmech.oficina.repository.OficinaRepository;
 import com.osmech.user.dto.ChangePasswordRequest;
 import com.osmech.user.dto.UserProfileRequest;
 import com.osmech.user.dto.UserProfileResponse;
@@ -28,6 +30,7 @@ import java.util.UUID;
 public class UserService {
 
     private final UsuarioRepository usuarioRepository;
+    private final OficinaRepository oficinaRepository;
     private final PasswordEncoder passwordEncoder;
 
     @Value("${app.upload.logo-dir:/app/uploads/logos}")
@@ -88,8 +91,37 @@ public class UserService {
         }
 
         usuarioRepository.save(usuario);
+        sincronizarDadosEmpresaNaOficina(usuario);
         log.info("Perfil atualizado para usuário: {}", email);
         return toResponse(usuario);
+    }
+
+    /**
+     * Espelha os dados de empresa do usuário na entidade Oficina (tenant).
+     * A partir da Fase 1, Oficina é a fonte autoritativa dos dados da empresa;
+     * os campos em usuarios permanecem como espelho para telas legadas.
+     */
+    private void sincronizarDadosEmpresaNaOficina(Usuario usuario) {
+        if (usuario.getOficinaId() == null) {
+            return;
+        }
+        oficinaRepository.findById(usuario.getOficinaId()).ifPresent(oficina -> {
+            String nome = usuario.getNomeOficina();
+            oficina.setNome(nome != null && !nome.isBlank() ? nome : usuario.getNome());
+            oficina.setCnpj(usuario.getCnpjOficina());
+            oficina.setTelefone(usuario.getTelefone());
+            oficina.setEmail(usuario.getEmail());
+            oficina.setEnderecoLogradouro(usuario.getEnderecoLogradouro());
+            oficina.setEnderecoNumero(usuario.getEnderecoNumero());
+            oficina.setEnderecoComplemento(usuario.getEnderecoComplemento());
+            oficina.setEnderecoBairro(usuario.getEnderecoBairro());
+            oficina.setEnderecoCidade(usuario.getEnderecoCidade());
+            oficina.setEnderecoEstado(usuario.getEnderecoEstado());
+            oficina.setEnderecoCep(usuario.getEnderecoCep());
+            oficina.setSite(usuario.getSiteOficina());
+            oficina.setLogoUrl(usuario.getLogoUrl());
+            oficinaRepository.save(oficina);
+        });
     }
 
     /**
@@ -145,6 +177,7 @@ public class UserService {
         String logoUrlPath = "/api/uploads/logos/" + newFilename;
         usuario.setLogoUrl(logoUrlPath);
         usuarioRepository.save(usuario);
+        sincronizarDadosEmpresaNaOficina(usuario);
 
         log.info("Logo atualizada para usuário: {}", email);
         return logoUrlPath;

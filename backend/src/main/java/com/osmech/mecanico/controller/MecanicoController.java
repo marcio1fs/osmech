@@ -11,14 +11,18 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/mecanicos")
+@PreAuthorize(PapeisSeguranca.MEMBROS_OFICINA)
 @RequiredArgsConstructor
 public class MecanicoController {
 
     private final MecanicoService mecanicoService;
 
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PostMapping
     public ResponseEntity<MecanicoResponse> criar(Authentication auth, @Valid @RequestBody MecanicoRequest request) {
         return ResponseEntity.ok(mecanicoService.criar(auth.getName(), request));
@@ -35,18 +39,21 @@ public class MecanicoController {
         return ResponseEntity.ok(mecanicoService.buscarPorId(auth.getName(), id));
     }
 
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PutMapping("/{id}")
     public ResponseEntity<MecanicoResponse> atualizar(Authentication auth, @PathVariable Long id,
                                                       @Valid @RequestBody MecanicoRequest request) {
         return ResponseEntity.ok(mecanicoService.atualizar(auth.getName(), id, request));
     }
 
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> desativar(Authentication auth, @PathVariable Long id) {
         mecanicoService.desativar(auth.getName(), id);
         return ResponseEntity.ok(Map.of("message", "Mecânico desativado com sucesso"));
     }
 
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PatchMapping("/{id}/reativar")
     public ResponseEntity<Map<String, String>> reativar(Authentication auth, @PathVariable Long id) {
         mecanicoService.reativar(auth.getName(), id);

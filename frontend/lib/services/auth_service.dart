@@ -117,6 +117,24 @@ class AuthService extends ChangeNotifier {
     }
   }
 
+  /// Aplica uma sessão já autenticada (ex.: retorno do aceite de convite,
+  /// que já vem com token JWT). Persiste e notifica ouvintes.
+  Future<void> aplicarAutenticacao({
+    required String token,
+    String? email,
+    String? nome,
+    String? role,
+    String? plano,
+  }) async {
+    _token = token;
+    _email = email;
+    _nome = nome;
+    _role = role;
+    _plano = plano;
+    await _saveToPrefs();
+    notifyListeners();
+  }
+
   /// Realiza cadastro na API.
   Future<String?> register({
     required String nome,

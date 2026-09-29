@@ -70,6 +70,24 @@ public class EmailService {
         enviarEmail(to, subject, message);
     }
 
+    public void enviarEmailConvite(String to, String nomeOficina, String papel, String token) {
+        if (!emailEnabled || mailSender == null) {
+            log.warn("[EmailService] SMTP não configurado. Ignorando envio de convite para {}", to);
+            return;
+        }
+
+        String subject = "Convite para equipe - OSMECH";
+        String link = frontendUrl + "/aceitar-convite?token=" + token;
+        String message = "Olá,\n\nVocê foi convidado para entrar na equipe da oficina \"" + nomeOficina
+                + "\" no OSMECH, com o papel " + papel + ".\n"
+                + "Para aceitar o convite e criar o seu acesso, clique no link abaixo:\n\n"
+                + link + "\n\n"
+                + "Este convite expira em 7 dias.\n\n"
+                + "Se você não esperava este convite, ignore este e-mail.";
+
+        enviarEmail(to, subject, message);
+    }
+
     private void enviarEmail(String to, String subject, String content) {
         try {
             SimpleMailMessage message = new SimpleMailMessage();

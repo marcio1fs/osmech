@@ -45,7 +45,7 @@ public class PagamentoService {
         Usuario usuario = getUsuario(emailUsuario);
 
         Pagamento pagamento = Pagamento.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .tipo(request.getTipo())
                 .referenciaId(request.getReferenciaId())
                 .descricao(request.getDescricao())
@@ -70,7 +70,7 @@ public class PagamentoService {
         Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado"));
 
-        if (!pagamento.getUsuarioId().equals(usuario.getId())) {
+        if (!pagamento.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
@@ -100,7 +100,7 @@ public class PagamentoService {
         Pagamento pagamento = pagamentoRepository.findById(pagamentoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado"));
 
-        if (!pagamento.getUsuarioId().equals(usuario.getId())) {
+        if (!pagamento.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
@@ -121,7 +121,7 @@ public class PagamentoService {
     @Transactional(readOnly = true)
     public List<PagamentoResponse> listar(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        return pagamentoRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+        return pagamentoRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getOficinaId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -133,7 +133,7 @@ public class PagamentoService {
     @Transactional(readOnly = true)
     public List<PagamentoResponse> listarPorTipo(String emailUsuario, String tipo) {
         Usuario usuario = getUsuario(emailUsuario);
-        return pagamentoRepository.findByUsuarioIdAndTipoOrderByCriadoEmDesc(usuario.getId(), tipo)
+        return pagamentoRepository.findByUsuarioIdAndTipoOrderByCriadoEmDesc(usuario.getOficinaId(), tipo)
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -148,7 +148,7 @@ public class PagamentoService {
         Pagamento pagamento = pagamentoRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Pagamento não encontrado"));
 
-        if (!pagamento.getUsuarioId().equals(usuario.getId())) {
+        if (!pagamento.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a este pagamento");
         }
 
@@ -161,7 +161,7 @@ public class PagamentoService {
     @Transactional(readOnly = true)
     public ResumoFinanceiroResponse getResumoFinanceiro(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        Long uid = usuario.getId();
+        Long uid = usuario.getOficinaId();
 
         // Período do mês atual
         YearMonth mesAtual = YearMonth.now();
