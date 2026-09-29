@@ -74,17 +74,17 @@ public class ChatService {
         }
 
         ChatMessage userMsg = ChatMessage.builder()
-                .usuarioId(user.getId())
+                .usuarioId(user.getOficinaId())
                 .sessionId(sessionId)
                 .role("user")
                 .content(request.getMessage())
                 .build();
         chatRepository.save(userMsg);
 
-        String aiResponse = gerarResposta(user.getId(), sessionId, request.getMessage());
+        String aiResponse = gerarResposta(user.getOficinaId(), sessionId, request.getMessage());
 
         ChatMessage aiMsg = ChatMessage.builder()
-                .usuarioId(user.getId())
+                .usuarioId(user.getOficinaId())
                 .sessionId(sessionId)
                 .role("assistant")
                 .content(aiResponse)
@@ -97,7 +97,7 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<ChatResponse> getHistoricoSessao(String sessionId, Authentication auth) {
         Usuario user = getUsuario(auth);
-        return chatRepository.findByUsuarioIdAndSessionIdOrderByCriadoEmAsc(user.getId(), sessionId)
+        return chatRepository.findByUsuarioIdAndSessionIdOrderByCriadoEmAsc(user.getOficinaId(), sessionId)
                 .stream()
                 .map(ChatResponse::fromEntity)
                 .collect(Collectors.toList());
@@ -106,13 +106,13 @@ public class ChatService {
     @Transactional(readOnly = true)
     public List<String> getSessoes(Authentication auth) {
         Usuario user = getUsuario(auth);
-        return chatRepository.findSessionsByUsuarioId(user.getId());
+        return chatRepository.findSessionsByUsuarioId(user.getOficinaId());
     }
 
     @Transactional
     public void deletarSessao(String sessionId, Authentication auth) {
         Usuario user = getUsuario(auth);
-        chatRepository.deleteByUsuarioIdAndSessionId(user.getId(), sessionId);
+        chatRepository.deleteByUsuarioIdAndSessionId(user.getOficinaId(), sessionId);
     }
 
     private String gerarResposta(Long usuarioId, String sessionId, String userMessage) {

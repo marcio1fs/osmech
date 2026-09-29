@@ -54,6 +54,36 @@ class UserService {
   }
 
   /// Altera a senha do usuário.
+  /// Lista as sessões ativas do usuário (a atual vem marcada).
+  Future<List<Map<String, dynamic>>> listarSessoes({String? refreshToken}) async {
+    final response = await _api.post('/api/usuario/sessoes',
+        body: refreshToken == null ? {} : {'refreshToken': refreshToken});
+    if (response.statusCode == 200) {
+      return List<Map<String, dynamic>>.from(jsonDecode(response.body));
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar sessões');
+  }
+
+  /// Encerra todas as sessões do usuário ("sair de todos os dispositivos").
+  Future<void> logoutTodasSessoes() async {
+    final response = await _api.post('/api/usuario/logout-todos', body: {});
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Erro ao encerrar sessões');
+    }
+  }
+
+  /// Ativa ou desativa o 2FA por código de e-mail (Fase 4). Exige a senha.
+  Future<void> alterar2fa({required String senha, required bool ativar}) async {
+    final path = ativar ? '/api/usuario/2fa/ativar' : '/api/usuario/2fa/desativar';
+    final response = await _api.put(path, body: {'senha': senha});
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Erro ao alterar 2FA');
+    }
+  }
+
   Future<void> alterarSenha({
     required String senhaAtual,
     required String novaSenha,
@@ -87,5 +117,49 @@ class UserService {
     }
     final body = jsonDecode(response.body);
     throw Exception(body['error'] ?? 'Erro ao carregar dados do admin');
+  }
+
+  /// Lista usuários paginados para a administração (busca por nome/e-mail/oficina).
+  Future<Map<String, dynamic>> listarUsuariosAdmin(
+      {String? termo, int pagina = 0, int tamanho = 25}) async {
+    final params = <String, String>{
+      'pagina': '$pagina',
+      'tamanho': '$tamanho',
+    };
+    if (termo != null && termo.trim().isNotEmpty) params['termo'] = termo.trim();
+    final query = Uri(queryParameters: params).query;
+    final response = await _api.get('/api/admin/usuarios?$query');
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao listar usuários');
+  }
+
+  /// Ativa/inativa a conta de um usuário (admin).
+  Future<Map<String, dynamic>> adminDefinirAtivo(int id, bool ativo) async {
+    final response =
+        await _api.put('/api/admin/usuarios/$id/ativo', body: {'ativo': ativo});
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao atualizar status');
+  }
+
+  /// Altera o plano de um usuário (admin).
+  Future<Map<String, dynamic>> adminDefinirPlano(int id, String plano) async {
+    final response = await _api
+        .put('/api/admin/usuarios/$id/plano', body: {'plano': plano});
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao alterar plano');
+  }
+
+  /// Altera o papel (role) de um usuário (admin).
+  Future<Map<String, dynamic>> adminDefinirPapel(int id, String role) async {
+    final response =
+        await _api.put('/api/admin/usuarios/$id/role', body: {'role': role});
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    final body = jsonDecode(response.body);
+    throw Exception(body['error'] ?? 'Erro ao alterar papel');
   }
 }

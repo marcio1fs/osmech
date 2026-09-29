@@ -32,19 +32,63 @@ public class JwtUtil {
     }
 
     /**
-     * Gera um token JWT para o usuário informado.
+     * Gera um token JWT para o usuário informado (sem claims de id).
      */
     public String generateToken(String email, String role) {
+        return generateToken(email, role, null, null);
+    }
+
+    /**
+     * Gera um token JWT para o usuário informado (sem claim de oficina).
+     */
+    public String generateToken(String email, String role, Long userId) {
+        return generateToken(email, role, userId, null);
+    }
+
+    /**
+     * Gera um token JWT para o usuário informado.
+     *
+     * @param email     subject do token
+     * @param role      papel atual (claim "role") — útil para UX no frontend;
+     *                  a autorização server-side usa sempre o papel do banco
+     * @param userId    id do usuário (claim "uid"); pode ser null
+     * @param oficinaId id da oficina/tenant (claim "oid"); pode ser null
+     */
+    public String generateToken(String email, String role, Long userId, Long oficinaId) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
-        return Jwts.builder()
+        var builder = Jwts.builder()
                 .subject(email)
                 .claim("role", role)
                 .issuedAt(now)
                 .expiration(expiry)
-                .signWith(key)
-                .compact();
+                .signWith(key);
+
+        if (userId != null) {
+            builder.claim("uid", userId);
+        }
+        if (oficinaId != null) {
+            builder.claim("oid", oficinaId);
+        }
+
+        return builder.compact();
+    }
+
+    /**
+     * Extrai o id do usuário (claim "uid") do token, se presente.
+     */
+    public Long getUserIdFromToken(String token) {
+        Object uid = parseClaims(token).get("uid");
+        return uid instanceof Number number ? number.longValue() : null;
+    }
+
+    /**
+     * Extrai o id da oficina/tenant (claim "oid") do token, se presente.
+     */
+    public Long getOficinaIdFromToken(String token) {
+        Object oid = parseClaims(token).get("oid");
+        return oid instanceof Number number ? number.longValue() : null;
     }
 
     /**
