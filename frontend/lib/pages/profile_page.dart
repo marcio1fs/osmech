@@ -50,6 +50,8 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   bool _loading = true;
   bool _savingProfile = false;
   bool _savingPassword = false;
+  bool _doisFaAtivo = false;
+  bool _salvando2fa = false;
   bool _showSenhaAtual = false;
   bool _showNovaSenha = false;
   bool _applyingMask = false;
@@ -180,6 +182,7 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
             ? perfil['criadoEm'].toString().substring(0, 10)
             : '';
         _logoUrl = perfil['logoUrl'];
+        _doisFaAtivo = perfil['doisFaAtivo'] == true;
         _loading = false;
       });
     } catch (e) {
@@ -597,12 +600,202 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                     ),
                   ],
                 ),
+
+                const SizedBox(height: 24),
+
+                // Card: Verificação em duas etapas (Fase 4)
+                _buildCard(
+                  title: 'Verificação em Duas Etapas',
+                  icon: Icons.shield_rounded,
+                  children: [
+                    Text(
+                      'Ao entrar, além da senha, você precisará digitar um código de 6 dígitos que enviamos para o seu e-mail.',
+                      style: GoogleFonts.inter(
+                          fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _doisFaAtivo
+                                ? Icons.verified_user_rounded
+                                : Icons.gpp_maybe_rounded,
+                            color: _doisFaAtivo
+                                ? AppColors.success
+                                : AppColors.textSecondary,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _doisFaAtivo ? '2FA ATIVADO' : '2FA DESATIVADO',
+                              style: GoogleFonts.inter(
+                                  fontSize: 14, fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          _salvando2fa
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2))
+                              : Switch(
+                                  value: _doisFaAtivo,
+                                  onChanged: _salvando2fa
+                                      ? null
+                                      : (v) => _confirmar2fa(v),
+                                ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: const Icon(Icons.devices_rounded, size: 18),
+                        label: UpperText('Sair de todos os dispositivos'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.warning,
+                          side: const BorderSide(color: AppColors.warning),
+                        ),
+                        onPressed: _confirmarLogoutTodos,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
         ),
       ),
     );
+  }
+
+  /// Encerra todas as sessões no backend e faz logout local (Fase 4).
+  Future<void> _confirmarLogoutTodos() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: UpperText('Sair de todos os dispositivos?',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Text(
+          'Você (e todas as outras sessões da sua conta) será desconectado e precisará entrar de novo.',
+          style:
+              GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton.icon(
+            icon: const Icon(Icons.logout_rounded, size: 16),
+            label: const Text('Sair de tudo'),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+            onPressed: () => Navigator.pop(ctx, true),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !mounted) return;
+    try {
+      final service = UserService(token: safeToken);
+      await service.logoutTodasSessoes();
+    } catch (_) {
+      // Mesmo offline, faz logout local — o refresh expira sozinho
+    }
+    if (!mounted) return;
+    await context.read<AuthService>().logout();
+  }
+
+  /// Pede a senha atual e liga/desliga o 2FA (Fase 4).
+  Future<void> _confirmar2fa(bool ativar) async {
+    final senhaCtrl = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: UpperText(
+            ativar ? 'Ativar 2FA' : 'Desativar 2FA',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              ativar
+                  ? 'Para ativar, confirme sua senha atual. No próximo login você usará o código enviado por e-mail.'
+                  : 'Para desativar, confirme sua senha atual. Suas outras sessões serão encerradas.',
+              style: GoogleFonts.inter(
+                  fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: senhaCtrl,
+              obscureText: true,
+              autofocus: true,
+              decoration: const InputDecoration(
+                labelText: 'Senha atual',
+                prefixIcon: Icon(Icons.lock_outline),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(ativar ? 'Ativar' : 'Desativar'),
+          ),
+        ],
+      ),
+    );
+
+    if (ok != true || !mounted) return;
+    setState(() => _salvando2fa = true);
+    try {
+      final service = UserService(token: safeToken);
+      await service.alterar2fa(senha: senhaCtrl.text, ativar: ativar);
+      if (!mounted) return;
+      setState(() {
+        _doisFaAtivo = ativar;
+        _salvando2fa = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText(
+            ativar
+                ? 'Verificação em duas etapas ativada!'
+                : 'Verificação em duas etapas desativada.',
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.success,
+      ));
+
+      // Ao desativar, o backend encerrou as outras sessões — renova a própria
+      if (!ativar) {
+        await context.read<AuthService>().refreshSession();
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _salvando2fa = false);
+      if (handleAuthError(e)) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText(
+            e.toString().replaceFirst('Exception: ', ''),
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.error,
+      ));
+    }
   }
 
   Widget _badge(String text, Color color) {

@@ -258,7 +258,21 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
+
+                        // Recuperar senha (Fase 0 — fluxo via e-mail)
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/recuperar-senha'),
+                          child: Text(
+                            'Esqueci minha senha',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
                         // Divider
                         Row(

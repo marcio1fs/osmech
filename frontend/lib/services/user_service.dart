@@ -54,6 +54,25 @@ class UserService {
   }
 
   /// Altera a senha do usuário.
+  /// Encerra todas as sessões do usuário ("sair de todos os dispositivos").
+  Future<void> logoutTodasSessoes() async {
+    final response = await _api.post('/api/usuario/logout-todos', body: {});
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Erro ao encerrar sessões');
+    }
+  }
+
+  /// Ativa ou desativa o 2FA por código de e-mail (Fase 4). Exige a senha.
+  Future<void> alterar2fa({required String senha, required bool ativar}) async {
+    final path = ativar ? '/api/usuario/2fa/ativar' : '/api/usuario/2fa/desativar';
+    final response = await _api.put(path, body: {'senha': senha});
+    if (response.statusCode != 200) {
+      final body = jsonDecode(response.body);
+      throw Exception(body['error'] ?? 'Erro ao alterar 2FA');
+    }
+  }
+
   Future<void> alterarSenha({
     required String senhaAtual,
     required String novaSenha,

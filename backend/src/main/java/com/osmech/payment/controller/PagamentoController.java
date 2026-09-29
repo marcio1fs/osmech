@@ -11,12 +11,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller REST para Pagamentos.
  */
 @RestController
 @RequestMapping("/pagamento")
+@PreAuthorize(PapeisSeguranca.SOMENTE_DONO)
 @RequiredArgsConstructor
 public class PagamentoController {
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,6 +10,7 @@ import '../pages/dashboard_page.dart';
 import '../pages/os_list_page.dart';
 import '../pages/os_form_page.dart';
 import '../pages/mecanicos_page.dart';
+import '../pages/equipe_page.dart';
 import '../pages/pricing_page.dart';
 import '../pages/subscription_page.dart';
 import '../pages/payment_history_page.dart';
@@ -42,16 +44,30 @@ class _AppShellState extends State<AppShell> {
   bool _sidebarExpanded = true;
   int? _editStockItemId;
   int? _movimentacaoItemId;
+  Timer? _sessionTimer;
 
   @override
   void initState() {
     super.initState();
     _selectedIndex = widget.initialIndex;
     globalNavNotifier.addListener(_onGlobalNav);
+    _iniciarTimerDeSessao();
+  }
+
+  /// Renova o access token silenciosamente enquanto o app fica aberto (Fase 4).
+  void _iniciarTimerDeSessao() {
+    _sessionTimer = Timer.periodic(const Duration(minutes: 2), (_) {
+      final auth = Provider.of<AuthService>(context, listen: false);
+      if (auth.refreshToken == null) return;
+      final resta = auth.token == null ? 0 : auth.tokenSecondsRemaining;
+      // Janela: renova quando faltam < 5 min (ou já expirou)
+      if (resta < 300) auth.refreshSession();
+    });
   }
 
   @override
   void dispose() {
+    _sessionTimer?.cancel();
     globalNavNotifier.removeListener(_onGlobalNav);
     super.dispose();
   }
@@ -67,7 +83,8 @@ class _AppShellState extends State<AppShell> {
     final item = _navItems[index];
     final auth = Provider.of<AuthService>(context, listen: false);
     final isAdmin = auth.role == 'ADMIN';
-    if (item.adminOnly && !isAdmin) {
+    final role = auth.role == 'OFICINA' ? 'DONO' : (auth.role ?? '');
+    if (!_itemVisivel(item, role, isAdmin)) {
       return;
     }
     setState(() => _selectedIndex = index);
@@ -94,36 +111,50 @@ class _AppShellState extends State<AppShell> {
     _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
     _NavItem(icon: Icons.assignment_rounded, label: 'Ordens de Serviço'),
     _NavItem(icon: Icons.add_circle_outline_rounded, label: 'Nova OS'),
-    _NavItem(icon: Icons.payments_rounded, label: 'Pagamentos'),
-    _NavItem(icon: Icons.card_membership_rounded, label: 'Assinatura'),
+    _NavItem(icon: Icons.payments_rounded, label: 'Pagamentos', roles: {'DONO'}),
+    _NavItem(icon: Icons.card_membership_rounded, label: 'Assinatura', roles: {'DONO'}),
     _NavItem(
         icon: Icons.engineering_rounded, label: 'Mecânicos', section: 'EQUIPE'),
     _NavItem(
+        icon: Icons.groups_rounded,
+        label: 'Equipe',
+        roles: {'DONO'}),
+    _NavItem(
         icon: Icons.bar_chart_rounded,
         label: 'Financeiro',
-        section: 'FINANCEIRO'),
-    _NavItem(icon: Icons.add_card_rounded, label: 'Novo Lançamento'),
-    _NavItem(icon: Icons.category_rounded, label: 'Categorias'),
-    _NavItem(icon: Icons.trending_up_rounded, label: 'Fluxo de Caixa'),
-    _NavItem(icon: Icons.receipt_long_rounded, label: 'Histórico'),
+        section: 'FINANCEIRO',
+        roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.add_card_rounded, label: 'Novo Lançamento', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.category_rounded, label: 'Categorias', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.trending_up_rounded, label: 'Fluxo de Caixa', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.receipt_long_rounded, label: 'Histórico', roles: {'DONO', 'GERENTE'}),
     _NavItem(
         icon: Icons.inventory_2_rounded, label: 'Estoque', section: 'ESTOQUE'),
-    _NavItem(icon: Icons.add_box_rounded, label: 'Nova Peça'),
-    _NavItem(icon: Icons.swap_vert_rounded, label: 'Movimentação'),
+    _NavItem(icon: Icons.add_box_rounded, label: 'Nova Peça', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.swap_vert_rounded, label: 'Movimentação', roles: {'DONO', 'GERENTE'}),
     _NavItem(icon: Icons.notification_important_rounded, label: 'Alertas'),
     _NavItem(
         icon: Icons.smart_toy_rounded,
         label: 'IA OSMECH',
         section: 'ASSISTENTE'),
     _NavItem(icon: Icons.person_rounded, label: 'Meu Perfil', section: 'CONTA'),
-    _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos'),
-    _NavItem(icon: Icons.assessment_rounded, label: 'Relatórios', section: 'RELATORIOS'),
+    _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos', roles: {'DONO'}),
+    _NavItem(icon: Icons.assessment_rounded, label: 'Relatórios', section: 'RELATORIOS', roles: {'DONO', 'GERENTE'}),
     _NavItem(
         icon: Icons.admin_panel_settings_rounded,
         label: 'Administração',
         section: 'ADMINISTRADOR',
         adminOnly: true),
   ];
+
+  /// Item do menu visível? ADMIN vê tudo; adminOnly exige ADMIN;
+  /// `roles` restringe aos papéis listados (DONO, GERENTE, ...).
+  bool _itemVisivel(_NavItem item, String role, bool isAdmin) {
+    if (isAdmin) return true;
+    if (item.adminOnly) return false;
+    if (item.roles == null) return true;
+    return item.roles!.contains(role);
+  }
 
   Widget _getPage(int index) {
     switch (index) {
@@ -143,74 +174,76 @@ class _AppShellState extends State<AppShell> {
       case 5:
         return const MecanicosPage();
       case 6:
-        return FinancialDashboardPage(
-          onNavigateTransacoes: () => setState(() => _selectedIndex = 10),
-          onNavigateNovaTransacao: () => setState(() => _selectedIndex = 7),
-          onNavigateFluxoCaixa: () => setState(() => _selectedIndex = 9),
-          onNavigateCategorias: () => setState(() => _selectedIndex = 8),
-        );
+        return const EquipePage();
       case 7:
-        return TransacaoFormPage(
-          onSaved: () => setState(() => _selectedIndex = 10),
+        return FinancialDashboardPage(
+          onNavigateTransacoes: () => setState(() => _selectedIndex = 11),
+          onNavigateNovaTransacao: () => setState(() => _selectedIndex = 8),
+          onNavigateFluxoCaixa: () => setState(() => _selectedIndex = 10),
+          onNavigateCategorias: () => setState(() => _selectedIndex = 9),
         );
       case 8:
-        return const CategoriasPage();
+        return TransacaoFormPage(
+          onSaved: () => setState(() => _selectedIndex = 11),
+        );
       case 9:
-        return const FluxoCaixaPage();
+        return const CategoriasPage();
       case 10:
-        return const TransacoesHistoricoPage();
+        return const FluxoCaixaPage();
       case 11:
+        return const TransacoesHistoricoPage();
+      case 12:
         return StockListPage(
-          onNavigateNovaPeca: () => setState(() => _selectedIndex = 12),
-          onNavigateMovimentacao: () => setState(() => _selectedIndex = 13),
-          onNavigateAlertas: () => setState(() => _selectedIndex = 14),
+          onNavigateNovaPeca: () => setState(() => _selectedIndex = 13),
+          onNavigateMovimentacao: () => setState(() => _selectedIndex = 14),
+          onNavigateAlertas: () => setState(() => _selectedIndex = 15),
           onEditarItem: (id) {
             setState(() {
               _editStockItemId = id;
-              _selectedIndex = 12;
+              _selectedIndex = 13;
             });
           },
         );
-      case 12:
+      case 13:
         final editId = _editStockItemId;
         return StockFormPage(
           editItemId: editId,
           onSaved: () => setState(() {
             _editStockItemId = null;
-            _selectedIndex = 11;
+            _selectedIndex = 12;
           }),
           onCancel: () => setState(() {
             _editStockItemId = null;
-            _selectedIndex = 11;
+            _selectedIndex = 12;
           }),
         );
-      case 13:
+      case 14:
         final movItemId = _movimentacaoItemId;
         return StockMovementPage(
           preSelectedItemId: movItemId,
           onSaved: () => setState(() {
             _movimentacaoItemId = null;
-            _selectedIndex = 11;
+            _selectedIndex = 12;
           }),
         );
-      case 14:
+      case 15:
         return StockAlertsPage(
           onEntradaEstoque: (id) {
             setState(() {
               _movimentacaoItemId = id;
-              _selectedIndex = 13;
+              _selectedIndex = 14;
             });
           },
         );
-      case 15:
-        return const ChatPage();
       case 16:
-        return const ProfilePage();
+        return const ChatPage();
       case 17:
-        return const PricingPage();
+        return const ProfilePage();
       case 18:
-        return const RelatoriosPage();
+        return const PricingPage();
       case 19:
+        return const RelatoriosPage();
+      case 20:
         return const AdminDashboardPage();
       default:
         return DashboardPage(
@@ -225,12 +258,12 @@ class _AppShellState extends State<AppShell> {
     final isMobile = screenWidth < 768;
 
     final isAdmin = auth.role == 'ADMIN';
+    final role = auth.role == 'OFICINA' ? 'DONO' : (auth.role ?? '');
     final List<_VisibleNavItem> visibleItems = [];
     for (int i = 0; i < _navItems.length; i++) {
       final item = _navItems[i];
-      if (!item.adminOnly || isAdmin) {
-        visibleItems.add(_VisibleNavItem(originalIndex: i, item: item));
-      }
+      if (!_itemVisivel(item, role, isAdmin)) continue;
+      visibleItems.add(_VisibleNavItem(originalIndex: i, item: item));
     }
 
     Widget mainWidget;
@@ -689,11 +722,16 @@ class _NavItem {
   final String label;
   final String? section;
   final bool adminOnly;
+
+  /// Papéis (ROLE_*) que veem o item. null = todos os membros.
+  /// Usuário ADMIN sempre vê tudo.
+  final Set<String>? roles;
   const _NavItem({
     required this.icon,
     required this.label,
     this.section,
     this.adminOnly = false,
+    this.roles,
   });
 }
 
