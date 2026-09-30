@@ -131,6 +131,36 @@ public class Usuario {
     @Column(name = "atualizado_em")
     private LocalDateTime atualizadoEm;
 
+    /** Getter alias para compatibilidade com código que usa getResetTokenExpiry */
+    public LocalDateTime getResetTokenExpiry() {
+        return resetPasswordTokenExpiry;
+    }
+
+    /** Setter alias para compatibilidade com código que usa setResetTokenExpiry */
+    public void setResetTokenExpiry(LocalDateTime resetTokenExpiry) {
+        this.resetPasswordTokenExpiry = resetTokenExpiry;
+    }
+
+    /**
+     * ID do usuário dono da oficina (para sub-usuários como ATENDENTE, MECANICO etc.)
+     * NULL para usuários donos de oficina (OFICINA/GERENTE/ADMIN).
+     */
+    @Column(name = "owner_id")
+    private Long ownerId;
+
+    /** Data/hora do último acesso autenticado ao sistema. */
+    @Column(name = "ultimo_acesso")
+    private LocalDateTime ultimoAcesso;
+
+    /**
+     * Permissões granulares adicionais específicas atribuídas diretamente a este usuário.
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "usuario_permissions", joinColumns = @JoinColumn(name = "usuario_id"))
+    @Column(name = "permission_code")
+    @Builder.Default
+    private java.util.Set<String> customPermissions = new java.util.HashSet<>();
+
     @PreUpdate
     protected void onUpdate() {
         this.atualizadoEm = LocalDateTime.now();

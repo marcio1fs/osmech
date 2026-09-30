@@ -27,6 +27,7 @@ import '../pages/chat_page.dart';
 import '../pages/profile_page.dart';
 import '../pages/relatorios_page.dart';
 import '../pages/admin_dashboard_page.dart';
+import '../pages/usuarios_page.dart';
 import '../widgets/upper_text.dart';
 
 /// Shell principal com sidebar persistente para navegação web.
@@ -84,7 +85,7 @@ class _AppShellState extends State<AppShell> {
     final auth = Provider.of<AuthService>(context, listen: false);
     final isAdmin = auth.role == 'ADMIN';
     final role = auth.role == 'OFICINA' ? 'DONO' : (auth.role ?? '');
-    if (!_itemVisivel(item, role, isAdmin)) {
+    if (!_itemVisivel(item, auth, role, isAdmin)) {
       return;
     }
     setState(() => _selectedIndex = index);
@@ -108,13 +109,19 @@ class _AppShellState extends State<AppShell> {
   }
 
   final List<_NavItem> _navItems = const [
-    _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard'),
-    _NavItem(icon: Icons.assignment_rounded, label: 'Ordens de Serviço'),
-    _NavItem(icon: Icons.add_circle_outline_rounded, label: 'Nova OS'),
-    _NavItem(icon: Icons.payments_rounded, label: 'Pagamentos', roles: {'DONO'}),
-    _NavItem(icon: Icons.card_membership_rounded, label: 'Assinatura', roles: {'DONO'}),
+    _NavItem(icon: Icons.dashboard_rounded, label: 'Dashboard',
+        requiredPermission: 'dashboard.visualizar'),
+    _NavItem(icon: Icons.assignment_rounded, label: 'Ordens de Serviço',
+        requiredPermission: 'os.visualizar'),
+    _NavItem(icon: Icons.add_circle_outline_rounded, label: 'Nova OS',
+        requiredPermission: 'os.criar'),
+    _NavItem(icon: Icons.payments_rounded, label: 'Pagamentos',
+        requiredPermission: 'pagamentos.visualizar', roles: {'DONO'}),
+    _NavItem(icon: Icons.card_membership_rounded, label: 'Assinatura',
+        requiredPermission: 'assinatura.visualizar', roles: {'DONO'}),
     _NavItem(
-        icon: Icons.engineering_rounded, label: 'Mecânicos', section: 'EQUIPE'),
+        icon: Icons.engineering_rounded, label: 'Mecânicos', section: 'EQUIPE',
+        requiredPermission: 'mecanicos.visualizar'),
     _NavItem(
         icon: Icons.groups_rounded,
         label: 'Equipe',
@@ -123,35 +130,58 @@ class _AppShellState extends State<AppShell> {
         icon: Icons.bar_chart_rounded,
         label: 'Financeiro',
         section: 'FINANCEIRO',
+        requiredPermission: 'financeiro.visualizar',
         roles: {'DONO', 'GERENTE'}),
-    _NavItem(icon: Icons.add_card_rounded, label: 'Novo Lançamento', roles: {'DONO', 'GERENTE'}),
-    _NavItem(icon: Icons.category_rounded, label: 'Categorias', roles: {'DONO', 'GERENTE'}),
-    _NavItem(icon: Icons.trending_up_rounded, label: 'Fluxo de Caixa', roles: {'DONO', 'GERENTE'}),
-    _NavItem(icon: Icons.receipt_long_rounded, label: 'Histórico', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.add_card_rounded, label: 'Novo Lançamento',
+        requiredPermission: 'financeiro.criar', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.category_rounded, label: 'Categorias',
+        requiredPermission: 'categorias.visualizar', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.trending_up_rounded, label: 'Fluxo de Caixa',
+        requiredPermission: 'fluxo_caixa.visualizar', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.receipt_long_rounded, label: 'Histórico',
+        requiredPermission: 'historico.visualizar', roles: {'DONO', 'GERENTE'}),
     _NavItem(
-        icon: Icons.inventory_2_rounded, label: 'Estoque', section: 'ESTOQUE'),
-    _NavItem(icon: Icons.add_box_rounded, label: 'Nova Peça', roles: {'DONO', 'GERENTE'}),
-    _NavItem(icon: Icons.swap_vert_rounded, label: 'Movimentação', roles: {'DONO', 'GERENTE'}),
-    _NavItem(icon: Icons.notification_important_rounded, label: 'Alertas'),
+        icon: Icons.inventory_2_rounded, label: 'Estoque', section: 'ESTOQUE',
+        requiredPermission: 'estoque.visualizar'),
+    _NavItem(icon: Icons.add_box_rounded, label: 'Nova Peça',
+        requiredPermission: 'estoque.criar', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.swap_vert_rounded, label: 'Movimentação',
+        requiredPermission: 'estoque.entrada', roles: {'DONO', 'GERENTE'}),
+    _NavItem(icon: Icons.notification_important_rounded, label: 'Alertas',
+        requiredPermission: 'estoque.visualizar'),
     _NavItem(
         icon: Icons.smart_toy_rounded,
         label: 'IA OSMECH',
-        section: 'ASSISTENTE'),
-    _NavItem(icon: Icons.person_rounded, label: 'Meu Perfil', section: 'CONTA'),
-    _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos', roles: {'DONO'}),
-    _NavItem(icon: Icons.assessment_rounded, label: 'Relatórios', section: 'RELATORIOS', roles: {'DONO', 'GERENTE'}),
+        section: 'ASSISTENTE',
+        requiredPermission: 'chat.usar'),
+    _NavItem(icon: Icons.person_rounded, label: 'Meu Perfil', section: 'CONTA',
+        requiredPermission: 'perfil.visualizar'),
+    _NavItem(icon: Icons.workspace_premium_rounded, label: 'Planos',
+        requiredPermission: 'assinatura.visualizar', roles: {'DONO'}),
+    _NavItem(icon: Icons.assessment_rounded, label: 'Relatórios', section: 'RELATORIOS',
+        requiredPermission: 'relatorios.visualizar', roles: {'DONO', 'GERENTE'}),
     _NavItem(
         icon: Icons.admin_panel_settings_rounded,
         label: 'Administração',
         section: 'ADMINISTRADOR',
+        requiredPermission: 'configuracoes.visualizar',
         adminOnly: true),
+    _NavItem(
+        icon: Icons.manage_accounts_rounded,
+        label: 'Usuários',
+        requiredPermission: 'usuarios.visualizar',
+        roles: {'DONO', 'ADMIN'}),
   ];
 
   /// Item do menu visível? ADMIN vê tudo; adminOnly exige ADMIN;
-  /// `roles` restringe aos papéis listados (DONO, GERENTE, ...).
-  bool _itemVisivel(_NavItem item, String role, bool isAdmin) {
+  /// `roles` restringe aos papéis listados; `requiredPermission` checa permissões RBAC.
+  bool _itemVisivel(_NavItem item, AuthService auth, String role, bool isAdmin) {
     if (isAdmin) return true;
     if (item.adminOnly) return false;
+    if (item.requiredPermission != null &&
+        !auth.hasPermission(item.requiredPermission!)) {
+      return false;
+    }
     if (item.roles == null) return true;
     return item.roles!.contains(role);
   }
@@ -245,6 +275,8 @@ class _AppShellState extends State<AppShell> {
         return const RelatoriosPage();
       case 20:
         return const AdminDashboardPage();
+      case 21:
+        return const UsuariosPage();
       default:
         return DashboardPage(
             onNavigate: (i) => setState(() => _selectedIndex = i));
@@ -262,7 +294,7 @@ class _AppShellState extends State<AppShell> {
     final List<_VisibleNavItem> visibleItems = [];
     for (int i = 0; i < _navItems.length; i++) {
       final item = _navItems[i];
-      if (!_itemVisivel(item, role, isAdmin)) continue;
+      if (!_itemVisivel(item, auth, role, isAdmin)) continue;
       visibleItems.add(_VisibleNavItem(originalIndex: i, item: item));
     }
 
@@ -726,14 +758,21 @@ class _NavItem {
   /// Papéis (ROLE_*) que veem o item. null = todos os membros.
   /// Usuário ADMIN sempre vê tudo.
   final Set<String>? roles;
+
+  /// Código de permissão granular necessário para exibir este item.
+  /// Ex: 'financeiro.visualizar', 'usuarios.visualizar'
+  final String? requiredPermission;
+
   const _NavItem({
     required this.icon,
     required this.label,
     this.section,
     this.adminOnly = false,
     this.roles,
+    this.requiredPermission,
   });
 }
+
 
 class _VisibleNavItem {
   final int originalIndex;

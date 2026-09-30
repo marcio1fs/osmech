@@ -37,12 +37,12 @@ class OsmechApp extends StatelessWidget {
     final fragment = base.fragment.trim();
     final path = base.path.trim();
 
+    // Rotas de assinatura
     if (fragment == '/assinatura/sucesso' ||
         fragment == '/assinatura/pendente' ||
         fragment == '/assinatura/falha') {
       return fragment;
     }
-
     if (path == '/assinatura/sucesso' ||
         path == '/assinatura/pendente' ||
         path == '/assinatura/falha') {
@@ -50,18 +50,19 @@ class OsmechApp extends StatelessWidget {
     }
 
     // Links enviados por e-mail (fragment ou path):
-    // /aceitar-convite, /reset-password, /verify-email — token na query
     final fragmentBase = fragment.split('?').first;
     if (fragmentBase == '/aceitar-convite' || path == '/aceitar-convite') {
       return '/aceitar-convite';
     }
-    if (fragmentBase == '/reset-password' || path == '/reset-password') {
+    if (fragmentBase == '/reset-password' || path == '/reset-password' ||
+        fragment.startsWith('/reset-password') || path.startsWith('/reset-password')) {
       return '/reset-password';
     }
     if (fragmentBase == '/verify-email' || path == '/verify-email') {
       return '/verify-email';
     }
-    if (fragmentBase == '/recuperar-senha' || path == '/recuperar-senha') {
+    if (fragmentBase == '/recuperar-senha' || path == '/recuperar-senha' ||
+        fragment == '/forgot-password' || path == '/forgot-password') {
       return '/recuperar-senha';
     }
 
@@ -123,8 +124,10 @@ class OsmechApp extends StatelessWidget {
       },
       routes: {
         '/': (context) => const _AuthGate(),
+        '/login': (context) => const _AuthGate(),
         '/aceitar-convite': (context) => const AceitarConvitePage(),
         '/recuperar-senha': (context) => const ForgotPasswordPage(),
+        '/forgot-password': (context) => const ForgotPasswordPage(),
         '/reset-password': (context) =>
             ResetPasswordPage(token: _tokenDaUrl()),
         '/verify-email': (context) => VerifyEmailPage(token: _tokenDaUrl()),
@@ -134,6 +137,26 @@ class OsmechApp extends StatelessWidget {
             const CheckoutReturnPage(result: 'pendente'),
         '/assinatura/falha': (context) =>
             const CheckoutReturnPage(result: 'falha'),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith('/reset-password')) {
+          final uri = Uri.parse(settings.name!);
+          String? token = uri.queryParameters['token'];
+          
+          if (token == null) {
+            final fragmentUri = Uri.parse(Uri.base.fragment);
+            token = fragmentUri.queryParameters['token'];
+          }
+          if (token == null || token.isEmpty) {
+            token = _tokenDaUrl();
+          }
+          
+          return MaterialPageRoute(
+            builder: (_) => ResetPasswordPage(token: token),
+            settings: settings,
+          );
+        }
+        return null;
       },
       onUnknownRoute: (_) => MaterialPageRoute(
         builder: (_) => const _AuthGate(),

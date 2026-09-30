@@ -15,22 +15,22 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Filtro que intercepta requisições HTTP e valida o token JWT no header Authorization.
+ * Filtro que intercepta requisições HTTP, valida o token JWT e configura
+ * o SecurityContext com as authorities do usuário:
+ * - ROLE_{role}  → para controle de role (ex: ROLE_ADMIN, ROLE_DONO)
+ * - PERM_{code}  → para cada permissão granular (ex: PERM_os.criar)
  *
- * O usuário é carregado do banco a cada request, o que garante:
- *  - conta inativada perde acesso no próximo request;
- *  - o papel usado na autorização é SEMPRE o do banco (não o do token, que
- *    poderia ficar defasado até a expiração do JWT).
- *
- * O principal exposto é {@link UsuarioAutenticado} (id + email + papel);
- * como ele implementa {@link java.security.Principal}, {@code auth.getName()}
- * continua retornando o e-mail para os services existentes.
+ * O usuário é carregado do banco a cada request, garantindo:
+ *  - conta inativada perde acesso imediatamente;
+ *  - o principal exposto é UsuarioAutenticado (id + email + papel + oficinaId).
  */
 @Component
 @RequiredArgsConstructor
@@ -53,34 +53,58 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
             if (jwtUtil.validateToken(token)) {
                 String email = jwtUtil.getEmailFromToken(token);
+                List<String> permissions = jwtUtil.getPermissionsFromToken(token);
 
-                // Usuário precisa existir e estar ativo — papel vem do banco (sempre fresco)
                 Usuario usuario = usuarioRepository.findByEmail(email).orElse(null);
 
                 if (usuario != null && Boolean.TRUE.equals(usuario.getAtivo())) {
                     if (usuario.getOficinaId() == null) {
-                        // Tenant obrigatório desde a Fase 1 — OficinaBackfillRunner normalmente resolve no boot
                         log.error("Usuário {} sem oficina vinculada; acesso negado até o backfill.", email);
                     } else {
                         Papel papel = Papel.from(usuario.getRole());
-                        // ADMIN da plataforma herda todas as permissões de DONO
-                        var authorities = papel == Papel.ADMIN
-                                ? List.of(new SimpleGrantedAuthority("ROLE_ADMIN"),
-                                          new SimpleGrantedAuthority("ROLE_DONO"))
-                                : List.of(new SimpleGrantedAuthority("ROLE_" + papel.name()));
+                        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
+                        
+                        if (papel == Papel.ADMIN) {
+                            authorities.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
+                            authorities.add(new SimpleGrantedAuthority("ROLE_DONO"));
+                        } else {
+                            authorities.add(new SimpleGrantedAuthority("ROLE_" + papel.name()));
+                        }
+
+                        for (String perm : permissions) {
+                            authorities.add(new SimpleGrantedAuthority("PERM_" + perm));
+                        }
+
                         var principal = new UsuarioAutenticado(
                                 usuario.getId(), usuario.getOficinaId(), usuario.getEmail(), papel.name());
                         var authToken = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                         SecurityContextHolder.getContext().setAuthentication(authToken);
+
+                        atualizarUltimoAcesso(usuario);
                     }
+                } else if (usuario == null) {
+                    log.warn("[JwtAuthFilter] JWT válido mas usuário não encontrado: {}", email);
                 } else {
-                    log.warn("JWT válido mas usuário não encontrado ou inativo: {}", email);
+                    log.warn("[JwtAuthFilter] JWT válido mas usuário BLOQUEADO/DESATIVADO: {}", email);
                 }
             } else {
-                log.debug("Token JWT inválido ou expirado para {} {}", request.getMethod(), request.getRequestURI());
+                log.debug("[JwtAuthFilter] Token JWT inválido/expirado para {} {}",
+                        request.getMethod(), request.getRequestURI());
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    /**
+     * Atualiza o campo ultimo_acesso do usuário.
+     */
+    protected void atualizarUltimoAcesso(Usuario usuario) {
+        try {
+            usuario.setUltimoAcesso(LocalDateTime.now());
+            usuarioRepository.save(usuario);
+        } catch (Exception e) {
+            log.debug("[JwtAuthFilter] Falha ao atualizar ultimo_acesso para {}: {}", usuario.getEmail(), e.getMessage());
+        }
     }
 }

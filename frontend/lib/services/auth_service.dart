@@ -6,7 +6,7 @@ import 'api_config.dart';
 import '../utils/jwt_utils.dart';
 
 /// Serviço de autenticação.
-/// Gerencia login, cadastro, token JWT e estado do usuário.
+/// Gerencia login, cadastro, token JWT, role, permissões e estado do usuário.
 /// Valida expiração do JWT ao carregar do cache e antes de cada uso.
 class AuthService extends ChangeNotifier {
   String? _token;
@@ -15,6 +15,7 @@ class AuthService extends ChangeNotifier {
   String? _nome;
   String? _role;
   String? _plano;
+  List<String> _permissions = [];
   bool _initialized = false;
 
   /// Estado do 2FA pendente (Fase 4): id do desafio + e-mail alvo.
@@ -35,6 +36,23 @@ class AuthService extends ChangeNotifier {
   bool get requer2fa => _sessao2fa != null;
   int? get sessao2fa => _sessao2fa;
   String? get email2fa => _email2fa;
+
+  /// Lista de permissões granulares do usuário (ex: ["os.criar", "financeiro.visualizar"])
+  List<String> get permissions => List.unmodifiable(_permissions);
+
+  /// Verifica se o usuário possui uma permissão específica.
+  /// Ex: authService.hasPermission('os.criar')
+  bool hasPermission(String permissionCode) {
+    return _permissions.contains(permissionCode);
+  }
+
+  /// Verifica se o usuário possui qualquer uma das permissões listadas.
+  bool hasAnyPermission(List<String> codes) {
+    return codes.any(_permissions.contains);
+  }
+
+  /// Verifica se o usuário é ADMIN.
+  bool get isAdmin => _role == 'ADMIN';
 
   /// Verifica se o token atual está expirado (com margem de 60s).
   bool get isTokenExpired {
@@ -63,6 +81,7 @@ class AuthService extends ChangeNotifier {
     final savedNome = prefs.getString('nome');
     final savedRole = prefs.getString('role');
     final savedPlano = prefs.getString('plano');
+    _permissions = prefs.getStringList('permissions') ?? [];
 
     if (savedRefresh != null && savedRefresh.isNotEmpty) {
       _refreshToken = savedRefresh;
@@ -82,14 +101,12 @@ class AuthService extends ChangeNotifier {
         }
       } else {
         // Access expirado — tenta renovar com o refresh token.
-        // Se o servidor revogar a sessão, refreshSession() já limpa tudo;
-        // em falha de rede, mantém os dados para a próxima inicialização.
         debugPrint('[AuthService] Access token expirado — tentando refresh.');
         await refreshSession();
       }
     } else if (savedToken != null &&
         !JwtUtils.isExpired(savedToken, bufferSeconds: 60)) {
-      // Sessão antiga (pré-Fase 4): sem refresh — aceita até expirar
+      // Sessão sem refresh — aceita até expirar
       _token = savedToken;
       _email = savedEmail;
       _nome = savedNome;
@@ -114,6 +131,7 @@ class AuthService extends ChangeNotifier {
     await prefs.remove('nome');
     await prefs.remove('role');
     await prefs.remove('plano');
+    await prefs.remove('permissions');
   }
 
   /// Salva dados do usuário no SharedPreferences.
@@ -128,6 +146,7 @@ class AuthService extends ChangeNotifier {
       await prefs.setString('nome', _nome ?? '');
       await prefs.setString('role', _role ?? '');
       await prefs.setString('plano', _plano ?? '');
+      await prefs.setStringList('permissions', _permissions);
     }
   }
 
@@ -146,7 +165,6 @@ class AuthService extends ChangeNotifier {
 
       if (response.statusCode == 200) {
         if (body['requer2fa'] == true) {
-          // Senha correta, mas falta o código de verificação (Fase 4)
           _sessao2fa = body['sessao'] as int?;
           _email2fa = body['email'];
           notifyListeners();
@@ -158,6 +176,10 @@ class AuthService extends ChangeNotifier {
         _nome = body['nome'];
         _role = body['role'];
         _plano = body['plano'];
+        final rawPerms = body['permissions'];
+        _permissions = rawPerms is List
+            ? rawPerms.map((e) => e.toString()).toList()
+            : [];
         await _saveToPrefs();
         notifyListeners();
         return null; // sucesso
@@ -193,6 +215,10 @@ class AuthService extends ChangeNotifier {
         _nome = body['nome'];
         _role = body['role'];
         _plano = body['plano'];
+        final rawPerms = body['permissions'];
+        _permissions = rawPerms is List
+            ? rawPerms.map((e) => e.toString()).toList()
+            : [];
         await _saveToPrefs();
         notifyListeners();
         return null; // sucesso
@@ -232,7 +258,6 @@ class AuthService extends ChangeNotifier {
   }
 
   /// Renova a sessão usando o refresh token (Fase 4).
-  /// Retorna true se renovou; false se a sessão morreu (limpa o cache local).
   Future<bool> refreshSession() async {
     final refresh = _refreshToken;
     if (refresh == null || refresh.isEmpty) return false;
@@ -253,16 +278,18 @@ class AuthService extends ChangeNotifier {
         _nome = body['nome'] ?? _nome;
         _role = body['role'] ?? _role;
         _plano = body['plano'] ?? _plano;
+        final rawPerms = body['permissions'];
+        if (rawPerms is List) {
+          _permissions = rawPerms.map((e) => e.toString()).toList();
+        }
         await _saveToPrefs();
         notifyListeners();
         return true;
       }
 
-      // Refresh rejeitado (revogado/expirado/reuso) — sessão morreu
       await _limparEstadoLocal();
       return false;
     } catch (e) {
-      // Sem rede: mantém a sessão local — a próxima tentativa decide.
       return false;
     }
   }
@@ -275,6 +302,7 @@ class AuthService extends ChangeNotifier {
     _nome = null;
     _role = null;
     _plano = null;
+    _permissions = [];
     _sessao2fa = null;
     _email2fa = null;
     final prefs = await SharedPreferences.getInstance();
@@ -282,8 +310,7 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Aplica uma sessão já autenticada (ex.: retorno do aceite de convite,
-  /// que já vem com token JWT). Persiste e notifica ouvintes.
+  /// Aplica uma sessão já autenticada.
   Future<void> aplicarAutenticacao({
     required String token,
     String? refreshToken,
@@ -291,6 +318,7 @@ class AuthService extends ChangeNotifier {
     String? nome,
     String? role,
     String? plano,
+    List<String>? permissions,
   }) async {
     _token = token;
     _refreshToken = refreshToken;
@@ -298,6 +326,9 @@ class AuthService extends ChangeNotifier {
     _nome = nome;
     _role = role;
     _plano = plano;
+    if (permissions != null) {
+      _permissions = permissions;
+    }
     await _saveToPrefs();
     notifyListeners();
   }
@@ -334,6 +365,10 @@ class AuthService extends ChangeNotifier {
         _nome = body['nome'];
         _role = body['role'];
         _plano = body['plano'];
+        final rawPerms = body['permissions'];
+        _permissions = rawPerms is List
+            ? rawPerms.map((e) => e.toString()).toList()
+            : [];
         await _saveToPrefs();
         notifyListeners();
         return null; // sucesso
@@ -358,7 +393,7 @@ class AuthService extends ChangeNotifier {
             )
             .timeout(const Duration(seconds: 5));
       } catch (_) {
-        // Sem rede: a revogação local já basta; o token expira sozinho.
+        // Sem rede: a revogação local já basta
       }
     }
     await _limparEstadoLocal();
@@ -372,7 +407,7 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Reenvia o e-mail de verificação de cadastro (sempre "sucesso" — anti-enumeração).
+  /// Reenvia o e-mail de verificação de cadastro.
   Future<String?> reenviarVerificacao(String email) async {
     try {
       final response = await http
@@ -402,7 +437,7 @@ class AuthService extends ChangeNotifier {
           .timeout(const Duration(seconds: ApiConfig.timeoutSeconds));
 
       if (response.statusCode == 200) {
-        return null; // sucesso
+        return null;
       } else {
         final body = jsonDecode(response.body);
         return body['error'] ?? 'Erro ao solicitar recuperação de senha';
@@ -424,7 +459,7 @@ class AuthService extends ChangeNotifier {
           .timeout(const Duration(seconds: ApiConfig.timeoutSeconds));
 
       if (response.statusCode == 200) {
-        return null; // sucesso
+        return null;
       } else {
         final body = jsonDecode(response.body);
         return body['error'] ?? 'Erro ao redefinir senha';
@@ -445,7 +480,7 @@ class AuthService extends ChangeNotifier {
           .timeout(const Duration(seconds: ApiConfig.timeoutSeconds));
 
       if (response.statusCode == 200) {
-        return null; // sucesso
+        return null;
       } else {
         final body = jsonDecode(response.body);
         return body['error'] ?? 'Erro ao verificar e-mail';

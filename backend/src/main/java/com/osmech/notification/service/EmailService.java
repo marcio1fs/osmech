@@ -43,7 +43,8 @@ public class EmailService {
 
 
         String subject = "Recuperação de Senha - OSMECH";
-        String link = frontendUrl + "/reset-password?token=" + token;
+        // Link no formato correto para Flutter Web (hash routing)
+        String link = frontendUrl + "/#/reset-password?token=" + token;
         String message = "Olá,\n\nVocê solicitou a recuperação de senha da sua conta no OSMECH.\n" +
                 "Clique no link abaixo para definir uma nova senha:\n\n" +
                 link + "\n\n" +

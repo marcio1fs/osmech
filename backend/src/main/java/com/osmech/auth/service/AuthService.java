@@ -10,6 +10,7 @@ import com.osmech.auditoria.service.AuditoriaService;
 import com.osmech.notification.service.EmailService;
 import com.osmech.oficina.entity.Oficina;
 import com.osmech.oficina.repository.OficinaRepository;
+import com.osmech.rbac.PermissionService;
 import com.osmech.security.JwtUtil;
 import com.osmech.sessao.service.SessaoService;
 import com.osmech.sessao.service.SessaoService.SessaoEmitida;
@@ -21,6 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,23 +30,16 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Serviço responsável por autenticação e cadastro de usuários.
- *
- * Fluxos suportados:
- *  - Cadastro com verificação de e-mail (token UUID enviado via EmailService);
- *  - Login com senha + conta ativa (+ e-mail verificado quando
- *    app.auth.require-verified-email=true);
- *  - 2FA opcional por código de e-mail (Fase 4): sem tokens até o código;
- *  - Sessões com refresh token rotativo e revogação (Fase 4);
- *  - Recuperação/redefinição de senha (revoga sessões ao redefinir);
- *  - Trilha de auditoria de todos os eventos acima.
+ * Serviço responsável por autenticação, cadastro e recuperação de senha.
+ * Integra RBAC para permissões granulares, 2FA, tenant e sessões rotativas.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class AuthService {
 
     /** Validade do token de recuperação de senha */
@@ -63,6 +58,7 @@ public class AuthService {
     private final EmailService emailService;
     private final SessaoService sessaoService;
     private final AuditoriaService auditoria;
+    private final PermissionService permissionService;
 
     /**
      * Quando true, exige e-mail verificado no login.
@@ -78,7 +74,6 @@ public class AuthService {
     public AuthResponse register(RegisterRequest request) {
         String email = request.getEmail().toLowerCase().trim();
 
-        // Validação básica de tamanho de e-mail
         if (email.length() < 5) {
             throw new IllegalArgumentException("Por favor, utilize um e-mail válido.");
         }
@@ -98,7 +93,6 @@ public class AuthService {
                 .plano("FREE")
                 .build());
 
-        // Cria o usuário com senha criptografada e aguardando verificação de e-mail
         Usuario usuario = Usuario.builder()
                 .nome(request.getNome())
                 .email(email)
@@ -120,14 +114,13 @@ public class AuthService {
                 .email(usuario.getEmail())
                 .nome(usuario.getNome())
                 .role(usuario.getRole())
+                .plano(usuario.getPlano())
                 .message("Cadastro realizado! Enviamos um link de verificação para o seu e-mail.")
                 .build();
     }
 
     /**
      * Realiza o login do usuário.
-     * Se o usuário tem 2FA ativo, retorna o desafio (sessao + requer2fa)
-     * e o código vai por e-mail — nenhum token é emitido nesta etapa.
      */
     @Transactional
     public AuthResponse login(LoginRequest request, String userAgent) {
@@ -141,7 +134,7 @@ public class AuthService {
             throw new BadCredentialsException("E-mail ou senha incorretos.");
         }
 
-        // Conta desativada não entra (antes, só falhava no filtro após emitir o token)
+        // Conta desativada não entra
         if (!Boolean.TRUE.equals(usuario.getAtivo())) {
             auditoria.registrar(usuario, LogAuditoria.LOGIN_RECUSADO, "Conta desativada");
             throw new DisabledException("Sua conta está desativada. Fale com o suporte.");
@@ -230,8 +223,6 @@ public class AuthService {
             throw new IllegalArgumentException("Sessão inválida. Faça login novamente.");
         }
 
-        // O dono da sessão só é conhecido após localizar o hash —
-        // erro idêntico para token inexistente e válido de outro usuário.
         Usuario donoSessao = null;
         var sessao = sessaoService.buscarPorToken(raw);
         if (sessao != null) {
@@ -249,8 +240,10 @@ public class AuthService {
         auditoria.registrar(donoSessao, LogAuditoria.SESSAO_RENOVADA, "Refresh token rotacionado");
 
         String papel = Papel.from(donoSessao.getRole()).name();
-        String token = jwtUtil.generateToken(donoSessao.getEmail(), papel, donoSessao.getId(),
-                donoSessao.getOficinaId());
+        List<String> permissions = permissionService.getPermissionsForUser(donoSessao);
+        String token = (permissions != null && !permissions.isEmpty())
+                ? jwtUtil.generateToken(donoSessao.getEmail(), papel, permissions, donoSessao.getId(), donoSessao.getOficinaId())
+                : jwtUtil.generateToken(donoSessao.getEmail(), papel, donoSessao.getId(), donoSessao.getOficinaId());
 
         return AuthResponse.builder()
                 .token(token)
@@ -258,6 +251,7 @@ public class AuthService {
                 .email(donoSessao.getEmail())
                 .nome(donoSessao.getNome())
                 .role(papel)
+                .permissions(permissions)
                 .plano(donoSessao.getPlano())
                 .build();
     }
@@ -291,26 +285,24 @@ public class AuthService {
 
     /**
      * Inicia o fluxo de recuperação de senha.
-     * Responde com sucesso MESMO quando o e-mail não existe (não vaza contas).
-     * Quem envia failure responses diferentes por conta existente facilita enumeração.
      */
     @Transactional
     public void forgotPassword(String rawEmail) {
         String email = rawEmail == null ? "" : rawEmail.toLowerCase().trim();
 
         usuarioRepository.findByEmail(email).ifPresentOrElse(usuario -> {
-            usuario.setResetPasswordToken(UUID.randomUUID().toString());
+            String token = UUID.randomUUID().toString();
+            usuario.setResetPasswordToken(token);
             usuario.setResetPasswordTokenExpiry(LocalDateTime.now().plus(RESET_TOKEN_TTL));
             usuarioRepository.save(usuario);
 
-            emailService.enviarEmailRecuperacaoSenha(usuario.getEmail(), usuario.getResetPasswordToken());
+            emailService.enviarEmailRecuperacaoSenha(usuario.getEmail(), token);
             log.info("Solicitação de recuperação de senha registrada para {}", usuario.getEmail());
         }, () -> log.info("Recuperação de senha solicitada para e-mail não cadastrado (ignorado): {}", email));
     }
 
     /**
      * Reenvia o e-mail de verificação de cadastro.
-     * Mesma regra anti-enumeração do forgotPassword: sempre responde 200.
      */
     @Transactional
     public void reenviarVerificacao(String rawEmail) {
@@ -333,8 +325,6 @@ public class AuthService {
 
     /**
      * Redefine a senha a partir do token de recuperação.
-     * O token é de uso único e expira em 1 hora.
-     * Fase 4: ao redefinir, TODAS as sessões do usuário são revogadas.
      */
     @Transactional
     public void resetPassword(String token, String novaSenha) {
@@ -371,8 +361,10 @@ public class AuthService {
      */
     private AuthResponse emitirRespostaAutenticada(Usuario usuario, String userAgent) {
         String papel = Papel.from(usuario.getRole()).name();
-        String token = jwtUtil.generateToken(usuario.getEmail(), papel, usuario.getId(),
-                usuario.getOficinaId());
+        List<String> permissions = permissionService.getPermissionsForUser(usuario);
+        String token = (permissions != null && !permissions.isEmpty())
+                ? jwtUtil.generateToken(usuario.getEmail(), papel, permissions, usuario.getId(), usuario.getOficinaId())
+                : jwtUtil.generateToken(usuario.getEmail(), papel, usuario.getId(), usuario.getOficinaId());
         SessaoEmitida sessao = sessaoService.criar(usuario, userAgent);
 
         return AuthResponse.builder()
@@ -381,6 +373,7 @@ public class AuthService {
                 .email(usuario.getEmail())
                 .nome(usuario.getNome())
                 .role(papel)
+                .permissions(permissions)
                 .plano(usuario.getPlano())
                 .build();
     }
@@ -389,7 +382,6 @@ public class AuthService {
      * Cria desafio 2FA e envia o código por e-mail (nenhum token emitido).
      */
     private AuthResponse iniciarDesafio2fa(Usuario usuario) {
-        // Um desafio ativo por usuário — login novo invalida o anterior
         desafio2faRepository.deleteByUsuarioId(usuario.getId());
 
         String codigo = gerarCodigo6();
