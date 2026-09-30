@@ -61,10 +61,12 @@ public class AdminController {
     }
 
     /**
-     * GET /api/admin/usuarios?termo=&pagina=0&tamanho=25
+     * GET /api/admin/contas?termo=&pagina=0&tamanho=25
      * Listagem paginada com busca por nome/e-mail/oficina + agregados dos cards.
+     * Nota: o caminho /admin/usuarios pertence ao UsuariosAdminController (RBAC);
+     * este endpoint usa /admin/contas para evitar mapeamento ambíguo no Spring.
      */
-    @GetMapping("/usuarios")
+    @GetMapping("/contas")
     public ResponseEntity<AdminDtos.PaginaUsuarios> listarUsuarios(
             @RequestParam(required = false) String termo,
             @RequestParam(defaultValue = "0") int pagina,

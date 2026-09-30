@@ -33,14 +33,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.osmech.config.RateLimitFilter;
 import com.osmech.config.SecurityConfig;
+import com.osmech.security.JwtAuthFilter;
 import org.springframework.context.annotation.Import;
 
 /**
  * Testes de integração para UsuariosAdminController.
  * Valida controle de acesso granular via @PreAuthorize + PERM_ authorities.
+ *
+ * JwtAuthFilter precisa ser importado junto com SecurityConfig: o @WebMvcTest
+ * não escaneia @Component, e SecurityConfig exige esse bean no construtor.
+ * Como os requests de teste não enviam header Authorization, o filtro real
+ * apenas repassa a requisição e o @WithMockUser permanece no contexto.
  */
 @WebMvcTest(controllers = UsuariosAdminController.class, properties = "server.servlet.context-path=")
-@Import(SecurityConfig.class)
+@Import({SecurityConfig.class, JwtAuthFilter.class})
 class UsuarioAdminControllerTest {
 
     @Autowired

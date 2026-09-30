@@ -127,10 +127,6 @@ class _AppShellState extends State<AppShell> {
         label: 'Equipe',
         roles: {'DONO'}),
     _NavItem(
-        icon: Icons.groups_rounded,
-        label: 'Equipe',
-        roles: {'DONO'}),
-    _NavItem(
         icon: Icons.bar_chart_rounded,
         label: 'Financeiro',
         section: 'FINANCEIRO',

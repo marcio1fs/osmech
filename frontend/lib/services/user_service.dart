@@ -128,7 +128,7 @@ class UserService {
     };
     if (termo != null && termo.trim().isNotEmpty) params['termo'] = termo.trim();
     final query = Uri(queryParameters: params).query;
-    final response = await _api.get('/api/admin/usuarios?$query');
+    final response = await _api.get('/api/admin/contas?$query');
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }

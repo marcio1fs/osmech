@@ -40,7 +40,6 @@ import java.util.UUID;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class AuthService {
 
     /** Validade do token de recuperação de senha */
@@ -122,8 +121,6 @@ public class AuthService {
 
     /**
      * Realiza o login do usuário.
-     * Se o usuário tem 2FA ativo, retorna o desafio (sessao + requer2fa)
-     * e o código vai por e-mail — nenhum token é emitido nesta etapa.
      */
     @Transactional
     public AuthResponse login(LoginRequest request, String userAgent) {
