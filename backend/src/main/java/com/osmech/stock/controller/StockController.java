@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller REST do módulo de estoque.
@@ -17,6 +19,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/stock")
+@PreAuthorize(PapeisSeguranca.MEMBROS_OFICINA)
 @RequiredArgsConstructor
 public class StockController {
 
@@ -27,6 +30,7 @@ public class StockController {
     // ==========================================
 
     /** POST /api/stock - Criar novo item */
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PostMapping
     public ResponseEntity<StockItemResponse> criarItem(Authentication auth,
                                                          @Valid @RequestBody StockItemRequest request) {
@@ -48,6 +52,7 @@ public class StockController {
     }
 
     /** PUT /api/stock/{id} - Atualizar item */
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PutMapping("/{id}")
     public ResponseEntity<StockItemResponse> atualizarItem(Authentication auth, @PathVariable Long id,
                                                               @Valid @RequestBody StockItemRequest request) {
@@ -55,6 +60,7 @@ public class StockController {
     }
 
     /** DELETE /api/stock/{id} - Desativar item (soft delete) */
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> desativarItem(Authentication auth, @PathVariable Long id) {
         stockService.desativarItem(auth.getName(), id);
@@ -66,6 +72,7 @@ public class StockController {
     // ==========================================
 
     /** POST /api/stock/move - Registrar movimentação */
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PostMapping("/move")
     public ResponseEntity<StockMovementResponse> registrarMovimentacao(Authentication auth,
                                                                          @Valid @RequestBody StockMovementRequest request) {
