@@ -67,6 +67,9 @@ class AuthServiceTest {
     @Mock
     private AuditoriaService auditoria;
 
+    @Mock
+    private com.osmech.rbac.PermissionService permissionService;
+
     @InjectMocks
     private AuthService authService;
 

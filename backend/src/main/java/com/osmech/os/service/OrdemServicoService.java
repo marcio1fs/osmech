@@ -20,6 +20,7 @@ import com.osmech.os.repository.OrdemServicoRepository;
 import com.osmech.os.repository.ServicoOSRepository;
 import com.osmech.plan.entity.Plano;
 import com.osmech.plan.repository.PlanoRepository;
+import com.osmech.security.SecurityContextHelper;
 import com.osmech.stock.entity.StockItem;
 import com.osmech.stock.repository.StockItemRepository;
 import com.osmech.stock.service.StockService;
@@ -64,6 +65,7 @@ public class OrdemServicoService {
     private final StockService stockService;
     private final TransacaoFinanceiraRepository transacaoFinanceiraRepository;
     private final WhatsAppService whatsAppService;
+    private final SecurityContextHelper securityContextHelper;
 
     /**
      * Cria uma nova Ordem de Serviço.
@@ -490,8 +492,14 @@ public class OrdemServicoService {
 
     // --- Helpers ---
 
+    /**
+     * Retorna o usuário correspondente ao email autenticado.
+     * Para sub-usuários (ATENDENTE, MECANICO etc), retorna o usuário dono da oficina,
+     * garantindo que os dados corretos sejam acessados.
+     */
     private Usuario getUsuario(String email) {
-        return usuarioRepository.findByEmail(email)
+        Long dataOwnerId = securityContextHelper.getDataOwnerId(email);
+        return usuarioRepository.findById(dataOwnerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'register_page.dart';
+import 'forgot_password_page.dart';
 
 /// Tela de Login moderna com layout split-screen.
 class LoginPage extends StatefulWidget {
@@ -285,21 +286,36 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 16),
 
-                        // Recuperar senha (Fase 0 — fluxo via e-mail)
-                        TextButton(
-                          onPressed: () =>
-                              Navigator.pushNamed(context, '/recuperar-senha'),
-                          child: Text(
-                            'Esqueci minha senha',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: AppColors.textMuted,
+                        // Link Esqueci minha senha
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordPage(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.accent,
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              'Esqueci minha senha',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 24),
 
                         // Divider
                         Row(

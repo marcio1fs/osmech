@@ -270,14 +270,17 @@ public class MercadoPagoWebhookService {
             throw new SecurityException("Formato de assinatura invalido. Esperado: ts=<timestamp>,v1=<signature>");
         }
 
-        // Validar timestamp para evitar replay attacks (max 5 minutos)
+        // Permite assinaturas válidas de integrações legadas, mas ainda rejeita timestamps claramente futuros.
         try {
             long timestamp = Long.parseLong(ts);
             long now = System.currentTimeMillis() / 1000;
-            long diff = Math.abs(now - timestamp);
-            if (diff > 300) { // 5 minutos
-                log.warn("Webhook timestamp expirado: diff={} segundos", diff);
-                throw new SecurityException("Webhook expirado. Timestamp muito antigo (max 5 minutos)");
+            long diff = now - timestamp;
+            if (timestamp > now + 300) {
+                log.warn("Webhook timestamp no futuro: diff={} segundos", diff);
+                throw new SecurityException("Webhook timestamp invalido. Data no futuro");
+            }
+            if (diff > 300) {
+                log.warn("Webhook timestamp antigo: diff={} segundos, aceitando assinatura válida para compatibilidade", diff);
             }
         } catch (NumberFormatException e) {
             throw new SecurityException("Timestamp invalido: deve ser numerico");

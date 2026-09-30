@@ -1157,8 +1157,25 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: UpperText('Recibo / Extrato',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        title: Row(
+          children: [
+            if (logoUrl != null && logoUrl.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  logoUrl,
+                  height: 36,
+                  width: 36,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            UpperText('Recibo / Extrato',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+          ],
+        ),
         content: SizedBox(
           width: 640,
           child: Column(
@@ -1185,9 +1202,9 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                     child: SelectableText(
                     recibo,
                     style: GoogleFonts.robotoMono(
-                      fontSize: 12.5,
+                      fontSize: 15,
                       color: AppColors.textPrimary,
-                      height: 1.4,
+                      height: 1.5,
                     ),
                   ),
                 ),

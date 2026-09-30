@@ -44,6 +44,21 @@ spring:
     serialization:
       write-dates-as-timestamps: false
 
+  mail:
+    host: ${MAIL_HOST:smtp.hostinger.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+        ssl:
+          trust: ${MAIL_HOST:smtp.hostinger.com}
+
   flyway:
     enabled: ${FLYWAY_ENABLED:false}
     locations: classpath:db/migration
@@ -63,7 +78,7 @@ app:
     logo-dir: ${UPLOAD_LOGO_DIR:uploads/logos}
   frontend:
     # URL publica do frontend (usada nos links de e-mail de verificacao/recuperacao)
-    url: ${APP_FRONTEND_URL:https://www.osmech.com.br}
+    url: ${APP_FRONTEND_URL:https://www.osmech.com.br/app}
   admin:
     # Email da conta de administrador protegida pelo AdminBootstrap
     email: ${ADMIN_EMAIL:marciofs426@gmail.com}
@@ -119,7 +134,7 @@ ai:
   openai:
     api-key: ${AI_OPENAI_API_KEY:}
     model: ${AI_OPENAI_MODEL:gemini-2.5-flash}
-    base-url: ${AI_OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}
+  base-url: ${AI_OPENAI_BASE_URL:https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}
 
 # Configuracao Mercado Pago (Checkout Pro)
 # IMPORTANTE: webhook-secret e OBRIGATORIO em producao e staging

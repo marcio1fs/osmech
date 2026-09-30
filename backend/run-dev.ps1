@@ -49,6 +49,23 @@ if (-not $env:SPRING_PROFILES_ACTIVE) {
     $env:SPRING_PROFILES_ACTIVE = $Profile
 }
 
+$conns = Get-NetTCPConnection -LocalPort 8081 -ErrorAction SilentlyContinue
+foreach ($c in $conns) {
+    if ($c.OwningProcess -and $c.OwningProcess -ne 0) {
+        Write-Host "[run-dev] Finalizando processo $($c.OwningProcess) na porta 8081..." -ForegroundColor Yellow
+        Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue
+    }
+}
+# Aguarda socket fechar completamente se estiver em TIME_WAIT ou Listen
+$retries = 15
+while ($retries -gt 0) {
+    $active = netstat -ano | findstr ":8081"
+    if (-not $active) { break }
+    Write-Host "[run-dev] Aguardando liberação da porta 8081..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 2
+    $retries--
+}
+
 Write-Host "[run-dev] SPRING_PROFILES_ACTIVE=$($env:SPRING_PROFILES_ACTIVE)"
 Write-Host "[run-dev] Iniciando backend..."
 

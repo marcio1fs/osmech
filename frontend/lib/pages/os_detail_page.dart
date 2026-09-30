@@ -430,7 +430,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                   child: UpperText(
                     recibo,
                     style: GoogleFonts.courierPrime(
-                      fontSize: 12,
+                      fontSize: 15,
                       color: AppColors.textPrimary,
                       height: 1.5,
                     ),
@@ -847,17 +847,6 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                             label: const UpperText('Ver Orçamento'),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => _enviarReciboWhatsApp(),
-                            icon: const Icon(Icons.send),
-                            label: const UpperText('WhatsApp'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -890,17 +879,6 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                             },
                             icon: const Icon(Icons.receipt_long),
                             label: const UpperText('Ver Recibo'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => _enviarReciboWhatsApp(),
-                            icon: const Icon(Icons.send),
-                            label: const UpperText('WhatsApp'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                            ),
                           ),
                         ),
                       ],

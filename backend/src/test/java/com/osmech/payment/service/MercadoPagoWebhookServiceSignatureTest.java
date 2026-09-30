@@ -76,6 +76,7 @@ class MercadoPagoWebhookServiceSignatureTest {
         AssinaturaRepository assinaturaRepository = mock(AssinaturaRepository.class);
         MercadoPagoWebhookEventRepository webhookEventRepository = mock(MercadoPagoWebhookEventRepository.class);
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        com.osmech.oficina.repository.OficinaRepository oficinaRepository = mock(com.osmech.oficina.repository.OficinaRepository.class);
         Environment environment = mock(Environment.class);
         
         // Return "dev" profile so @PostConstruct doesn't fail
@@ -86,6 +87,7 @@ class MercadoPagoWebhookServiceSignatureTest {
                 assinaturaRepository,
                 webhookEventRepository,
                 usuarioRepository,
+                oficinaRepository,
                 environment
         );
     }
