@@ -37,15 +37,42 @@ class _LoginPageState extends State<LoginPage> {
     );
     setState(() => _loading = false);
     if (error != null && mounted) {
+      // Erro de e-mail não verificado? Oferece reenvio imediato na própria snackbar
+      final precisaVerificar = error.contains('Confirme seu e-mail');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          action: precisaVerificar
+              ? SnackBarAction(
+                  label: 'Reenviar e-mail',
+                  textColor: Colors.white,
+                  onPressed: _reenviarVerificacao,
+                )
+              : null,
+          duration: Duration(seconds: precisaVerificar ? 8 : 4),
         ),
       );
     }
+  }
+
+  /// Reenvia o e-mail de verificação para o e-mail digitado.
+  Future<void> _reenviarVerificacao() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final erro =
+        await auth.reenviarVerificacao(_emailController.text.trim());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(erro ??
+            'Se a conta existir, enviamos um novo link de verificação.'),
+        backgroundColor: erro == null ? AppColors.success : AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   @override
@@ -258,7 +285,21 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 8),
+
+                        // Recuperar senha (Fase 0 — fluxo via e-mail)
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/recuperar-senha'),
+                          child: Text(
+                            'Esqueci minha senha',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
 
                         // Divider
                         Row(

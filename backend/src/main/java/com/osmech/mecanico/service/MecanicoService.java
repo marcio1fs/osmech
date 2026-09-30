@@ -38,10 +38,10 @@ public class MecanicoService {
         log.info("Criando mecánico para usuario: {}", emailUsuario);
         try {
             Usuario usuario = getUsuario(emailUsuario);
-            log.debug("Usuario encontrado: {}", usuario.getId());
+            log.debug("Usuario encontrado: {}", usuario.getOficinaId());
 
             Mecanico mecanico = Mecanico.builder()
-                    .usuarioId(usuario.getId())
+                    .usuarioId(usuario.getOficinaId())
                     .nome(request.getNome().trim())
                     .telefone(request.getTelefone() != null ? request.getTelefone().trim() : null)
                     .especialidade(request.getEspecialidade() != null ? request.getEspecialidade().trim() : null)
@@ -63,11 +63,11 @@ public class MecanicoService {
         log.info("Listando mecanicos para usuario: {}, ativosOnly: {}", emailUsuario, ativosOnly);
         try {
             Usuario usuario = getUsuario(emailUsuario);
-            log.debug("Usuario encontrado: {}", usuario.getId());
+            log.debug("Usuario encontrado: {}", usuario.getOficinaId());
 
             List<Mecanico> mecanicos = ativosOnly
-                    ? mecanicoRepository.findByUsuarioIdAndAtivoTrueOrderByNomeAsc(usuario.getId())
-                    : mecanicoRepository.findByUsuarioIdOrderByNomeAsc(usuario.getId());
+                    ? mecanicoRepository.findByUsuarioIdAndAtivoTrueOrderByNomeAsc(usuario.getOficinaId())
+                    : mecanicoRepository.findByUsuarioIdOrderByNomeAsc(usuario.getOficinaId());
 
             log.debug("Mecanicos encontrados: {}", mecanicos.size());
             return mecanicos.stream().map(this::convertToResponse).toList();
@@ -80,14 +80,14 @@ public class MecanicoService {
     @Transactional(readOnly = true)
     public MecanicoResponse buscarPorId(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
         return convertToResponse(mecanico);
     }
 
     @Transactional
     public MecanicoResponse atualizar(String emailUsuario, Long id, MecanicoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
 
         if (request.getNome() != null && !request.getNome().isBlank()) {
             mecanico.setNome(request.getNome().trim());
@@ -111,7 +111,7 @@ public class MecanicoService {
     @Transactional
     public void desativar(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
         mecanico.setAtivo(false);
         mecanicoRepository.save(mecanico);
     }
@@ -119,7 +119,7 @@ public class MecanicoService {
     @Transactional
     public void reativar(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
         mecanico.setAtivo(true);
         mecanicoRepository.save(mecanico);
     }
