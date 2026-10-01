@@ -19,9 +19,12 @@ import java.math.RoundingMode;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.Locale;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/os")
+@PreAuthorize(PapeisSeguranca.MEMBROS_OFICINA)
 public class OsWhatsAppController {
 
     @Autowired
@@ -56,7 +59,7 @@ public class OsWhatsAppController {
         OrdemServico os = osRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordem de Servico nao encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new IllegalArgumentException("Acesso negado a esta Ordem de Servico");
         }
 
@@ -96,7 +99,7 @@ public class OsWhatsAppController {
         OrdemServico os = osRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Ordem de Servico nao encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new IllegalArgumentException("Acesso negado a esta Ordem de Servico");
         }
 

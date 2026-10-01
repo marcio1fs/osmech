@@ -47,11 +47,13 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
     try {
       final service = FinanceService(token: safeToken);
       final cats = await service.listarCategorias();
+      if (!mounted) return;
       setState(() {
         _categorias = cats;
         _loadingCategorias = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (!handleAuthError(e)) {
         setState(() => _loadingCategorias = false);
       }

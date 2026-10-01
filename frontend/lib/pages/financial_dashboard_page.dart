@@ -55,6 +55,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
   }
 
   Future<void> _loadData() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -66,6 +67,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
         service.listarTransacoes(),
         service.getTendencia7Dias().catchError((_) => <Map<String, dynamic>>[]),
       ]);
+      if (!mounted) return;
       setState(() {
         _resumo = results[0] as Map<String, dynamic>;
         _allTransacoes = results[1] as List<Map<String, dynamic>>;
@@ -76,6 +78,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (!handleAuthError(e)) {
         setState(() {
           _error = 'Erro ao carregar dados financeiros';
