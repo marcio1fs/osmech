@@ -11,9 +11,12 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/chat")
+@PreAuthorize(PapeisSeguranca.MEMBROS_OFICINA)
 @RequiredArgsConstructor
 public class ChatController {
 

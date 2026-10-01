@@ -57,7 +57,7 @@ public class StockService {
         Usuario usuario = getUsuario(emailUsuario);
 
         // Gerar código automático
-        String codigo = gerarProximoCodigo(usuario.getId());
+        String codigo = gerarProximoCodigo(usuario.getOficinaId());
 
         // Validar categoria
         String categoria = request.getCategoria() != null ? request.getCategoria().toUpperCase() : "OUTROS";
@@ -66,7 +66,7 @@ public class StockService {
         }
 
         StockItem item = StockItem.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .codigo(codigo)
                 .nome(request.getNome().trim())
                 .categoria(categoria)
@@ -95,7 +95,7 @@ public class StockService {
     @Transactional
     public StockItemResponse atualizarItem(String emailUsuario, Long itemId, StockItemRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
-        StockItem item = getItemDoUsuario(usuario.getId(), itemId);
+        StockItem item = getItemDoUsuario(usuario.getOficinaId(), itemId);
 
         // Código é auto-gerado, não permitir alteração na edição
 
@@ -135,12 +135,12 @@ public class StockService {
 
         List<StockItem> itens;
         if (busca != null && !busca.isBlank()) {
-            itens = itemRepository.searchByNome(usuario.getId(), busca.trim());
+            itens = itemRepository.searchByNome(usuario.getOficinaId(), busca.trim());
         } else if (categoria != null && !categoria.isBlank()) {
             itens = itemRepository.findByUsuarioIdAndCategoriaAndAtivoTrueOrderByNomeAsc(
-                    usuario.getId(), categoria.toUpperCase());
+                    usuario.getOficinaId(), categoria.toUpperCase());
         } else {
-            itens = itemRepository.findByUsuarioIdAndAtivoTrueOrderByNomeAsc(usuario.getId());
+            itens = itemRepository.findByUsuarioIdAndAtivoTrueOrderByNomeAsc(usuario.getOficinaId());
         }
 
         return itens.stream().map(StockItemResponse::fromEntity).toList();
@@ -150,7 +150,7 @@ public class StockService {
     @Transactional(readOnly = true)
     public StockItemResponse buscarItem(String emailUsuario, Long itemId) {
         Usuario usuario = getUsuario(emailUsuario);
-        StockItem item = getItemDoUsuario(usuario.getId(), itemId);
+        StockItem item = getItemDoUsuario(usuario.getOficinaId(), itemId);
         return StockItemResponse.fromEntity(item);
     }
 
@@ -158,7 +158,7 @@ public class StockService {
     @Transactional
     public void desativarItem(String emailUsuario, Long itemId) {
         Usuario usuario = getUsuario(emailUsuario);
-        StockItem item = getItemDoUsuario(usuario.getId(), itemId);
+        StockItem item = getItemDoUsuario(usuario.getOficinaId(), itemId);
         item.setAtivo(false);
         itemRepository.save(item);
         log.info("Item desativado: {} - {}", item.getCodigo(), item.getNome());
@@ -172,7 +172,7 @@ public class StockService {
     @Transactional
     public StockMovementResponse registrarMovimentacaoManual(String emailUsuario, StockMovementRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
-        StockItem item = getItemDoUsuario(usuario.getId(), request.getStockItemId());
+        StockItem item = getItemDoUsuario(usuario.getOficinaId(), request.getStockItemId());
 
         String tipo = request.getTipo().toUpperCase();
         if (!"ENTRADA".equals(tipo) && !"SAIDA".equals(tipo)) {
@@ -246,7 +246,7 @@ public class StockService {
     public List<StockMovementResponse> listarMovimentacoes(String emailUsuario, Long stockItemId) {
         Usuario usuario = getUsuario(emailUsuario);
         // Validar que o item pertence ao usuário
-        getItemDoUsuario(usuario.getId(), stockItemId);
+        getItemDoUsuario(usuario.getOficinaId(), stockItemId);
 
         return movementRepository.findByStockItemIdOrderByCriadoEmDesc(stockItemId)
                 .stream().map(StockMovementResponse::fromEntity).toList();
@@ -256,7 +256,7 @@ public class StockService {
     @Transactional(readOnly = true)
     public List<StockMovementResponse> listarTodasMovimentacoes(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        return movementRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+        return movementRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getOficinaId())
                 .stream().map(StockMovementResponse::fromEntity).toList();
     }
 
@@ -268,7 +268,7 @@ public class StockService {
     @Transactional(readOnly = true)
     public List<StockAlertResponse> getAlertas(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        List<StockItem> alertItems = itemRepository.findAlertItems(usuario.getId());
+        List<StockItem> alertItems = itemRepository.findAlertItems(usuario.getOficinaId());
 
         List<StockAlertResponse> alerts = new ArrayList<>();
         for (StockItem item : alertItems) {

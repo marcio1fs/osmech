@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller REST do módulo financeiro.
@@ -18,6 +20,7 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/finance")
+@PreAuthorize(PapeisSeguranca.GESTORES)
 @RequiredArgsConstructor
 public class FinanceiroController {
 

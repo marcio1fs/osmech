@@ -2,6 +2,7 @@ package com.osmech.payment.service;
 
 import com.mercadopago.resources.preference.Preference;
 import com.osmech.config.ResourceNotFoundException;
+import com.osmech.oficina.repository.OficinaRepository;
 import com.osmech.payment.dto.AssinaturaResponse;
 import com.osmech.payment.entity.Assinatura;
 import com.osmech.payment.entity.Pagamento;
@@ -37,6 +38,7 @@ public class AssinaturaService {
     );
 
     private final UsuarioRepository usuarioRepository;
+    private final OficinaRepository oficinaRepository;
     private final PlanoRepository planoRepository;
     private final AssinaturaRepository assinaturaRepository;
     private final PagamentoRepository pagamentoRepository;
@@ -62,13 +64,13 @@ public class AssinaturaService {
         }
 
         Assinatura assinaturaPendente = assinaturaRepository
-                .findFirstByUsuarioIdAndStatusOrderByCriadoEmDesc(usuario.getId(), STATUS_PENDING)
+                .findFirstByUsuarioIdAndStatusOrderByCriadoEmDesc(usuario.getOficinaId(), STATUS_PENDING)
                 .orElse(null);
 
         if (assinaturaPendente != null) {
             Pagamento pagamentoPendente = pagamentoRepository
                     .findFirstByUsuarioIdAndTipoAndReferenciaIdAndStatusOrderByCriadoEmDesc(
-                            usuario.getId(), "ASSINATURA", assinaturaPendente.getId(), StatusPagamento.PENDENTE
+                            usuario.getOficinaId(), "ASSINATURA", assinaturaPendente.getId(), StatusPagamento.PENDENTE
                     )
                     .orElse(null);
 
@@ -89,7 +91,7 @@ public class AssinaturaService {
         }
 
         Assinatura assinatura = Assinatura.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .planoId(plano.getId())
                 .planoCodigo(plano.getCodigo())
                 .status(STATUS_PENDING)
@@ -110,7 +112,7 @@ public class AssinaturaService {
         }
 
         Pagamento pagamento = Pagamento.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .tipo("ASSINATURA")
                 .referenciaId(assinatura.getId())
                 .descricao("Assinatura Plano " + plano.getNome())
@@ -137,8 +139,8 @@ public class AssinaturaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
         Assinatura assinatura = assinaturaRepository
-                .findByUsuarioIdAndStatusIn(usuario.getId(), STATUS_ASSINATURA_EM_ABERTO)
-                .orElseGet(() -> assinaturaRepository.findFirstByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+                .findByUsuarioIdAndStatusIn(usuario.getOficinaId(), STATUS_ASSINATURA_EM_ABERTO)
+                .orElseGet(() -> assinaturaRepository.findFirstByUsuarioIdOrderByCriadoEmDesc(usuario.getOficinaId())
                         .orElseThrow(() -> new ResourceNotFoundException("Nenhuma assinatura encontrada")));
 
         return toResponse(assinatura);
@@ -150,7 +152,7 @@ public class AssinaturaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
         Assinatura assinatura = assinaturaRepository
-                .findByUsuarioIdAndStatusIn(usuario.getId(), STATUS_ASSINATURA_EM_ABERTO)
+                .findByUsuarioIdAndStatusIn(usuario.getOficinaId(), STATUS_ASSINATURA_EM_ABERTO)
                 .orElseThrow(() -> new ResourceNotFoundException("Assinatura ativa nao encontrada"));
 
         assinatura.setStatus(STATUS_CANCELED);
@@ -162,6 +164,14 @@ public class AssinaturaService {
         usuario.setAtivo(true);
         usuarioRepository.save(usuario);
 
+        // Fonte autoritativa do plano é a OFICINA (tenant) — Fase 1
+        if (usuario.getOficinaId() != null) {
+            oficinaRepository.findById(usuario.getOficinaId()).ifPresent(oficina -> {
+                oficina.setPlano("FREE");
+                oficinaRepository.save(oficina);
+            });
+        }
+
         return toResponse(assinatura);
     }
 
@@ -170,7 +180,7 @@ public class AssinaturaService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
-        return assinaturaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+        return assinaturaRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getOficinaId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -181,7 +191,7 @@ public class AssinaturaService {
         Usuario usuario = usuarioRepository.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario nao encontrado"));
 
-        return assinaturaRepository.findByUsuarioIdAndStatusIn(usuario.getId(), List.of(STATUS_ACTIVE))
+        return assinaturaRepository.findByUsuarioIdAndStatusIn(usuario.getOficinaId(), List.of(STATUS_ACTIVE))
                 .isPresent();
     }
 

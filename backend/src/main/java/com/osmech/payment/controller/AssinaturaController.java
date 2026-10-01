@@ -16,9 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @RestController
 @RequestMapping("/v1/assinaturas")
+@PreAuthorize(PapeisSeguranca.SOMENTE_DONO)
 @RequiredArgsConstructor
 public class AssinaturaController {
 

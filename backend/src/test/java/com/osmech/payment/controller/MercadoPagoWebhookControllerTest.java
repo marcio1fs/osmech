@@ -39,6 +39,7 @@ class MercadoPagoWebhookControllerTest {
                 .processarNotificacao(anyMap(), anyMap(), anyMap());
 
         mockMvc.perform(post("/api/mercadopago/webhook")
+                        .contextPath("/api")
                         .queryParam("id", "123")
                         .queryParam("topic", "payment")
                         .header("x-signature", "ts=1,v1=invalid")
@@ -58,6 +59,7 @@ class MercadoPagoWebhookControllerTest {
                 .processarNotificacao(anyMap(), anyMap(), anyMap());
 
         mockMvc.perform(post("/api/mercadopago/webhook")
+                        .contextPath("/api")
                         .queryParam("id", "123")
                         .queryParam("topic", "payment")
                         .header("x-signature", "ts=1,v1=valid")
