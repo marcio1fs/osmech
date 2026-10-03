@@ -11,12 +11,15 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller REST para categorias financeiras.
  */
 @RestController
 @RequestMapping("/finance/category")
+@PreAuthorize(PapeisSeguranca.GESTORES)
 @RequiredArgsConstructor
 public class CategoriaFinanceiraController {
 

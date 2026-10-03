@@ -36,6 +36,7 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("GRATUITO")
                     .preco(new BigDecimal("0.00"))
                     .limiteOs(10)
+                    .limiteUsuarios(1)
                     .whatsappHabilitado(false)
                     .iaHabilitada(false)
                     .descricao("Até 10 OS/mês. Ideal para começar. Sem custo.")
@@ -54,6 +55,7 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("PRO")
                     .preco(new BigDecimal("49.90"))
                     .limiteOs(30)
+                    .limiteUsuarios(6)
                     .whatsappHabilitado(false)
                     .iaHabilitada(false)
                     .descricao("Até 30 OS/mês. Gestão básica de ordens de serviço.")
@@ -65,6 +67,7 @@ public class DataSeeder implements CommandLineRunner {
                     .nome("PRO+")
                     .preco(new BigDecimal("79.90"))
                     .limiteOs(80)
+                    .limiteUsuarios(15)
                     .whatsappHabilitado(true)
                     .iaHabilitada(false)
                     .descricao("Até 80 OS/mês. WhatsApp automático incluso.")
@@ -75,7 +78,8 @@ public class DataSeeder implements CommandLineRunner {
                     .codigo("PREMIUM")
                     .nome("PREMIUM")
                     .preco(new BigDecimal("149.90"))
-                    .limiteOs(0) // ilimitado
+                    .limiteOs(0)
+                    .limiteUsuarios(0) // ilimitado
                     .whatsappHabilitado(true)
                     .iaHabilitada(true)
                     .descricao("OS ilimitadas. WhatsApp + IA incluso. Suporte prioritário.")

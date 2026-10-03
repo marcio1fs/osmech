@@ -6,6 +6,7 @@ class AppColors {
   // Fundos
   static const Color background    = Color(0xFF0F172A); // slate-900
   static const Color surface       = Color(0xFF1E293B); // slate-800
+  static const Color cardBg        = Color(0xFF1E293B); // alias surface / card
   static const Color surfaceVariant= Color(0xFF334155); // slate-700
   static const Color border        = Color(0xFF334155); // slate-700
 

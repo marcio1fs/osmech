@@ -30,6 +30,10 @@ public class MecanicoService {
         MecanicoResponse res = MecanicoResponse.fromEntity(m);
         BigDecimal totalComissoes = servicoOSRepository.sumComissaoByMecanicoId(m.getId());
         res.setTotalComissoes(totalComissoes != null ? totalComissoes : BigDecimal.ZERO);
+        if (m.getUsuarioContaId() != null) {
+            usuarioRepository.findById(m.getUsuarioContaId())
+                    .ifPresent(conta -> res.setContaEmail(conta.getEmail()));
+        }
         return res;
     }
 
@@ -38,10 +42,10 @@ public class MecanicoService {
         log.info("Criando mecánico para usuario: {}", emailUsuario);
         try {
             Usuario usuario = getUsuario(emailUsuario);
-            log.debug("Usuario encontrado: {}", usuario.getId());
+            log.debug("Usuario encontrado: {}", usuario.getOficinaId());
 
             Mecanico mecanico = Mecanico.builder()
-                    .usuarioId(usuario.getId())
+                    .usuarioId(usuario.getOficinaId())
                     .nome(request.getNome().trim())
                     .telefone(request.getTelefone() != null ? request.getTelefone().trim() : null)
                     .especialidade(request.getEspecialidade() != null ? request.getEspecialidade().trim() : null)
@@ -63,11 +67,11 @@ public class MecanicoService {
         log.info("Listando mecanicos para usuario: {}, ativosOnly: {}", emailUsuario, ativosOnly);
         try {
             Usuario usuario = getUsuario(emailUsuario);
-            log.debug("Usuario encontrado: {}", usuario.getId());
+            log.debug("Usuario encontrado: {}", usuario.getOficinaId());
 
             List<Mecanico> mecanicos = ativosOnly
-                    ? mecanicoRepository.findByUsuarioIdAndAtivoTrueOrderByNomeAsc(usuario.getId())
-                    : mecanicoRepository.findByUsuarioIdOrderByNomeAsc(usuario.getId());
+                    ? mecanicoRepository.findByUsuarioIdAndAtivoTrueOrderByNomeAsc(usuario.getOficinaId())
+                    : mecanicoRepository.findByUsuarioIdOrderByNomeAsc(usuario.getOficinaId());
 
             log.debug("Mecanicos encontrados: {}", mecanicos.size());
             return mecanicos.stream().map(this::convertToResponse).toList();
@@ -80,14 +84,14 @@ public class MecanicoService {
     @Transactional(readOnly = true)
     public MecanicoResponse buscarPorId(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
         return convertToResponse(mecanico);
     }
 
     @Transactional
     public MecanicoResponse atualizar(String emailUsuario, Long id, MecanicoRequest request) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
 
         if (request.getNome() != null && !request.getNome().isBlank()) {
             mecanico.setNome(request.getNome().trim());
@@ -111,7 +115,7 @@ public class MecanicoService {
     @Transactional
     public void desativar(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
         mecanico.setAtivo(false);
         mecanicoRepository.save(mecanico);
     }
@@ -119,9 +123,65 @@ public class MecanicoService {
     @Transactional
     public void reativar(String emailUsuario, Long id) {
         Usuario usuario = getUsuario(emailUsuario);
-        Mecanico mecanico = getMecanicoDoUsuario(usuario.getId(), id);
+        Mecanico mecanico = getMecanicoDoUsuario(usuario.getOficinaId(), id);
         mecanico.setAtivo(true);
         mecanicoRepository.save(mecanico);
+    }
+
+    // ==================== vínculo com conta de usuário (módulo Equipe) ====================
+
+    /**
+     * Vincula uma conta de usuário da equipe (papel MECANICO) a esta ficha de
+     * mecânico — assim as comissões calculadas nas OS ficam ligadas à pessoa.
+     */
+    @Transactional
+    public MecanicoResponse vincularConta(String emailOperador, Long mecanicoId, Long usuarioContaId) {
+        Usuario operador = getUsuario(emailOperador);
+        Mecanico mecanico = getMecanicoDoUsuario(operador.getOficinaId(), mecanicoId);
+
+        Usuario conta = usuarioRepository.findById(usuarioContaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
+        if (!operador.getOficinaId().equals(conta.getOficinaId())) {
+            throw new IllegalArgumentException("Este usuário não pertence à sua oficina.");
+        }
+
+        // Garante 1 ficha de mecânico por conta de usuário
+        mecanicoRepository.findByUsuarioContaId(usuarioContaId).ifPresent(outro -> {
+            if (!outro.getId().equals(mecanicoId)) {
+                throw new IllegalArgumentException(
+                        "Este usuário já está vinculado ao mecânico \"" + outro.getNome() + "\". Desvincule primeiro.");
+            }
+        });
+
+        mecanico.setUsuarioContaId(usuarioContaId);
+        Mecanico salvo = mecanicoRepository.save(mecanico);
+        log.info("Mecânico {} vinculado à conta de usuário {} ({})", mecanicoId, usuarioContaId, conta.getEmail());
+        return convertToResponse(salvo);
+    }
+
+    /** Remove o vínculo entre a ficha de mecânico e a conta de usuário. */
+    @Transactional
+    public MecanicoResponse desvincularConta(String emailOperador, Long mecanicoId) {
+        Usuario operador = getUsuario(emailOperador);
+        Mecanico mecanico = getMecanicoDoUsuario(operador.getOficinaId(), mecanicoId);
+        mecanico.setUsuarioContaId(null);
+        Mecanico salvo = mecanicoRepository.save(mecanico);
+        log.info("Vínculo de conta removido do mecânico {}", mecanicoId);
+        return convertToResponse(salvo);
+    }
+
+    /**
+     * Retorna a ficha (e o total de comissões) do mecânico logado,
+     * localizada pelo vínculo usuarioContaId.
+     */
+    @Transactional(readOnly = true)
+    public MecanicoResponse minhasComissoes(String emailUsuario) {
+        Usuario usuario = getUsuario(emailUsuario);
+        Mecanico mecanico = mecanicoRepository.findByUsuarioContaId(usuario.getId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Sua conta ainda não está vinculada a uma ficha de mecânico. "
+                        + "Peça ao dono ou gerente para vincular em Mecânicos → Vincular conta."));
+        return convertToResponse(mecanico);
     }
 
     private Usuario getUsuario(String email) {

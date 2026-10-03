@@ -101,4 +101,30 @@ public class AuditService {
         registrar("LOGIN_TENTATIVAS_EXCEDIDAS", "USUARIO", null, email,
                 "{\"ip\":\"" + ip + "\",\"motivo\":\"muitas_tentativas\"}");
     }
+
+    // ─── Métodos de Gestão de Usuários (RBAC) ────────────────────────────────
+
+    public void registrarUsuarioCriado(Long usuarioId, String usuarioEmail, String operadorEmail, String role) {
+        registrar("USUARIO_CRIADO", "USUARIO", usuarioId, operadorEmail,
+                "{\"email\":\"" + usuarioEmail + "\",\"role\":\"" + role + "\"}");
+    }
+
+    public void registrarUsuarioEditado(Long usuarioId, String usuarioEmail, String operadorEmail) {
+        registrar("USUARIO_EDITADO", "USUARIO", usuarioId, operadorEmail,
+                "{\"email\":\"" + usuarioEmail + "\"}");
+    }
+
+    public void registrarRoleAlterada(Long usuarioId, String usuarioEmail,
+                                       String roleAnterior, String novaRole, String operadorEmail) {
+        registrar("ROLE_ALTERADA", "USUARIO", usuarioId, operadorEmail,
+                "{\"email\":\"" + usuarioEmail + "\",\"role_anterior\":\"" + roleAnterior
+                        + "\",\"nova_role\":\"" + novaRole + "\"}");
+    }
+
+    public void registrarStatusAlterado(Long usuarioId, String usuarioEmail,
+                                         String novoStatus, String operadorEmail) {
+        registrar("STATUS_ALTERADO", "USUARIO", usuarioId, operadorEmail,
+                "{\"email\":\"" + usuarioEmail + "\",\"status\":\"" + novoStatus + "\"}");
+    }
 }
+

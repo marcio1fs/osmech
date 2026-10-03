@@ -11,9 +11,18 @@ class ApiConfig {
     const definedUrl = String.fromEnvironment('API_URL', defaultValue: '');
     if (definedUrl.isNotEmpty) return definedUrl;
 
-    // Para rodar localmente antes do VPS, use: --dart-define=API_URL=http://127.0.0.1:8081
-    // (os serviços já chamam paths iniciando com /api/...)
-    if (kIsWeb) return 'http://127.0.0.1:8081';
+    if (kIsWeb) {
+      final uri = Uri.base;
+      // Se estiver desenvolvendo localmente (localhost/127.0.0.1), usa a porta 8081 da API
+      if (uri.host == 'localhost' || uri.host == '127.0.0.1') {
+        return 'http://${uri.host}:8081';
+      }
+      // Em produção, usa o mesmo domínio (ex: https://www.osmech.com.br)
+      // O nginx cuida de rotear /api/... para o backend
+      final portStr = (uri.port == 80 || uri.port == 443 || uri.port == 0) ? '' : ':${uri.port}';
+      return '${uri.scheme}://${uri.host}$portStr';
+    }
+
     if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:8081';
     }
