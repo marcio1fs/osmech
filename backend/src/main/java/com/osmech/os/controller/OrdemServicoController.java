@@ -14,6 +14,8 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import com.osmech.security.PapeisSeguranca;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 /**
  * Controller REST das Ordens de Serviço.
@@ -21,6 +23,7 @@ import java.util.Map;
  */
 @RestController
 @RequestMapping("/os")
+@PreAuthorize(PapeisSeguranca.MEMBROS_OFICINA)
 @RequiredArgsConstructor
 public class OrdemServicoController {
 
@@ -54,6 +57,7 @@ public class OrdemServicoController {
     }
 
     /** POST /api/os/{id}/encerrar - Encerrar OS com recebimento e recibo */
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @PostMapping("/{id}/encerrar")
     public ResponseEntity<EncerrarOsResponse> encerrar(Authentication auth,
                                                        @PathVariable Long id,
@@ -62,6 +66,7 @@ public class OrdemServicoController {
     }
 
     /** DELETE /api/os/{id} - Excluir OS */
+    @PreAuthorize(PapeisSeguranca.GESTORES)
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> excluir(Authentication auth, @PathVariable Long id) {
         osService.excluir(auth.getName(), id);

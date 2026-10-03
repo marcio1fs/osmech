@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_theme.dart';
 import 'register_page.dart';
+import 'forgot_password_page.dart';
 
 /// Tela de Login moderna com layout split-screen.
 class LoginPage extends StatefulWidget {
@@ -37,15 +38,42 @@ class _LoginPageState extends State<LoginPage> {
     );
     setState(() => _loading = false);
     if (error != null && mounted) {
+      // Erro de e-mail não verificado? Oferece reenvio imediato na própria snackbar
+      final precisaVerificar = error.contains('Confirme seu e-mail');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(error),
           backgroundColor: AppColors.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          action: precisaVerificar
+              ? SnackBarAction(
+                  label: 'Reenviar e-mail',
+                  textColor: Colors.white,
+                  onPressed: _reenviarVerificacao,
+                )
+              : null,
+          duration: Duration(seconds: precisaVerificar ? 8 : 4),
         ),
       );
     }
+  }
+
+  /// Reenvia o e-mail de verificação para o e-mail digitado.
+  Future<void> _reenviarVerificacao() async {
+    final auth = Provider.of<AuthService>(context, listen: false);
+    final erro =
+        await auth.reenviarVerificacao(_emailController.text.trim());
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(erro ??
+            'Se a conta existir, enviamos um novo link de verificação.'),
+        backgroundColor: erro == null ? AppColors.success : AppColors.error,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    );
   }
 
   @override
@@ -256,6 +284,35 @@ class _LoginPageState extends State<LoginPage> {
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Link Esqueci minha senha
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const ForgotPasswordPage(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.accent,
+                              padding: EdgeInsets.zero,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: Text(
+                              'Esqueci minha senha',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 24),

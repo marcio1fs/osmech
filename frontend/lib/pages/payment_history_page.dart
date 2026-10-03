@@ -37,6 +37,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
   }
 
   Future<void> _loadPagamentos() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -44,6 +45,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
     try {
       final service = PaymentService(token: safeToken);
       final todos = await service.listarPagamentos();
+      if (!mounted) return;
       setState(() {
         _todos = todos;
         _assinatura = todos.where((p) => p['tipo'] == 'ASSINATURA').toList();
@@ -51,6 +53,7 @@ class _PaymentHistoryPageState extends State<PaymentHistoryPage>
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (!handleAuthError(e)) {
         setState(() {
           _error = 'Erro ao carregar pagamentos';

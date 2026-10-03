@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../mixins/auth_error_mixin.dart';
+import '../services/equipe_service.dart';
 import '../services/mecanico_service.dart';
 import '../services/os_service.dart';
 import '../theme/app_theme.dart';
@@ -196,6 +197,150 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
     }
   }
 
+  /// Abre o diálogo para vincular uma conta de usuário (equipe) ao mecânico.
+  Future<void> _vincularConta(Map<String, dynamic> mecanico) async {
+    List<Map<String, dynamic>> membros;
+    try {
+      final equipe = await EquipeService(token: safeToken).getEquipe();
+      membros = List<Map<String, dynamic>>.from(equipe['membros'] ?? [])
+          .where((u) => u['papel'] == 'MECANICO' && u['ativo'] == true)
+          .toList();
+    } catch (e) {
+      if (!handleAuthError(e) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: UpperText('Erro ao carregar equipe: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+    if (membros.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: UpperText(
+              'Nenhum membro ativo com papel MECÂNICO na equipe. Convide-o primeiro em Equipe.'),
+          backgroundColor: AppColors.warning,
+        ),
+      );
+      return;
+    }
+
+    int? selecionado;
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setStateDialog) => AlertDialog(
+          title: UpperText('Vincular Conta — ${mecanico['nome']}'),
+          content: SizedBox(
+            width: 420,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                UpperText(
+                  'Escolha a conta de usuário (equipe) deste mecânico. As comissões das OS ficarão vinculadas a ela.',
+                  style: GoogleFonts.inter(
+                      fontSize: 13, color: AppColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                RadioGroup<int>(
+                  groupValue: selecionado,
+                  onChanged: (v) => setStateDialog(() => selecionado = v),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: membros
+                        .map((u) => RadioListTile<int>(
+                              value: u['id'] as int,
+                              dense: true,
+                              title: UpperText(u['nome'] ?? ''),
+                              subtitle: Text(u['email'] ?? '',
+                                  style: GoogleFonts.inter(fontSize: 12)),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const UpperText('Cancelar'),
+            ),
+            FilledButton(
+              onPressed:
+                  selecionado == null ? null : () => Navigator.pop(ctx, true),
+              child: const UpperText('Vincular'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmado != true || selecionado == null) return;
+
+    try {
+      await MecanicoService(token: safeToken)
+          .vincularConta(mecanico['id'] as int, selecionado!);
+      await _loadMecanicos();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: UpperText('Conta vinculada com sucesso'),
+              backgroundColor: AppColors.success),
+        );
+      }
+    } catch (e) {
+      if (!handleAuthError(e) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: UpperText('Erro: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
+  /// Remove o vínculo da ficha do mecânico com a conta de usuário.
+  Future<void> _desvincularConta(Map<String, dynamic> mecanico) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const UpperText('Desvincular Conta'),
+        content: UpperText(
+            'Remover o vínculo de "${mecanico['nome']}" com a conta ${mecanico['contaEmail'] ?? ''}? '
+            'O usuário deixará de ver as próprias comissões.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const UpperText('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.warning),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const UpperText('Desvincular'),
+          ),
+        ],
+      ),
+    );
+    if (confirmado != true) return;
+
+    try {
+      await MecanicoService(token: safeToken)
+          .desvincularConta(mecanico['id'] as int);
+      await _loadMecanicos();
+    } catch (e) {
+      if (!handleAuthError(e) && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: UpperText('Erro: $e'),
+              backgroundColor: AppColors.error),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -359,30 +504,64 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 10, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: ativo
-                                            ? AppColors.success
-                                                .withValues(alpha: 0.12)
-                                            : AppColors.error
-                                                .withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: UpperText(
-                                        ativo ? 'Ativo' : 'Inativo',
-                                        style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
                                             color: ativo
                                                 ? AppColors.success
-                                                : AppColors.error),
-                                      ),
+                                                    .withValues(alpha: 0.12)
+                                                : AppColors.error
+                                                    .withValues(alpha: 0.12),
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: UpperText(
+                                            ativo ? 'Ativo' : 'Inativo',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: ativo
+                                                    ? AppColors.success
+                                                    : AppColors.error),
+                                          ),
+                                        ),
+                                        if (m['usuarioContaId'] != null) ...[
+                                          const SizedBox(width: 6),
+                                          Tooltip(
+                                            message:
+                                                'Conta vinculada: ${m['contaEmail'] ?? 'usuário #${m['usuarioContaId']}'}',
+                                            child: const Icon(
+                                                Icons.link_rounded,
+                                                size: 18,
+                                                color: AppColors.primary),
+                                          ),
+                                        ],
+                                      ],
                                     ),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
+                                        IconButton(
+                                          tooltip: m['usuarioContaId'] != null
+                                              ? 'Desvincular conta de usuário'
+                                              : 'Vincular conta de usuário',
+                                          onPressed: () =>
+                                              m['usuarioContaId'] != null
+                                                  ? _desvincularConta(m)
+                                                  : _vincularConta(m),
+                                          icon: Icon(
+                                            m['usuarioContaId'] != null
+                                                ? Icons.link_off_rounded
+                                                : Icons.person_add_alt_rounded,
+                                            size: 20,
+                                            color: m['usuarioContaId'] != null
+                                                ? AppColors.warning
+                                                : AppColors.primary,
+                                          ),
+                                        ),
                                         IconButton(
                                           onPressed: () => _abrirDialogo(mecanico: m),
                                           icon: const Icon(Icons.edit_rounded, size: 20),

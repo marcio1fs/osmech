@@ -47,11 +47,13 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
     try {
       final service = FinanceService(token: safeToken);
       final cats = await service.listarCategorias();
+      if (!mounted) return;
       setState(() {
         _categorias = cats;
         _loadingCategorias = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (!handleAuthError(e)) {
         setState(() => _loadingCategorias = false);
       }
@@ -244,7 +246,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                           _loadingCategorias
                               ? const LinearProgressIndicator()
                               : DropdownButtonFormField<int>(
-                                  value: _categoriaId,
+                                  initialValue: _categoriaId,
                                   decoration: _inputDecoration('Selecione...'),
                                   isExpanded: true,
                                   items: [
@@ -275,7 +277,7 @@ class _TransacaoFormPageState extends State<TransacaoFormPage>
                           _buildLabel('Método de Pagamento'),
                           const SizedBox(height: 8),
                           DropdownButtonFormField<String>(
-                            value: _metodoPagamento,
+                            initialValue: _metodoPagamento,
                             decoration: _inputDecoration(''),
                             isExpanded: true,
                             items: const [

@@ -302,7 +302,7 @@ class _StockMovementPageState extends State<StockMovementPage>
           ),
           const SizedBox(height: 16),
           DropdownButtonFormField<int>(
-            value: _selectedItemId,
+            initialValue: _selectedItemId,
             isExpanded: true,
             decoration: const InputDecoration(
               labelText: 'Peça / Item *',
@@ -343,7 +343,7 @@ class _StockMovementPageState extends State<StockMovementPage>
               Expanded(
                 child: DropdownButtonFormField<String>(
                   isExpanded: true,
-                  value: _motivo,
+                  initialValue: _motivo,
                   decoration: const InputDecoration(
                     labelText: 'Motivo',
                     prefixIcon: Icon(Icons.info_outline_rounded),

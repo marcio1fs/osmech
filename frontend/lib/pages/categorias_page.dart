@@ -25,6 +25,7 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
   }
 
   Future<void> _loadCategorias() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -32,11 +33,13 @@ class _CategoriasPageState extends State<CategoriasPage> with AuthErrorMixin {
     try {
       final service = FinanceService(token: safeToken);
       final cats = await service.listarCategorias();
+      if (!mounted) return;
       setState(() {
         _categorias = cats;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (!handleAuthError(e)) {
         setState(() {
           _error = 'Erro ao carregar categorias';

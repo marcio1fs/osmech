@@ -28,7 +28,9 @@ class MercadoPagoWebhookServiceSignatureTest {
 
         Long paymentId = 123L;
         String requestId = "req-123";
-        String ts = "1700000000";
+        // Timestamp dinâmico (dentro da janela anti-replay de 5 min) — um valor
+        // fixo apodrece: a validação do serviço rejeita ts com mais de 300s.
+        String ts = String.valueOf(System.currentTimeMillis() / 1000);
         String manifest = "id:" + paymentId + ";request-id:" + requestId + ";ts:" + ts + ";";
         String assinaturaValida = "ts=" + ts + ",v1=" + hmacSha256Hex(manifest, "segredo-teste");
 
@@ -74,6 +76,7 @@ class MercadoPagoWebhookServiceSignatureTest {
         AssinaturaRepository assinaturaRepository = mock(AssinaturaRepository.class);
         MercadoPagoWebhookEventRepository webhookEventRepository = mock(MercadoPagoWebhookEventRepository.class);
         UsuarioRepository usuarioRepository = mock(UsuarioRepository.class);
+        com.osmech.oficina.repository.OficinaRepository oficinaRepository = mock(com.osmech.oficina.repository.OficinaRepository.class);
         Environment environment = mock(Environment.class);
         
         // Return "dev" profile so @PostConstruct doesn't fail
@@ -84,6 +87,7 @@ class MercadoPagoWebhookServiceSignatureTest {
                 assinaturaRepository,
                 webhookEventRepository,
                 usuarioRepository,
+                oficinaRepository,
                 environment
         );
     }

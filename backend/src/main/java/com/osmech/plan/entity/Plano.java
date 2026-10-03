@@ -38,6 +38,14 @@ public class Plano {
     @Builder.Default
     private Integer limiteOs = 0;
 
+    /**
+     * Limite de usuários ativos da oficina (0 ou null = ilimitado).
+     * Cobrado no convite/aceite de membros da equipe (Fases 2-3).
+     */
+    @Column(name = "limite_usuarios")
+    @Builder.Default
+    private Integer limiteUsuarios = 0;
+
     /** Acesso ao WhatsApp automático */
     @Column(name = "whatsapp_habilitado")
     @Builder.Default
