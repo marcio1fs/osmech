@@ -49,12 +49,12 @@ public class FinanceiroService {
         CategoriaFinanceira categoria = null;
         if (request.getCategoriaId() != null) {
             categoria = categoriaRepository.findByIdAndUsuarioIdOrSistemaTrue(
-                            request.getCategoriaId(), usuario.getId())
+                            request.getCategoriaId(), usuario.getOficinaId())
                     .orElseThrow(() -> new ResourceNotFoundException("Categoria não encontrada"));
         }
 
         TransacaoFinanceira tx = TransacaoFinanceira.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .tipo(request.getTipo())
                 .categoria(categoria)
                 .descricao(request.getDescricao())
@@ -69,7 +69,7 @@ public class FinanceiroService {
         tx = transacaoRepository.save(tx);
 
         // Atualizar fluxo de caixa do dia
-        atualizarFluxoCaixa(usuario.getId(), tx.getDataMovimentacao().toLocalDate());
+        atualizarFluxoCaixa(usuario.getOficinaId(), tx.getDataMovimentacao().toLocalDate());
 
         return toResponse(tx);
     }
@@ -109,7 +109,7 @@ public class FinanceiroService {
     @Transactional
     public TransacaoResponse estornarTransacao(String emailUsuario, Long transacaoId) {
         Usuario usuario = getUsuario(emailUsuario);
-        TransacaoFinanceira original = transacaoRepository.findByIdAndUsuarioId(transacaoId, usuario.getId())
+        TransacaoFinanceira original = transacaoRepository.findByIdAndUsuarioId(transacaoId, usuario.getOficinaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Transação não encontrada"));
 
         if (Boolean.TRUE.equals(original.getEstorno())) {
@@ -120,7 +120,7 @@ public class FinanceiroService {
         String tipoEstorno = "ENTRADA".equals(original.getTipo()) ? "SAIDA" : "ENTRADA";
 
         TransacaoFinanceira estorno = TransacaoFinanceira.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .tipo(tipoEstorno)
                 .categoria(original.getCategoria())
                 .descricao("ESTORNO: " + original.getDescricao())
@@ -135,7 +135,7 @@ public class FinanceiroService {
                 .build();
 
         estorno = transacaoRepository.save(estorno);
-        atualizarFluxoCaixa(usuario.getId(), estorno.getDataMovimentacao().toLocalDate());
+        atualizarFluxoCaixa(usuario.getOficinaId(), estorno.getDataMovimentacao().toLocalDate());
         return toResponse(estorno);
     }
 
@@ -152,11 +152,11 @@ public class FinanceiroService {
         List<TransacaoFinanceira> lista;
         if (dataInicio != null && dataFim != null) {
             lista = transacaoRepository.findByUsuarioIdAndDataMovimentacaoBetweenOrderByDataMovimentacaoDesc(
-                    usuario.getId(),
+                    usuario.getOficinaId(),
                     dataInicio.atStartOfDay(),
                     dataFim.atTime(LocalTime.MAX));
         } else {
-            lista = transacaoRepository.findByUsuarioIdOrderByDataMovimentacaoDesc(usuario.getId());
+            lista = transacaoRepository.findByUsuarioIdOrderByDataMovimentacaoDesc(usuario.getOficinaId());
         }
 
         if (tipo != null && !tipo.isBlank()) {
@@ -177,7 +177,7 @@ public class FinanceiroService {
     @Transactional(readOnly = true)
     public List<FluxoCaixaResponse> getFluxoCaixa(String emailUsuario, LocalDate inicio, LocalDate fim) {
         Usuario usuario = getUsuario(emailUsuario);
-        Long uid = usuario.getId();
+        Long uid = usuario.getOficinaId();
 
         // Mapa dos dias que têm registro real
         Map<LocalDate, FluxoCaixa> registros = fluxoRepository
@@ -231,7 +231,7 @@ public class FinanceiroService {
     public List<TransacaoResponse> getTransacoesDia(String emailUsuario, LocalDate data) {
         Usuario usuario = getUsuario(emailUsuario);
         return transacaoRepository
-                .findByUsuarioIdAndDia(usuario.getId(),
+                .findByUsuarioIdAndDia(usuario.getOficinaId(),
                         data.atStartOfDay(),
                         data.atTime(LocalTime.MAX))
                 .stream()
@@ -290,7 +290,7 @@ public class FinanceiroService {
     @Transactional(readOnly = true)
     public ResumoFinanceiroDTO getResumoFinanceiro(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        Long uid = usuario.getId();
+        Long uid = usuario.getOficinaId();
 
         LocalDate hoje = LocalDate.now();
         LocalDateTime inicioMes = hoje.withDayOfMonth(1).atStartOfDay();
@@ -326,7 +326,7 @@ public class FinanceiroService {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> getTendencia7Dias(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        Long uid = usuario.getId();
+        Long uid = usuario.getOficinaId();
         LocalDate hoje = LocalDate.now();
 
         List<Map<String, Object>> resultado = new java.util.ArrayList<>();

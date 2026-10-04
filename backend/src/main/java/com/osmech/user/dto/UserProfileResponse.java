@@ -29,5 +29,6 @@ public class UserProfileResponse {
     private String role;
     private String plano;
     private Boolean ativo;
+    private Boolean doisFaAtivo;
     private LocalDateTime criadoEm;
 }

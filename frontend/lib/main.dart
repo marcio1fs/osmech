@@ -4,6 +4,11 @@ import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'pages/login_page.dart';
 import 'pages/checkout_return_page.dart';
+import 'pages/aceitar_convite_page.dart';
+import 'pages/dois_fa_page.dart';
+import 'pages/forgot_password_page.dart';
+import 'pages/reset_password_page.dart';
+import 'pages/verify_email_page.dart';
 import 'widgets/app_shell.dart';
 import 'widgets/upper_text.dart';
 import 'theme/app_theme.dart';
@@ -32,19 +37,51 @@ class OsmechApp extends StatelessWidget {
     final fragment = base.fragment.trim();
     final path = base.path.trim();
 
+    // Rotas de assinatura
     if (fragment == '/assinatura/sucesso' ||
         fragment == '/assinatura/pendente' ||
         fragment == '/assinatura/falha') {
       return fragment;
     }
-
     if (path == '/assinatura/sucesso' ||
         path == '/assinatura/pendente' ||
         path == '/assinatura/falha') {
       return path;
     }
 
+    // Links enviados por e-mail (fragment ou path):
+    final fragmentBase = fragment.split('?').first;
+    if (fragmentBase == '/aceitar-convite' || path == '/aceitar-convite') {
+      return '/aceitar-convite';
+    }
+    if (fragmentBase == '/reset-password' || path == '/reset-password' ||
+        fragment.startsWith('/reset-password') || path.startsWith('/reset-password')) {
+      return '/reset-password';
+    }
+    if (fragmentBase == '/verify-email' || path == '/verify-email') {
+      return '/verify-email';
+    }
+    if (fragmentBase == '/recuperar-senha' || path == '/recuperar-senha' ||
+        fragment == '/forgot-password' || path == '/forgot-password') {
+      return '/recuperar-senha';
+    }
+
     return '/';
+  }
+
+  /// Extrai ?token= da URL atual (path strategy ou hash strategy).
+  String _tokenDaUrl() {
+    final base = Uri.base;
+    final direto = base.queryParameters['token'];
+    if (direto != null && direto.isNotEmpty) return direto;
+    final frag = base.fragment;
+    final q = frag.indexOf('?');
+    if (q >= 0 && q + 1 < frag.length) {
+      final params = Uri.parse('http://placeholder/?' + frag.substring(q + 1))
+          .queryParameters;
+      return params['token'] ?? '';
+    }
+    return '';
   }
 
   @override
@@ -69,12 +106,12 @@ class OsmechApp extends StatelessWidget {
             SingleActivator(LogicalKeyboardKey.f4): _NavIntent(3),   // Pagamentos
             SingleActivator(LogicalKeyboardKey.f5): _NavIntent(4),   // Assinatura
             SingleActivator(LogicalKeyboardKey.f6): _NavIntent(5),   // Mecânicos
-            SingleActivator(LogicalKeyboardKey.f7): _NavIntent(6),   // Financeiro
-            SingleActivator(LogicalKeyboardKey.f8): _NavIntent(11),  // Estoque
-            SingleActivator(LogicalKeyboardKey.f9): _NavIntent(15),  // IA OSMECH
-            SingleActivator(LogicalKeyboardKey.f10): _NavIntent(18), // Relatórios
-            SingleActivator(LogicalKeyboardKey.f11): _NavIntent(19), // Administração
-            SingleActivator(LogicalKeyboardKey.f12): _NavIntent(16), // Meu Perfil
+            SingleActivator(LogicalKeyboardKey.f7): _NavIntent(7),   // Financeiro
+            SingleActivator(LogicalKeyboardKey.f8): _NavIntent(12),  // Estoque
+            SingleActivator(LogicalKeyboardKey.f9): _NavIntent(16),  // IA OSMECH
+            SingleActivator(LogicalKeyboardKey.f10): _NavIntent(19), // Relatórios
+            SingleActivator(LogicalKeyboardKey.f11): _NavIntent(20), // Administração
+            SingleActivator(LogicalKeyboardKey.f12): _NavIntent(17), // Meu Perfil
           },
           child: Actions(
             actions: <Type, Action<Intent>>{
@@ -87,12 +124,39 @@ class OsmechApp extends StatelessWidget {
       },
       routes: {
         '/': (context) => const _AuthGate(),
+        '/login': (context) => const _AuthGate(),
+        '/aceitar-convite': (context) => const AceitarConvitePage(),
+        '/recuperar-senha': (context) => const ForgotPasswordPage(),
+        '/forgot-password': (context) => const ForgotPasswordPage(),
+        '/reset-password': (context) =>
+            ResetPasswordPage(token: _tokenDaUrl()),
+        '/verify-email': (context) => VerifyEmailPage(token: _tokenDaUrl()),
         '/assinatura/sucesso': (context) =>
             const CheckoutReturnPage(result: 'sucesso'),
         '/assinatura/pendente': (context) =>
             const CheckoutReturnPage(result: 'pendente'),
         '/assinatura/falha': (context) =>
             const CheckoutReturnPage(result: 'falha'),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name != null && settings.name!.startsWith('/reset-password')) {
+          final uri = Uri.parse(settings.name!);
+          String? token = uri.queryParameters['token'];
+          
+          if (token == null) {
+            final fragmentUri = Uri.parse(Uri.base.fragment);
+            token = fragmentUri.queryParameters['token'];
+          }
+          if (token == null || token.isEmpty) {
+            token = _tokenDaUrl();
+          }
+          
+          return MaterialPageRoute(
+            builder: (_) => ResetPasswordPage(token: token),
+            settings: settings,
+          );
+        }
+        return null;
       },
       onUnknownRoute: (_) => MaterialPageRoute(
         builder: (_) => const _AuthGate(),
@@ -153,6 +217,10 @@ class _AuthGate extends StatelessWidget {
         }
         if (auth.isAuthenticated) {
           return const UpperCaseScope(enabled: true, child: AppShell());
+        }
+        if (auth.requer2fa) {
+          // Senha correta, aguardando o código de verificação (Fase 4)
+          return const DoisFaPage();
         }
         return const LoginPage();
       },
