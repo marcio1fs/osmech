@@ -29,6 +29,7 @@ class _SubscriptionPageState extends State<SubscriptionPage>
   }
 
   Future<void> _loadAssinatura() async {
+    if (!mounted) return;
     setState(() {
       _loading = true;
       _error = null;
@@ -36,11 +37,13 @@ class _SubscriptionPageState extends State<SubscriptionPage>
     try {
       final service = PaymentService(token: safeToken);
       final data = await service.getAssinaturaAtiva();
+      if (!mounted) return;
       setState(() {
         _assinatura = data;
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       if (!handleAuthError(e)) {
         setState(() {
           _error = 'Erro ao carregar assinatura';
