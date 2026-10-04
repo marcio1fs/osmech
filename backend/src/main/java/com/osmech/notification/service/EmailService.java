@@ -43,7 +43,8 @@ public class EmailService {
 
 
         String subject = "Recuperação de Senha - OSMECH";
-        String link = frontendUrl + "/reset-password?token=" + token;
+        // Link no formato correto para Flutter Web (hash routing)
+        String link = frontendUrl + "/#/reset-password?token=" + token;
         String message = "Olá,\n\nVocê solicitou a recuperação de senha da sua conta no OSMECH.\n" +
                 "Clique no link abaixo para definir uma nova senha:\n\n" +
                 link + "\n\n" +
@@ -66,6 +67,39 @@ public class EmailService {
                 "Para ativar sua conta e garantir que seu e-mail é real, clique no link abaixo:\n\n" +
                 link + "\n\n" +
                 "Se você não se cadastrou em nosso sistema, ignore este e-mail.";
+
+        enviarEmail(to, subject, message);
+    }
+
+    public void enviarCodigo2fa(String to, String codigo) {
+        if (!emailEnabled || mailSender == null) {
+            log.warn("[EmailService] SMTP não configurado. Ignorando envio de código 2FA para {}", to);
+            return;
+        }
+
+        String subject = "Seu código de acesso - OSMECH";
+        String message = "Olá,\n\nSeu código de verificação em duas etapas é:\n\n"
+                + "    " + codigo + "\n\n"
+                + "Ele expira em 10 minutos. Se você não tentou entrar, "
+                + "troque sua senha imediatamente.";
+
+        enviarEmail(to, subject, message);
+    }
+
+    public void enviarEmailConvite(String to, String nomeOficina, String papel, String token) {
+        if (!emailEnabled || mailSender == null) {
+            log.warn("[EmailService] SMTP não configurado. Ignorando envio de convite para {}", to);
+            return;
+        }
+
+        String subject = "Convite para equipe - OSMECH";
+        String link = frontendUrl + "/aceitar-convite?token=" + token;
+        String message = "Olá,\n\nVocê foi convidado para entrar na equipe da oficina \"" + nomeOficina
+                + "\" no OSMECH, com o papel " + papel + ".\n"
+                + "Para aceitar o convite e criar o seu acesso, clique no link abaixo:\n\n"
+                + link + "\n\n"
+                + "Este convite expira em 7 dias.\n\n"
+                + "Se você não esperava este convite, ignore este e-mail.";
 
         enviarEmail(to, subject, message);
     }

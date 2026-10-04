@@ -46,4 +46,29 @@ class MecanicoService {
       throw Exception(body['error'] ?? 'Erro ao reativar mecânico');
     }
   }
+
+  /// Vincula uma conta de usuário da equipe à ficha do mecânico.
+  Future<Map<String, dynamic>> vincularConta(int id, int usuarioId) async {
+    final response = await _api
+        .put('/api/mecanicos/$id/vincular-conta', body: {'usuarioId': usuarioId});
+    final body = jsonDecode(response.body);
+    if (response.statusCode == 200) return body;
+    throw Exception(body['error'] ?? 'Erro ao vincular conta ao mecânico');
+  }
+
+  /// Remove o vínculo da ficha do mecânico com a conta de usuário.
+  Future<Map<String, dynamic>> desvincularConta(int id) async {
+    final response = await _api.delete('/api/mecanicos/$id/vincular-conta');
+    final body = jsonDecode(response.body);
+    if (response.statusCode == 200) return body;
+    throw Exception(body['error'] ?? 'Erro ao desvincular conta do mecânico');
+  }
+
+  /// Ficha + total de comissões do mecânico logado.
+  Future<Map<String, dynamic>> minhasComissoes() async {
+    final response = await _api.get('/api/mecanicos/minhas-comissoes');
+    final body = jsonDecode(response.body);
+    if (response.statusCode == 200) return body;
+    throw Exception(body['error'] ?? 'Sua conta não está vinculada a um mecânico');
+  }
 }

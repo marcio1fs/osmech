@@ -1,7 +1,15 @@
 package com.osmech.user.service;
 
+import com.osmech.auditoria.entity.LogAuditoria;
+import com.osmech.auditoria.service.AuditoriaService;
 import com.osmech.config.ResourceNotFoundException;
+import com.osmech.oficina.entity.Oficina;
+import com.osmech.oficina.repository.OficinaRepository;
+import com.osmech.sessao.entity.SessaoUsuario;
+import com.osmech.sessao.repository.SessaoUsuarioRepository;
+import com.osmech.sessao.service.SessaoService;
 import com.osmech.user.dto.ChangePasswordRequest;
+import com.osmech.user.dto.SessaoInfoResponse;
 import com.osmech.user.dto.UserProfileRequest;
 import com.osmech.user.dto.UserProfileResponse;
 import com.osmech.user.entity.Usuario;
@@ -28,7 +36,11 @@ import java.util.UUID;
 public class UserService {
 
     private final UsuarioRepository usuarioRepository;
+    private final OficinaRepository oficinaRepository;
     private final PasswordEncoder passwordEncoder;
+    private final SessaoService sessaoService;
+    private final SessaoUsuarioRepository sessaoRepository;
+    private final AuditoriaService auditoria;
 
     @Value("${app.upload.logo-dir:/app/uploads/logos}")
     private String logoDir;
@@ -88,8 +100,37 @@ public class UserService {
         }
 
         usuarioRepository.save(usuario);
+        sincronizarDadosEmpresaNaOficina(usuario);
         log.info("Perfil atualizado para usuário: {}", email);
         return toResponse(usuario);
+    }
+
+    /**
+     * Espelha os dados de empresa do usuário na entidade Oficina (tenant).
+     * A partir da Fase 1, Oficina é a fonte autoritativa dos dados da empresa;
+     * os campos em usuarios permanecem como espelho para telas legadas.
+     */
+    private void sincronizarDadosEmpresaNaOficina(Usuario usuario) {
+        if (usuario.getOficinaId() == null) {
+            return;
+        }
+        oficinaRepository.findById(usuario.getOficinaId()).ifPresent(oficina -> {
+            String nome = usuario.getNomeOficina();
+            oficina.setNome(nome != null && !nome.isBlank() ? nome : usuario.getNome());
+            oficina.setCnpj(usuario.getCnpjOficina());
+            oficina.setTelefone(usuario.getTelefone());
+            oficina.setEmail(usuario.getEmail());
+            oficina.setEnderecoLogradouro(usuario.getEnderecoLogradouro());
+            oficina.setEnderecoNumero(usuario.getEnderecoNumero());
+            oficina.setEnderecoComplemento(usuario.getEnderecoComplemento());
+            oficina.setEnderecoBairro(usuario.getEnderecoBairro());
+            oficina.setEnderecoCidade(usuario.getEnderecoCidade());
+            oficina.setEnderecoEstado(usuario.getEnderecoEstado());
+            oficina.setEnderecoCep(usuario.getEnderecoCep());
+            oficina.setSite(usuario.getSiteOficina());
+            oficina.setLogoUrl(usuario.getLogoUrl());
+            oficinaRepository.save(oficina);
+        });
     }
 
     /**
@@ -111,7 +152,73 @@ public class UserService {
 
         usuario.setSenha(passwordEncoder.encode(request.getNovaSenha()));
         usuarioRepository.save(usuario);
+
+        // Fase 4: troca de senha encerra todas as sessões (refresh tokens)
+        sessaoService.revogarTodas(usuario.getId(), SessaoService.MOTIVO_SENHA_ALTERADA);
+        auditoria.registrar(usuario, LogAuditoria.SENHA_ALTERADA, "Senha alterada pelo perfil — sessões encerradas");
         log.info("Senha alterada para usuário: {}", email);
+    }
+
+    /**
+     * Lista as sessões ativas do usuário (perfil → segurança).
+     * Se o cliente informar seu refresh token, a sessão correspondente
+     * vem marcada como "atual".
+     */
+    @Transactional(readOnly = true)
+    public java.util.List<SessaoInfoResponse> listarSessoes(String email, String refreshTokenAtual) {
+        Usuario usuario = getUsuario(email);
+        String hashAtual = (refreshTokenAtual == null || refreshTokenAtual.isBlank())
+                ? null : SessaoService.hash(refreshTokenAtual.trim());
+
+        return sessaoRepository.findByUsuarioIdAndRevogadoEmIsNull(usuario.getId()).stream()
+                .filter(SessaoUsuario::isAtiva)
+                .sorted(java.util.Comparator.comparing(SessaoUsuario::getCriadoEm).reversed())
+                .map(s -> SessaoInfoResponse.builder()
+                        .criadoEm(s.getCriadoEm())
+                        .expiraEm(s.getExpiraEm())
+                        .userAgent(s.getUserAgent())
+                        .atual(hashAtual != null && hashAtual.equals(s.getRefreshTokenHash()))
+                        .build())
+                .toList();
+    }
+
+    /**
+     * Encerra TODAS as sessões do usuário logado ("sair de todos os dispositivos").
+     * O app deve fazer logout local em seguida.
+     */
+    @Transactional
+    public void logoutTodas(String email) {
+        Usuario usuario = getUsuario(email);
+        sessaoService.revogarTodas(usuario.getId(), "LOGOUT_TODOS");
+        auditoria.registrar(usuario, LogAuditoria.LOGOUT,
+                "Todas as sessões encerradas pelo próprio usuário");
+        log.info("Logout total executado para {}", email);
+    }
+
+    /**
+     * Ativa ou desativa o 2FA por código de e-mail (exige a senha atual).
+     * Desativar também limpa desafios pendentes e encerra as outras sessões
+     * (a sessão atual avança pelo access token até expirar).
+     */
+    @Transactional
+    public void alterarDoisFa(String email, String senhaAtual, boolean ativar) {
+        Usuario usuario = getUsuario(email);
+
+        if (!passwordEncoder.matches(senhaAtual, usuario.getSenha())) {
+            throw new IllegalArgumentException("Senha incorreta");
+        }
+
+        usuario.setDoisFaAtivo(ativar);
+        usuarioRepository.save(usuario);
+
+        if (!ativar) {
+            sessaoService.revogarTodas(usuario.getId(), "2FA_DESATIVADO");
+        }
+
+        auditoria.registrar(usuario,
+                ativar ? LogAuditoria.DOIS_FA_ATIVADO : LogAuditoria.DOIS_FA_DESATIVADO,
+                null);
+        log.info("2FA {} para {}", ativar ? "ATIVADO" : "DESATIVADO", email);
     }
 
     /**
@@ -145,6 +252,7 @@ public class UserService {
         String logoUrlPath = "/api/uploads/logos/" + newFilename;
         usuario.setLogoUrl(logoUrlPath);
         usuarioRepository.save(usuario);
+        sincronizarDadosEmpresaNaOficina(usuario);
 
         log.info("Logo atualizada para usuário: {}", email);
         return logoUrlPath;
@@ -175,6 +283,7 @@ public class UserService {
                 .role(usuario.getRole())
                 .plano(usuario.getPlano())
                 .ativo(usuario.getAtivo())
+                .doisFaAtivo(usuario.getDoisFaAtivo())
                 .criadoEm(usuario.getCriadoEm())
                 .build();
     }

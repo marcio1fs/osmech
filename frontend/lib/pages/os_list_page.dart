@@ -344,7 +344,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
       );
 
       final filter = DropdownButtonFormField<String>(
-        value: _statusFilter,
+        initialValue: _statusFilter,
         isExpanded: true,
         decoration: InputDecoration(
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
