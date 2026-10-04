@@ -892,7 +892,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                 children: [
                   DropdownButtonFormField<String>(
                     isExpanded: true,
-                    value: metodoPagamento,
+                    initialValue: metodoPagamento,
                     decoration:
                         const InputDecoration(labelText: 'Forma de pagamento'),
                     items: const [
@@ -1157,8 +1157,25 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
     await showDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: UpperText('Recibo / Extrato',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+        title: Row(
+          children: [
+            if (logoUrl != null && logoUrl.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(
+                  logoUrl,
+                  height: 36,
+                  width: 36,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              ),
+              const SizedBox(width: 10),
+            ],
+            UpperText('Recibo / Extrato',
+                style: GoogleFonts.inter(fontWeight: FontWeight.w700)),
+          ],
+        ),
         content: SizedBox(
           width: 640,
           child: Column(
@@ -1185,9 +1202,9 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                     child: SelectableText(
                     recibo,
                     style: GoogleFonts.robotoMono(
-                      fontSize: 12.5,
+                      fontSize: 15,
                       color: AppColors.textPrimary,
-                      height: 1.4,
+                      height: 1.5,
                     ),
                   ),
                 ),
@@ -1482,7 +1499,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                               Switch(
                                 value: _vendaRapida,
                                 activeTrackColor: AppColors.accent.withValues(alpha: 0.5),
-                                activeColor: AppColors.accent,
+                                activeThumbColor: AppColors.accent,
                                 onChanged: (val) => _toggleVendaRapida(val),
                               ),
                             ],
@@ -1783,7 +1800,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                       const SizedBox(height: 8),
                                       DropdownButtonFormField<String>(
                                         isExpanded: true,
-                                        value: _status,
+                                        initialValue: _status,
                                         decoration: const InputDecoration(),
                                         items: _statusPermitidos
                                             .map((s) => DropdownMenuItem(
@@ -1856,7 +1873,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                                         fontSize: 12,
                                         color: AppColors.textMuted)),
                                 contentPadding: EdgeInsets.zero,
-                                activeColor: AppColors.accent,
+                                activeThumbColor: AppColors.accent,
                               ),
                             ),
                           ],
@@ -2082,7 +2099,7 @@ class _OsFormPageState extends State<OsFormPage> with AuthErrorMixin {
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int?>(
                           isExpanded: true,
-                          value: _mecanicos.any((m) => (m['id'] as num).toInt() == s.mecanicoId)
+                          initialValue: _mecanicos.any((m) => (m['id'] as num).toInt() == s.mecanicoId)
                               ? s.mecanicoId
                               : null,
                           decoration: const InputDecoration(

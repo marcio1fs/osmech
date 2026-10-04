@@ -71,11 +71,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/auth/**", "/planos/**").permitAll()
                 .requestMatchers("/api/auth/**", "/api/planos/**").permitAll()
-                .requestMatchers("/mercadopago/webhook").permitAll()
+                .requestMatchers("/mercadopago/webhook", "/api/mercadopago/webhook").permitAll()
                 .requestMatchers("/actuator/health", "/actuator/info").permitAll()
                 .requestMatchers("/uploads/logos/**", "/api/uploads/logos/**").permitAll()
-                .requestMatchers("/api/**").authenticated()
-                .anyRequest().permitAll()
+                .anyRequest().authenticated()
             )
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);

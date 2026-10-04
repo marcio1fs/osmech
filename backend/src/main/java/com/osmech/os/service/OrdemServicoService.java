@@ -8,6 +8,8 @@ import com.osmech.finance.service.FinanceiroService;
 import com.osmech.mecanico.entity.Mecanico;
 import com.osmech.mecanico.repository.MecanicoRepository;
 import com.osmech.notification.service.WhatsAppService;
+import com.osmech.oficina.entity.Oficina;
+import com.osmech.oficina.repository.OficinaRepository;
 import com.osmech.os.dto.*;
 import com.osmech.os.entity.ItemOS;
 import com.osmech.os.entity.OrdemServico;
@@ -18,6 +20,7 @@ import com.osmech.os.repository.OrdemServicoRepository;
 import com.osmech.os.repository.ServicoOSRepository;
 import com.osmech.plan.entity.Plano;
 import com.osmech.plan.repository.PlanoRepository;
+import com.osmech.security.SecurityContextHelper;
 import com.osmech.stock.entity.StockItem;
 import com.osmech.stock.repository.StockItemRepository;
 import com.osmech.stock.service.StockService;
@@ -52,6 +55,7 @@ public class OrdemServicoService {
 
     private final OrdemServicoRepository osRepository;
     private final UsuarioRepository usuarioRepository;
+    private final OficinaRepository oficinaRepository;
     private final FinanceiroService financeiroService;
     private final PlanoRepository planoRepository;
     private final ServicoOSRepository servicoOSRepository;
@@ -61,6 +65,7 @@ public class OrdemServicoService {
     private final StockService stockService;
     private final TransacaoFinanceiraRepository transacaoFinanceiraRepository;
     private final WhatsAppService whatsAppService;
+    private final SecurityContextHelper securityContextHelper;
 
     /**
      * Cria uma nova Ordem de Serviço.
@@ -94,7 +99,7 @@ public class OrdemServicoService {
         }
 
         OrdemServico os = OrdemServico.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .clienteNome(request.getClienteNome())
                 .clienteCpf(clienteCpf)
                 .clienteCnpj(clienteCnpj)
@@ -122,7 +127,7 @@ public class OrdemServicoService {
         List<ServicoOS> servicos = salvarServicos(os, request.getServicos());
 
         // Salvar itens de estoque e dar baixa no estoque
-        List<ItemOS> itens = salvarItens(os, request.getItens(), usuario.getId());
+        List<ItemOS> itens = salvarItens(os, request.getItens(), usuario.getOficinaId());
 
         // Recalcular valor total se tem serviços ou itens
         recalcularValorTotal(os, servicos, itens);
@@ -136,7 +141,7 @@ public class OrdemServicoService {
     @Transactional(readOnly = true)
     public List<OrdemServicoResponse> listarPorUsuario(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        return osRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getId())
+        return osRepository.findByUsuarioIdOrderByCriadoEmDesc(usuario.getOficinaId())
                 .stream()
                 .map(os -> {
                     try {
@@ -145,7 +150,7 @@ public class OrdemServicoService {
                         return toResponse(os, servicos, itens);
                     } catch (Exception e) {
                         log.warn("Falha ao carregar relacionamentos da OS #{} para o usuario {}. Retornando dados basicos. Motivo: {}",
-                                os.getId(), usuario.getId(), e.getMessage());
+                                os.getId(), usuario.getOficinaId(), e.getMessage());
                         return toResponse(os, List.of(), List.of());
                     }
                 })
@@ -161,7 +166,7 @@ public class OrdemServicoService {
         OrdemServico os = osRepository.findById(osId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
@@ -181,7 +186,7 @@ public class OrdemServicoService {
         OrdemServico os = osRepository.findById(osId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
@@ -249,14 +254,14 @@ public class OrdemServicoService {
         if (request.getItens() != null) {
             // Devolver itens antigos ao estoque
             List<ItemOS> itensAntigos = itemOSRepository.findByOrdemServicoId(os.getId());
-            devolverItensEstoque(itensAntigos, usuario.getId(), os.getId());
+            devolverItensEstoque(itensAntigos, usuario.getOficinaId(), os.getId());
 
             // Remover itens antigos
             itemOSRepository.deleteByOrdemServicoId(os.getId());
             itemOSRepository.flush();
 
             // Salvar novos itens e dar baixa no estoque
-            itens = salvarItens(os, request.getItens(), usuario.getId());
+            itens = salvarItens(os, request.getItens(), usuario.getOficinaId());
         } else {
             itens = itemOSRepository.findByOrdemServicoId(os.getId());
         }
@@ -291,7 +296,7 @@ public class OrdemServicoService {
         OrdemServico os = osRepository.findById(osId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de Servico nao encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a esta Ordem de Servico");
         }
         if ("CONCLUIDA".equalsIgnoreCase(os.getStatus())) {
@@ -326,7 +331,7 @@ public class OrdemServicoService {
         TransacaoResponse transacao = null;
 
         boolean jaTemTransacaoOs = transacaoFinanceiraRepository
-                .existsByUsuarioIdAndReferenciaTipoAndReferenciaIdAndEstornoFalse(usuario.getId(), "OS", os.getId());
+                .existsByUsuarioIdAndReferenciaTipoAndReferenciaIdAndEstornoFalse(usuario.getOficinaId(), "OS", os.getId());
 
         if (!jaTemTransacaoOs && valorFinal.signum() > 0) {
             TransacaoRequest transacaoRequest = new TransacaoRequest();
@@ -344,7 +349,7 @@ public class OrdemServicoService {
             transacao = financeiroService.criarTransacao(emailUsuario, transacaoRequest);
         } else if (jaTemTransacaoOs) {
             List<com.osmech.finance.entity.TransacaoFinanceira> transacoesExistentes = transacaoFinanceiraRepository
-                    .findByUsuarioIdAndReferenciaTipoAndReferenciaId(usuario.getId(), "OS", os.getId());
+                    .findByUsuarioIdAndReferenciaTipoAndReferenciaId(usuario.getOficinaId(), "OS", os.getId());
             for (com.osmech.finance.entity.TransacaoFinanceira tf : transacoesExistentes) {
                 if (!Boolean.TRUE.equals(tf.getEstorno())) {
                     tf.setValor(valorFinal);
@@ -358,7 +363,7 @@ public class OrdemServicoService {
                         tf.setObservacoes(request.getObservacoesPagamento());
                     }
                     transacaoFinanceiraRepository.save(tf);
-                    financeiroService.atualizarFluxoCaixa(usuario.getId(), tf.getDataMovimentacao().toLocalDate());
+                    financeiroService.atualizarFluxoCaixa(usuario.getOficinaId(), tf.getDataMovimentacao().toLocalDate());
                 }
             }
         }
@@ -409,13 +414,13 @@ public class OrdemServicoService {
         OrdemServico os = osRepository.findById(osId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
         // Devolver itens de estoque
         List<ItemOS> itens = itemOSRepository.findByOrdemServicoId(osId);
-        devolverItensEstoque(itens, usuario.getId(), osId);
+        devolverItensEstoque(itens, usuario.getOficinaId(), osId);
 
         // Limpar serviços e itens (cascade delete)
         servicoOSRepository.deleteByOrdemServicoId(osId);
@@ -433,7 +438,7 @@ public class OrdemServicoService {
         OrdemServico os = osRepository.findById(osId)
                 .orElseThrow(() -> new ResourceNotFoundException("Ordem de Serviço não encontrada"));
 
-        if (!os.getUsuarioId().equals(usuario.getId())) {
+        if (!os.getUsuarioId().equals(usuario.getOficinaId())) {
             throw new AccessDeniedException("Acesso negado a esta Ordem de Serviço");
         }
 
@@ -463,7 +468,7 @@ public class OrdemServicoService {
     @Transactional(readOnly = true)
     public DashboardStats getDashboardStats(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
-        Long uid = usuario.getId();
+        Long uid = usuario.getOficinaId();
 
         // Contagens mensais
         YearMonth mesAtual = YearMonth.now();
@@ -487,8 +492,14 @@ public class OrdemServicoService {
 
     // --- Helpers ---
 
+    /**
+     * Retorna o usuário correspondente ao email autenticado.
+     * Para sub-usuários (ATENDENTE, MECANICO etc), retorna o usuário dono da oficina,
+     * garantindo que os dados corretos sejam acessados.
+     */
     private Usuario getUsuario(String email) {
-        return usuarioRepository.findByEmail(email)
+        Long dataOwnerId = securityContextHelper.getDataOwnerId(email);
+        return usuarioRepository.findById(dataOwnerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 
@@ -497,14 +508,18 @@ public class OrdemServicoService {
      * Conta apenas as OS do mês atual.
      */
     private void verificarLimitePlano(Usuario usuario) {
-        Plano plano = planoRepository.findByCodigo(usuario.getPlano()).orElse(null);
+        // Fonte autoritativa do plano é a OFICINA (tenant), desde a Fase 1
+        String planoCodigo = oficinaRepository.findById(usuario.getOficinaId())
+                .map(Oficina::getPlano)
+                .orElse(usuario.getPlano());
+        Plano plano = planoRepository.findByCodigo(planoCodigo).orElse(null);
         if (plano != null && plano.getLimiteOs() != null && plano.getLimiteOs() > 0) {
             // Contar OS do mês atual
             YearMonth mesAtual = YearMonth.now();
             LocalDateTime inicioMes = mesAtual.atDay(1).atStartOfDay();
             LocalDateTime fimMes = mesAtual.atEndOfMonth().atTime(LocalTime.MAX);
             long totalOsMes = osRepository.countByUsuarioIdAndCriadoEmBetween(
-                    usuario.getId(), inicioMes, fimMes);
+                    usuario.getOficinaId(), inicioMes, fimMes);
             if (totalOsMes >= plano.getLimiteOs()) {
                 throw new IllegalArgumentException(
                         "Limite de " + plano.getLimiteOs() + " Ordens de Serviço do plano " +

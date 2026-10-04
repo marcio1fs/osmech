@@ -7,6 +7,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -70,6 +72,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Trata limite de usuários do plano atingido — 409.
+     */
+    @ExceptionHandler(com.osmech.equipe.service.LimiteEquipeException.class)
+    public ResponseEntity<Map<String, String>> handleLimiteEquipe(
+            com.osmech.equipe.service.LimiteEquipeException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
      * Trata erros de argumento inválido — 400.
      */
     @ExceptionHandler(IllegalArgumentException.class)
@@ -79,12 +91,31 @@ public class GlobalExceptionHandler {
     }
 
     /**
-     * Trata estado inválido (ex: config não definida) — 503.
+     * Trata falhas de autenticação lançadas pelos services — 401.
+     * Ex: BadCredentialsException (login inválido), DisabledException (conta desativada).
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Map<String, String>> handleAuthentication(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Trata estado inválido (ex: proteção do último admin) — 409.
      */
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<Map<String, String>> handleIllegalState(IllegalStateException ex) {
         log.warn("Estado inválido: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", ex.getMessage()));
+    }
+
+    /**
+     * Trata conta bloqueada — 423 Locked.
+     */
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<Map<String, String>> handleLocked(LockedException ex) {
+        return ResponseEntity.status(423)
                 .body(Map.of("error", ex.getMessage()));
     }
 

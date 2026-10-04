@@ -72,7 +72,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: metodoController.text.isEmpty ? null : metodoController.text,
+                  initialValue: metodoController.text.isEmpty ? null : metodoController.text,
                   decoration: InputDecoration(
                     hintText: 'Selecione o método',
                     border: OutlineInputBorder(
@@ -430,7 +430,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                   child: UpperText(
                     recibo,
                     style: GoogleFonts.courierPrime(
-                      fontSize: 12,
+                      fontSize: 15,
                       color: AppColors.textPrimary,
                       height: 1.5,
                     ),
@@ -502,158 +502,6 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
           behavior: SnackBarBehavior.floating,
         ),
       );
-    }
-  }
-
-  Future<void> _enviarReciboWhatsApp() async {
-    String? telefoneWhatsapp = _os['clienteTelefone'];
-    final bool isOrcamento = _os['status'] != 'CONCLUIDA';
-    final String docTipo = isOrcamento ? 'Orçamento' : 'Recibo';
-
-    final result = await showDialog<Map<String, dynamic>>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: UpperText(
-            'Enviar $docTipo via WhatsApp',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              UpperText(
-                'O $docTipo será enviado para o número:',
-                style: GoogleFonts.inter(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: TextEditingController(text: telefoneWhatsapp),
-                decoration: InputDecoration(
-                  labelText: 'Telefone WhatsApp',
-                  hintText: '77999999999',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  prefixIcon: const Icon(Icons.phone_android),
-                ),
-                keyboardType: TextInputType.phone,
-                onChanged: (v) => telefoneWhatsapp = v,
-              ),
-              if (_os['whatsappConsentimento'] != true) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.warning.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: UpperText(
-                          'Aviso: O cliente não autorizou mensagens de WhatsApp no cadastro.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.warning,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.info_outline, color: AppColors.info, size: 20),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: UpperText(
-                        isOrcamento
-                            ? 'O sistema enviará o orçamento com os serviços e peças atuais.'
-                            : 'O sistema tentará enviar o recibo mesmo que a OS já esteja encerrada.',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.info,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const UpperText('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                Navigator.pop(ctx, {'telefoneWhatsapp': telefoneWhatsapp});
-              },
-              child: const UpperText('Enviar'),
-            ),
-          ],
-        ),
-      ),
-    );
-
-    if (result == null) return;
-
-    setState(() => _loading = true);
-
-    try {
-      final osService = OsService(token: safeToken);
-      
-      final response = await osService.enviarReciboWhatsApp(
-        _os['id'],
-        telefoneWhatsapp: result['telefoneWhatsapp'],
-      );
-
-      if (!mounted) return;
-
-      if (response['enviado'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: UpperText('$docTipo enviado via WhatsApp para ${response['destino']}'),
-            backgroundColor: AppColors.success,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: UpperText('Falha ao enviar: ${response['detalhe']}'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } catch (e) {
-      if (!handleAuthError(e)) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: UpperText('Erro ao enviar recibo: $e'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
     }
   }
 
@@ -847,17 +695,6 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                             label: const UpperText('Ver Orçamento'),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => _enviarReciboWhatsApp(),
-                            icon: const Icon(Icons.send),
-                            label: const UpperText('WhatsApp'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ],
@@ -890,17 +727,6 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                             },
                             icon: const Icon(Icons.receipt_long),
                             label: const UpperText('Ver Recibo'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () => _enviarReciboWhatsApp(),
-                            icon: const Icon(Icons.send),
-                            label: const UpperText('WhatsApp'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: AppColors.success,
-                            ),
                           ),
                         ),
                       ],
@@ -1102,8 +928,5 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
       default:
         return status;
     }
-  }
-  void _retornarParaListaOs() {
-    Navigator.pop(context, {'refresh': true});
   }
 }

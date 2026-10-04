@@ -31,7 +31,7 @@ public class CategoriaFinanceiraService {
     public List<CategoriaResponse> listarPorUsuario(String emailUsuario) {
         Usuario usuario = getUsuario(emailUsuario);
         return categoriaRepository
-                .findByUsuarioIdOrSistemaTrueOrderByNomeAsc(usuario.getId())
+                .findByUsuarioIdOrSistemaTrueOrderByNomeAsc(usuario.getOficinaId())
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -50,12 +50,12 @@ public class CategoriaFinanceiraService {
         }
 
         // Verifica duplicata
-        if (categoriaRepository.existsByUsuarioIdAndNomeIgnoreCase(usuario.getId(), request.getNome())) {
+        if (categoriaRepository.existsByUsuarioIdAndNomeIgnoreCase(usuario.getOficinaId(), request.getNome())) {
             throw new IllegalArgumentException("Categoria com este nome já existe");
         }
 
         CategoriaFinanceira cat = CategoriaFinanceira.builder()
-                .usuarioId(usuario.getId())
+                .usuarioId(usuario.getOficinaId())
                 .nome(request.getNome())
                 .tipo(request.getTipo())
                 .icone(request.getIcone())
@@ -78,7 +78,7 @@ public class CategoriaFinanceiraService {
         if (Boolean.TRUE.equals(cat.getSistema())) {
             throw new IllegalArgumentException("Categorias do sistema não podem ser excluídas");
         }
-        if (!usuario.getId().equals(cat.getUsuarioId())) {
+        if (!usuario.getOficinaId().equals(cat.getUsuarioId())) {
             throw new AccessDeniedException("Acesso negado a esta categoria");
         }
 

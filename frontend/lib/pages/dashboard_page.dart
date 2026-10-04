@@ -30,12 +30,12 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
   // Índices corretos do AppShell
   static const int _idxNovaOs      = 2;
   static const int _idxListaOs     = 1;
-  static const int _idxFinanceiro  = 6;
-  static const int _idxFluxoCaixa  = 9;
-  static const int _idxEstoque     = 11;
-  static const int _idxRelatorios  = 18;
+  static const int _idxFinanceiro  = 7;
+  static const int _idxFluxoCaixa  = 10;
+  static const int _idxEstoque     = 12;
+  static const int _idxRelatorios  = 19;
   static const int _idxMecanicos   = 5;
-  static const int _idxAlertas     = 14;
+  static const int _idxAlertas     = 15;
 
   @override
   void initState() { super.initState(); _loadData(); }
@@ -221,7 +221,6 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
     final esteMes          = _toInt(_stats?['esteMes']);
     final aguardandoPeca   = _toInt(_stats?['aguardandoPeca']);
     final aguardandoAprov  = _toInt(_stats?['aguardandoAprovacao']);
-    final canceladas       = _toInt(_stats?['canceladas']);
     final concluidasHoje   = _toInt(_stats?['concluidasHoje']);
     final taxa             = total > 0 ? (concluidas / total * 100) : 0.0;
 

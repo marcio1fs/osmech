@@ -283,7 +283,7 @@ class _StockFormPageState extends State<StockFormPage> with AuthErrorMixin {
                                     flex: 2,
                                     child: DropdownButtonFormField<String>(
                                       isExpanded: true,
-                                      value: _categoria,
+                                      initialValue: _categoria,
                                       decoration: const InputDecoration(
                                         labelText: 'Categoria',
                                         prefixIcon:
