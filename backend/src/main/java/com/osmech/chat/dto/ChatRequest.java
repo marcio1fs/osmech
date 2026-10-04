@@ -11,4 +11,6 @@ public class ChatRequest {
     private String message;
 
     private String sessionId; // Se null, cria nova sessão
+
+    private String screen; // Tela atual do usuário (opcional)
 }

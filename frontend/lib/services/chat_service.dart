@@ -9,10 +9,11 @@ class ChatService {
 
   /// Enviar mensagem para a IA
   Future<Map<String, dynamic>> enviarMensagem(String message,
-      {String? sessionId}) async {
+      {String? sessionId, String? screen}) async {
     final body = {
       'message': message,
       if (sessionId != null) 'sessionId': sessionId,
+      if (screen != null) 'screen': screen,
     };
     final resp = await _api.post('/api/chat', body: body);
     if (resp.statusCode == 200) {

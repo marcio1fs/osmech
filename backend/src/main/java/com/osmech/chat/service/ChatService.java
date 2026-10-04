@@ -37,6 +37,8 @@ public class ChatService {
     private final ChatRepository chatRepository;
     private final UsuarioRepository userRepository;
     private final RestTemplate restTemplate;
+    private final ChatDataContextService dataContextService;
+    private final ChatToolsService toolsService;
 
     @Value("${ai.enabled:false}")
     private boolean aiEnabled;
@@ -53,16 +55,48 @@ public class ChatService {
     @Value("${ai.openai.base-url:https://generativelanguage.googleapis.com/v1beta/openai/chat/completions}")
     private String chatCompletionsUrl;
 
-    private static final String SYSTEM_PROMPT = """
-            Voce e a IA Oficial do OSMECH, assistente especializado em oficinas mecanicas.
+    private static final String BASE_PROMPT = """
+            Voce e a IA Oficial do OSMECH: especialista no sistema OSMECH e em mecanica automotiva.
+            Seu papel e tirar duvidas e guiar o usuario em TODAS as areas do sistema.
 
             Regras:
-            1. Responda em Portugues do Brasil.
-            2. Seja claro, objetivo e pratico.
-            3. Nao invente dados; se faltar contexto, pergunte.
-            4. Nao forneca diagnostico definitivo sem validacao presencial.
-            5. Foque em oficina: diagnostico, OS, estoque, financeiro e planos.
+            1. Responda em Portugues do Brasil, de forma clara, objetiva e pratica.
+            2. Para duvidas do sistema, use o GUIA DO SISTEMA abaixo e cite o nome exato do menu, com passo a passo curto.
+            3. Respeite o papel do usuario: se a funcao for restrita a outro papel, explique isso e diga quem pode fazer.
+            4. Nao invente telas, botoes ou dados. Se nao souber ou faltar contexto, diga e pergunte.
+            5. Voce so conhece os numeros listados em DADOS ATUAIS DA OFICINA (quando presentes); para qualquer outro dado, oriente a consultar a tela correspondente. Nunca invente numeros, clientes ou valores.
+            6. Em diagnostico automotivo: peca marca, modelo, ano e sintoma; liste causas provaveis da mais para a menos comum, testes de verificacao e alerte que a confirmacao e presencial.
+            7. Se o usuario estiver em uma tela, priorize ajuda sobre ela.
+            8. Recuse assuntos fora de oficina e do sistema.
             """;
+
+    private static final String KNOWLEDGE = carregarConhecimento();
+
+    private static String carregarConhecimento() {
+        try (var in = ChatService.class.getResourceAsStream("/ai/knowledge/osmech.md")) {
+            return in == null ? "" : new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String montarPrompt(Authentication auth, String screen, Usuario user) {
+        boolean admin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().endsWith("ADMIN"));
+        String papeis = auth.getAuthorities().stream()
+                .map(a -> a.getAuthority().replace("ROLE_", ""))
+                .collect(Collectors.joining(", "));
+        StringBuilder sb = new StringBuilder(BASE_PROMPT);
+        sb.append("\nPapel do usuario: ").append(papeis.isBlank() ? "desconhecido" : papeis).append('\n');
+        if (screen != null && !screen.isBlank()) {
+            sb.append("Tela atual do usuario: ").append(screen.trim(), 0, Math.min(screen.trim().length(), 60)).append('\n');
+        }
+        sb.append("\nGUIA DO SISTEMA:\n").append(KNOWLEDGE);
+        String dados = dataContextService.montarResumo(user, admin);
+        if (!dados.isBlank()) {
+            sb.append("\nDADOS ATUAIS DA OFICINA (resumo real, somente leitura; use para responder perguntas sobre numeros e cite apenas o que consta aqui):\n").append(dados);
+        }
+        return sb.toString();
+    }
 
     @Transactional
     public ChatResponse enviarMensagem(ChatRequest request, Authentication auth) {
@@ -81,7 +115,9 @@ public class ChatService {
                 .build();
         chatRepository.save(userMsg);
 
-        String aiResponse = gerarResposta(user.getOficinaId(), sessionId, request.getMessage());
+        boolean admin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().endsWith("ADMIN"));
+        String aiResponse = gerarResposta(user, admin, sessionId, request.getMessage(),
+                montarPrompt(auth, request.getScreen(), user));
 
         ChatMessage aiMsg = ChatMessage.builder()
                 .usuarioId(user.getOficinaId())
@@ -115,26 +151,28 @@ public class ChatService {
         chatRepository.deleteByUsuarioIdAndSessionId(user.getOficinaId(), sessionId);
     }
 
-    private String gerarResposta(Long usuarioId, String sessionId, String userMessage) {
+    private String gerarResposta(Usuario user, boolean admin, String sessionId, String userMessage, String systemPrompt) {
         if (!aiEnabled || apiKey == null || apiKey.isBlank()) {
             return gerarRespostaLocal(userMessage);
         }
 
         try {
-            return chamarOpenAI(usuarioId, sessionId, userMessage);
+            return chamarOpenAI(user, admin, sessionId, userMessage, systemPrompt);
         } catch (Exception e) {
             log.error("Erro ao chamar IA externa: {}", e.getMessage());
             return gerarRespostaLocal(userMessage);
         }
     }
 
+    private static final int MAX_RODADAS_FERRAMENTAS = 3;
+
     @SuppressWarnings("unchecked")
-    private String chamarOpenAI(Long usuarioId, String sessionId, String userMessage) {
-        List<ChatMessage> history = chatRepository.findRecentMessages(usuarioId, sessionId, PageRequest.of(0, 20));
+    private String chamarOpenAI(Usuario user, boolean admin, String sessionId, String userMessage, String systemPrompt) {
+        List<ChatMessage> history = chatRepository.findRecentMessages(user.getOficinaId(), sessionId, PageRequest.of(0, 20));
         Collections.reverse(history);
 
-        List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", SYSTEM_PROMPT));
+        List<Map<String, Object>> messages = new ArrayList<>();
+        messages.add(Map.of("role", "system", "content", systemPrompt));
 
         for (ChatMessage msg : history) {
             if (!msg.getContent().equals(userMessage)) {
@@ -143,34 +181,57 @@ public class ChatService {
         }
         messages.add(Map.of("role", "user", "content", userMessage));
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("model", model);
-        body.put("messages", messages);
-        body.put("max_tokens", 1500);
-        body.put("temperature", 0.7);
-
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
-        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
-
-        ResponseEntity<Map> response = restTemplate.exchange(
-                chatCompletionsUrl,
-                HttpMethod.POST,
-                entity,
-                Map.class
-        );
-
-        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
-            if (choices != null && !choices.isEmpty()) {
-                Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                Object content = message.get("content");
-                if (content instanceof String text && !text.isBlank()) {
-                    return text;
-                }
+        for (int rodada = 0; rodada <= MAX_RODADAS_FERRAMENTAS; rodada++) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("model", model);
+            body.put("messages", messages);
+            body.put("max_tokens", 1500);
+            body.put("temperature", 0.3);
+            if (rodada < MAX_RODADAS_FERRAMENTAS) {
+                body.put("tools", toolsService.definicoes());
             }
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                    chatCompletionsUrl, HttpMethod.POST, new HttpEntity<>(body, headers), Map.class);
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) break;
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
+            if (choices == null || choices.isEmpty()) break;
+            Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+            if (message == null) break;
+
+            List<Map<String, Object>> toolCalls = (List<Map<String, Object>>) message.get("tool_calls");
+            if (toolCalls != null && !toolCalls.isEmpty()) {
+                Map<String, Object> assistantMsg = new HashMap<>();
+                assistantMsg.put("role", "assistant");
+                assistantMsg.put("content", message.get("content") == null ? "" : message.get("content"));
+                assistantMsg.put("tool_calls", toolCalls);
+                messages.add(assistantMsg);
+
+                for (Map<String, Object> call : toolCalls) {
+                    Map<String, Object> fn = (Map<String, Object>) call.get("function");
+                    String nome = String.valueOf(fn.get("name"));
+                    String args = fn.get("arguments") == null ? "{}" : String.valueOf(fn.get("arguments"));
+                    String resultado = toolsService.executar(nome, args, user, admin);
+                    Map<String, Object> toolMsg = new HashMap<>();
+                    toolMsg.put("role", "tool");
+                    toolMsg.put("tool_call_id", call.get("id") == null ? nome : call.get("id"));
+                    toolMsg.put("name", nome);
+                    toolMsg.put("content", resultado);
+                    messages.add(toolMsg);
+                }
+                continue;
+            }
+
+            Object content = message.get("content");
+            if (content instanceof String text && !text.isBlank()) {
+                return text;
+            }
+            break;
         }
 
         return gerarRespostaLocal(userMessage);
