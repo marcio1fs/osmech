@@ -27,6 +27,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
   static const _roles = [
     'TODOS',
     'ADMIN',
+    'DONO',
     'GERENTE',
     'OFICINA',
     'VENDEDOR',
@@ -367,6 +368,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
   String _labelRole(String role) {
     switch (role) {
       case 'ADMIN': return 'Administrador';
+      case 'DONO': return 'Dono da Oficina';
       case 'GERENTE': return 'Gerente';
       case 'OFICINA': return 'Dono de Oficina';
       case 'VENDEDOR': return 'Vendedor';
@@ -381,6 +383,7 @@ class _UsuariosPageState extends State<UsuariosPage> {
   Color _corRole(String role) {
     switch (role) {
       case 'ADMIN': return const Color(0xFFE040FB);
+      case 'DONO': return const Color(0xFF7C4DFF);
       case 'GERENTE':
       case 'OFICINA': return const Color(0xFF42A5F5);
       case 'VENDEDOR': return const Color(0xFF26A69A);

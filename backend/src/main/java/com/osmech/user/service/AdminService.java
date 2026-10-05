@@ -59,17 +59,20 @@ public class AdminService {
                 .map(this::toDto)
                 .toList();
 
-        // Agregados globais (independem do filtro/página) para os cards
-        List<Usuario> todos = usuarioRepository.findAll();
-        long ativos = todos.stream().filter(u -> Boolean.TRUE.equals(u.getAtivo())).count();
-        long free = todos.stream().filter(u -> "FREE".equalsIgnoreCase(nvl(u.getPlano(), "FREE"))).count();
+        // Agregados globais de contas de clientes/oficinas e administradores
+        // (exclui funcionários/colaboradores internos cadastrados pelas oficinas)
+        List<Usuario> contasPrincipais = usuarioRepository.findAll().stream()
+                .filter(u -> u.getOwnerId() == null || java.util.List.of("ADMIN", "DONO", "OFICINA").contains(u.getRole()))
+                .toList();
+        long ativos = contasPrincipais.stream().filter(u -> Boolean.TRUE.equals(u.getAtivo())).count();
+        long free = contasPrincipais.stream().filter(u -> "FREE".equalsIgnoreCase(nvl(u.getPlano(), "FREE"))).count();
 
         return AdminDtos.PaginaUsuarios.builder()
                 .usuarios(usuarios)
-                .totalUsuarios(todos.size())
+                .totalUsuarios(contasPrincipais.size())
                 .totalAtivos(ativos)
                 .totalFree(free)
-                .totalPagos(todos.size() - free)
+                .totalPagos(contasPrincipais.size() - free)
                 .pagina(pag)
                 .tamanho(tam)
                 .totalFiltrado(page.getTotalElements())

@@ -36,8 +36,8 @@ public class UsuarioAdminService {
     private final PermissionService permissionService;
     private final AuditService auditService;
 
-    /** Roles que somente o ADMIN global pode atribuir. */
-    private static final List<String> ROLES_ADMIN_EXCLUSIVAS = List.of("ADMIN");
+    /** Roles que somente o ADMIN global pode atribuir (não podem ser atribuídas por outros usuários). */
+    private static final List<String> ROLES_ADMIN_EXCLUSIVAS = List.of("ADMIN", "DONO", "OFICINA");
 
     /** Roles válidas disponíveis no sistema. */
     private static final List<String> ROLES_VALIDAS = PermissionService.ALL_ROLES;
@@ -54,13 +54,20 @@ public class UsuarioAdminService {
      * @param pageable      paginação
      */
     public Page<UsuarioAdminResponse> listar(String operadorEmail, String operadorRole, Pageable pageable) {
-        if ("ADMIN".equals(operadorRole)) {
-            return usuarioRepository.findAllByOrderByCriadoEmDesc(pageable)
+        Usuario operador = getUsuario(operadorEmail);
+        // Se o operador tiver oficinaId (ou for DONO/GERENTE), lista estritamente os usuários da sua própria oficina
+        if (operador.getOficinaId() != null) {
+            return usuarioRepository.findByOficinaIdOrderByCriadoEmDesc(operador.getOficinaId(), pageable)
                     .map(this::toResponse);
         }
 
-        // GERENTE/OFICINA → vê apenas os usuários da SUA oficina (oficina_id)
-        Usuario operador = getUsuario(operadorEmail);
+        // Se for ADMIN sem oficina própria, restringe apenas às contas ADMIN da plataforma
+        // (nunca expõe os usuários/funcionários internos cadastrados pelas oficinas de clientes)
+        if ("ADMIN".equals(operadorRole)) {
+            return usuarioRepository.findByOficinaIdOrderByCriadoEmDesc(null, pageable)
+                    .map(this::toResponse);
+        }
+
         Long oficinaId = exigirOficina(operador);
         return usuarioRepository.findByOficinaIdOrderByCriadoEmDesc(oficinaId, pageable)
                 .map(this::toResponse);

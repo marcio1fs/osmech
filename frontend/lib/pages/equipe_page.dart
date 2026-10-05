@@ -25,6 +25,7 @@ class _EquipePageState extends State<EquipePage> {
     'DONO': 'Dono',
     'GERENTE': 'Gerente',
     'ATENDENTE': 'Atendente',
+    'VENDEDOR': 'Vendedor',
     'MECANICO': 'Mecânico',
   };
 
@@ -33,10 +34,11 @@ class _EquipePageState extends State<EquipePage> {
     'DONO': Color(0xFF7C4DFF),
     'GERENTE': Color(0xFF2196F3),
     'ATENDENTE': Color(0xFFFF9800),
+    'VENDEDOR': Color(0xFF00897B),
     'MECANICO': Color(0xFF4CAF50),
   };
 
-  static const _papeisConvidaveis = ['GERENTE', 'ATENDENTE', 'MECANICO'];
+  static const _papeisConvidaveis = ['GERENTE', 'ATENDENTE', 'VENDEDOR', 'MECANICO'];
 
   @override
   void initState() {

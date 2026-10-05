@@ -36,12 +36,15 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     /**
      * Listagem administrativa paginada com busca opcional por nome/e-mail/oficina.
-     * Quando {@code termo} é vazio/nulo, retorna todos (paginados).
+     * Restrita a donos/titulares de oficinas e administradores da plataforma.
+     * Colaboradores internos (mecânicos, atendentes, etc.) cadastrados pelas oficinas
+     * são de gestão estritamente interna de cada oficina e não aparecem para o admin da plataforma.
      */
-    @Query("SELECT u FROM Usuario u WHERE :termo IS NULL OR :termo = '' "
+    @Query("SELECT u FROM Usuario u WHERE (u.ownerId IS NULL OR u.role IN ('ADMIN', 'DONO', 'OFICINA')) "
+            + "AND (:termo IS NULL OR :termo = '' "
             + "OR LOWER(u.nome) LIKE LOWER(CONCAT('%', :termo, '%')) "
             + "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :termo, '%')) "
-            + "OR LOWER(u.nomeOficina) LIKE LOWER(CONCAT('%', :termo, '%'))")
+            + "OR LOWER(u.nomeOficina) LIKE LOWER(CONCAT('%', :termo, '%')))")
     Page<Usuario> buscarAdmin(@Param("termo") String termo, Pageable pageable);
 
     /** Conta usuários por role (para proteção do último admin). */

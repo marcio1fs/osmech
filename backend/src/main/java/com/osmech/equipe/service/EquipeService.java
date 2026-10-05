@@ -108,7 +108,7 @@ public class EquipeService {
         Papel papel = Papel.from(request.getPapel());
         if (!papel.convidavel()) {
             throw new IllegalArgumentException(
-                    "Papel inválido para convite. Use GERENTE, ATENDENTE ou MECANICO.");
+                    "Papel inválido para convite. Use GERENTE, ATENDENTE, VENDEDOR ou MECANICO.");
         }
 
         String emailConvidado = request.getEmail().toLowerCase().trim();
@@ -206,7 +206,7 @@ public class EquipeService {
 
         Papel novo = Papel.from(request.getPapel());
         if (!novo.convidavel()) {
-            throw new IllegalArgumentException("Papel inválido. Use GERENTE, ATENDENTE ou MECANICO.");
+            throw new IllegalArgumentException("Papel inválido. Use GERENTE, ATENDENTE, VENDEDOR ou MECANICO.");
         }
 
         alvo.setRole(novo.name());

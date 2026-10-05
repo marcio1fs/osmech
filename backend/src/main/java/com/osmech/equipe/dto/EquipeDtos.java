@@ -27,7 +27,7 @@ public final class EquipeDtos {
         @Email(message = "E-mail inválido")
         private String email;
 
-        @NotBlank(message = "Papel é obrigatório (GERENTE, ATENDENTE ou MECANICO)")
+        @NotBlank(message = "Papel é obrigatório (GERENTE, ATENDENTE, VENDEDOR ou MECANICO)")
         private String papel;
     }
 

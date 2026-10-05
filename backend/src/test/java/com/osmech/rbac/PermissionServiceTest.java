@@ -32,6 +32,9 @@ class PermissionServiceTest {
         when(permissionRepository.findPermissionCodesByRole("ADMIN"))
                 .thenReturn(List.of("os.criar", "os.visualizar", "financeiro.visualizar",
                         "usuarios.criar", "usuarios.bloquear"));
+        when(permissionRepository.findPermissionCodesByRole("DONO"))
+                .thenReturn(List.of("os.criar", "os.visualizar", "financeiro.visualizar",
+                        "usuarios.criar", "usuarios.bloquear"));
         when(permissionRepository.findPermissionCodesByRole("GERENTE"))
                 .thenReturn(List.of("os.criar", "os.visualizar", "financeiro.visualizar",
                         "usuarios.criar"));
@@ -55,6 +58,13 @@ class PermissionServiceTest {
     void adminDeveSerBloqueadorDeUsuarios() {
         List<String> perms = permissionService.getPermissionsForRole("ADMIN");
         assertThat(perms).contains("usuarios.bloquear");
+    }
+
+    @Test
+    @DisplayName("DONO deve ter permissão os.criar e usuarios.bloquear")
+    void donoDeveTerPermissoesCompletas() {
+        List<String> perms = permissionService.getPermissionsForRole("DONO");
+        assertThat(perms).contains("os.criar", "os.visualizar", "financeiro.visualizar", "usuarios.bloquear");
     }
 
     @Test

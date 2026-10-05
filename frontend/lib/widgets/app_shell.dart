@@ -170,14 +170,16 @@ class _AppShellState extends State<AppShell> {
         icon: Icons.manage_accounts_rounded,
         label: 'Usuários',
         requiredPermission: 'usuarios.visualizar',
-        roles: {'DONO', 'ADMIN'}),
+        roles: {'DONO'}),
   ];
 
-  /// Item do menu visível? ADMIN vê tudo; adminOnly exige ADMIN;
+  /// Item do menu visível? adminOnly exige ADMIN;
   /// `roles` restringe aos papéis listados; `requiredPermission` checa permissões RBAC.
   bool _itemVisivel(_NavItem item, AuthService auth, String role, bool isAdmin) {
+    if (item.adminOnly) return isAdmin;
+    // O menu "Usuários" é exclusivo da gestão interna de equipe da oficina (DONO)
+    if (item.label == 'Usuários' && isAdmin) return false;
     if (isAdmin) return true;
-    if (item.adminOnly) return false;
     if (item.requiredPermission != null &&
         !auth.hasPermission(item.requiredPermission!)) {
       return false;

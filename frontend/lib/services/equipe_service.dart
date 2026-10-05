@@ -29,7 +29,19 @@ class EquipeService {
     if (response.statusCode == 200 || response.statusCode == 201) {
       return Map<String, dynamic>.from(body);
     }
-    throw Exception(body['error'] ?? 'Erro ao criar convite');
+    if (body is Map) {
+      if (body['fields'] is Map && (body['fields'] as Map).isNotEmpty) {
+        final fieldErrors = (body['fields'] as Map).values.join(', ');
+        throw Exception(fieldErrors);
+      }
+      if (body['error'] != null) {
+        throw Exception(body['error'].toString());
+      }
+      if (body['message'] != null) {
+        throw Exception(body['message'].toString());
+      }
+    }
+    throw Exception('Erro ao criar convite (${response.statusCode})');
   }
 
   /// DELETE /api/oficina/equipe/convites/{id}

@@ -38,8 +38,12 @@ public class AdminController {
      */
     @GetMapping("/dashboard")
     public ResponseEntity<Map<String, Object>> getDashboardData() {
-        long totalUsuarios = usuarioRepository.count();
-        List<Usuario> list = usuarioRepository.findAll();
+        // Filtra apenas contas de oficinas/donos e administradores da plataforma.
+        // Funcionários internos contratados/cadastrados pelas oficinas não devem ser expostos ao admin.
+        List<Usuario> list = usuarioRepository.findAll().stream()
+                .filter(u -> u.getOwnerId() == null || java.util.List.of("ADMIN", "DONO", "OFICINA").contains(u.getRole()))
+                .toList();
+        long totalUsuarios = list.size();
 
         // Status de assinatura por oficina (assinaturas.usuario_id = oficina).
         // Em ordem de criação: a mais recente "em aberto" prevalece; uma

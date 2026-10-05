@@ -23,6 +23,7 @@ public enum Papel {
     DONO,
     GERENTE,
     ATENDENTE,
+    VENDEDOR,
     MECANICO;
 
     /**
@@ -52,6 +53,6 @@ public enum Papel {
      * DONO não é convidável (propriedade única) e ADMIN é reservado à plataforma.
      */
     public boolean convidavel() {
-        return this == GERENTE || this == ATENDENTE || this == MECANICO;
+        return this == GERENTE || this == ATENDENTE || this == VENDEDOR || this == MECANICO;
     }
 }

@@ -28,7 +28,7 @@ public final class PapeisSeguranca {
     /** Todos os membros da oficina — operações do dia a dia (OS, leituras) */
     public static final String MEMBROS_OFICINA =
             "hasAnyRole(" + T + "DONO.name(), " + T + "GERENTE.name(), "
-                    + T + "ATENDENTE.name(), " + T + "MECANICO.name())";
+                    + T + "ATENDENTE.name(), " + T + "VENDEDOR.name(), " + T + "MECANICO.name())";
 
     private PapeisSeguranca() {
     }

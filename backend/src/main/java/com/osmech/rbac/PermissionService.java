@@ -27,7 +27,7 @@ public class PermissionService {
 
     /** Roles suportadas pelo sistema. */
     public static final List<String> ALL_ROLES = List.of(
-        "ADMIN", "GERENTE", "OFICINA", "VENDEDOR", "ATENDENTE", "MECANICO", "ESTOQUISTA", "FINANCEIRO"
+        "ADMIN", "DONO", "GERENTE", "OFICINA", "VENDEDOR", "ATENDENTE", "MECANICO", "ESTOQUISTA", "FINANCEIRO"
     );
 
     /**
@@ -56,12 +56,23 @@ public class PermissionService {
      * Retorna a lista de permission codes para a role informada.
      * Sempre consulta o cache (eficiente para ser chamado a cada login).
      *
-     * @param role Nome da role (ex: "ADMIN", "ATENDENTE")
+     * @param role Nome da role (ex: "ADMIN", "DONO", "ATENDENTE")
      * @return Lista imutável de códigos de permissão
      */
     public List<String> getPermissionsForRole(String role) {
         if (role == null) return List.of();
-        return permissionsCache.getOrDefault(role.toUpperCase(), List.of());
+        String roleUpper = role.toUpperCase();
+        List<String> perms = permissionsCache.getOrDefault(roleUpper, List.of());
+        
+        // Fallback e compatibilidade: DONO e OFICINA (legado) possuem o mesmo conjunto de permissões
+        if (perms.isEmpty()) {
+            if ("DONO".equals(roleUpper)) {
+                return permissionsCache.getOrDefault("OFICINA", List.of());
+            } else if ("OFICINA".equals(roleUpper)) {
+                return permissionsCache.getOrDefault("DONO", List.of());
+            }
+        }
+        return perms;
     }
 
     /**
