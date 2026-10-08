@@ -229,15 +229,37 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    UpperText(
-                      os['clienteNome'] ?? '-',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.accent.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: UpperText(
+                            formatOsNumber(os['numero'] ?? os['id']),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: UpperText(
+                            os['clienteNome'] ?? '-',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 3),
                     UpperText(
@@ -456,6 +478,7 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                 columnSpacing: 24,
                 horizontalMargin: 20,
                 columns: const [
+                  DataColumn(label: UpperText('N° OS')),
                   DataColumn(label: UpperText('CLIENTE')),
                   DataColumn(label: UpperText('VEICULO')),
                   DataColumn(label: UpperText('PLACA')),
@@ -466,6 +489,8 @@ class _OsListPageState extends State<OsListPage> with AuthErrorMixin {
                 rows: _filtered.map((os) {
                   final status = (os['status'] ?? 'ABERTA').toString();
                   return DataRow(cells: [
+                    DataCell(UpperText(formatOsNumber(os['numero'] ?? os['id']),
+                        style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: AppColors.accent))),
                     DataCell(UpperText(os['clienteNome'] ?? '-',
                         style: GoogleFonts.inter(fontWeight: FontWeight.w600))),
                     DataCell(UpperText('${os['modelo'] ?? '-'} ${os['ano'] ?? ''}'.trim())),

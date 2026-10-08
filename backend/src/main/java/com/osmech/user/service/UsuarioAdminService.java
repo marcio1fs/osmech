@@ -152,7 +152,7 @@ public class UsuarioAdminService {
      * Não permite edição de e-mail (seria necessária revalidação) nem role direto por este endpoint.
      */
     @Transactional
-    public UsuarioAdminResponse editar(Long id, UsuarioAdminRequest request, String operadorEmail, String operadorRole) {
+    public UsuarioAdminResponse editar(Long id, com.osmech.user.dto.UsuarioAdminUpdateRequest request, String operadorEmail, String operadorRole) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
         verificarAcessoAoUsuario(usuario, operadorEmail, operadorRole);
@@ -163,12 +163,20 @@ public class UsuarioAdminService {
         if (request.getTelefone() != null) {
             usuario.setTelefone(request.getTelefone());
         }
+        if (request.getAtivo() != null) {
+            usuario.setAtivo(request.getAtivo());
+        }
         // Senha opcional — só atualiza se fornecida
         if (request.getSenha() != null && !request.getSenha().isBlank()) {
             if (request.getSenha().length() < 8) {
                 throw new IllegalArgumentException("Nova senha deve ter ao menos 8 caracteres.");
             }
             usuario.setSenha(passwordEncoder.encode(request.getSenha()));
+        }
+
+        // Role opcional na edição se fornecida
+        if (request.getRole() != null && !request.getRole().isBlank() && !request.getRole().equalsIgnoreCase(usuario.getRole())) {
+            alterarRole(id, request.getRole(), operadorEmail, operadorRole);
         }
 
         usuarioRepository.save(usuario);

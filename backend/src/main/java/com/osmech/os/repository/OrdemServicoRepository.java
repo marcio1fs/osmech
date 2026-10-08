@@ -33,4 +33,11 @@ public interface OrdemServicoRepository extends JpaRepository<OrdemServico, Long
 
     /** Busca OS por usuário e período */
     List<OrdemServico> findByUsuarioIdAndCriadoEmBetweenOrderByCriadoEmDesc(Long usuarioId, LocalDateTime inicio, LocalDateTime fim);
+
+    /** Busca o maior número de OS atribuído a uma oficina */
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(MAX(os.numero), 0) FROM OrdemServico os WHERE os.usuarioId = :usuarioId")
+    Long findMaxNumeroByUsuarioId(@org.springframework.data.repository.query.Param("usuarioId") Long usuarioId);
+
+    /** Busca OS por oficina e seu número sequencial */
+    java.util.Optional<OrdemServico> findByUsuarioIdAndNumero(Long usuarioId, Long numero);
 }

@@ -83,7 +83,7 @@ public class UsuariosAdminController {
     @PreAuthorize("hasAuthority('PERM_usuarios.editar')")
     public ResponseEntity<UsuarioAdminResponse> editar(
             @PathVariable Long id,
-            @Valid @RequestBody UsuarioAdminRequest request,
+            @Valid @RequestBody com.osmech.user.dto.UsuarioAdminUpdateRequest request,
             Authentication auth) {
         return ResponseEntity.ok(usuarioAdminService.editar(id, request, auth.getName(), extrairRole(auth)));
     }

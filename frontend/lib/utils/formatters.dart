@@ -45,3 +45,19 @@ String formatDateTimeBR(dynamic date) {
   }
   return '-';
 }
+
+/// Formata a numeração de OS com prefixo padronizado: os01, os02, etc.
+/// Ex: formatOsNumber(1) -> 'os01', formatOsNumber(12) -> 'os12'
+String formatOsNumber(dynamic numeroOuId) {
+  if (numeroOuId == null) return 'os--';
+  final raw = numeroOuId.toString().trim();
+  if (raw.isEmpty) return 'os--';
+  final numVal = int.tryParse(raw);
+  if (numVal != null) {
+    if (numVal < 10 && numVal >= 0) {
+      return 'os0$numVal';
+    }
+    return 'os$numVal';
+  }
+  return 'os$raw';
+}

@@ -439,7 +439,7 @@ class _TransacaoCard extends StatelessWidget {
                     if (tx['referenciaTipo'] == 'OS')
                       _InfoChip(
                         icon: Icons.assignment_rounded,
-                        text: 'OS #${tx['referenciaId']}',
+                        text: formatOsNumber(tx['referenciaId']),
                         color: AppColors.accent,
                       ),
                     if (isEstorno)

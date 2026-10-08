@@ -6,6 +6,7 @@ import '../mixins/auth_error_mixin.dart';
 import '../services/api_config.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../services/oficina_whatsapp_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/upper_text.dart';
 import '../utils/logo_picker.dart';
@@ -59,6 +60,17 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
   bool _applyingMask = false;
   bool _uploadingLogo = false;
 
+  // WhatsApp / Z-API
+  final _zapiInstanceIdCtrl = TextEditingController();
+  final _zapiTokenCtrl = TextEditingController();
+  final _zapiClientTokenCtrl = TextEditingController();
+  final _testeWhatsPhoneCtrl = TextEditingController();
+  bool _whatsAppAtivo = false;
+  bool? _zapiConectado;
+  bool _carregandoZApi = true;
+  bool _salvandoZApi = false;
+  bool _testandoZApi = false;
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +78,128 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     _cepCtrl.addListener(_onCepChanged);
     _loadProfile();
     _carregarSessoes();
+    _carregarZApiConfig();
+  }
+
+  Future<void> _carregarZApiConfig() async {
+    try {
+      final service = OficinaWhatsAppService(token: safeToken);
+      final config = await service.getConfig();
+      if (mounted) {
+        setState(() {
+          _whatsAppAtivo = config.ativo;
+          _zapiInstanceIdCtrl.text = config.instanceId ?? '';
+          _zapiTokenCtrl.text = config.token ?? '';
+          _zapiClientTokenCtrl.text = config.clientToken ?? '';
+          _zapiConectado = config.connected;
+          _carregandoZApi = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _carregandoZApi = false);
+      }
+    }
+  }
+
+  Future<void> _salvarZApiConfig() async {
+    setState(() => _salvandoZApi = true);
+    try {
+      final service = OficinaWhatsAppService(token: safeToken);
+      final saved = await service.salvarConfig(
+        provider: 'ZAPI',
+        instanceId: _zapiInstanceIdCtrl.text.trim().isEmpty
+            ? null
+            : _zapiInstanceIdCtrl.text.trim(),
+        token: _zapiTokenCtrl.text.trim().isEmpty
+            ? null
+            : _zapiTokenCtrl.text.trim(),
+        clientToken: _zapiClientTokenCtrl.text.trim().isEmpty
+            ? null
+            : _zapiClientTokenCtrl.text.trim(),
+        ativo: _whatsAppAtivo,
+      );
+      if (!mounted) return;
+      setState(() {
+        _zapiConectado = saved.connected;
+        _salvandoZApi = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText('Configuração do WhatsApp salva com sucesso!',
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.success,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _salvandoZApi = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText(
+            e.toString().replaceFirst('Exception: ', ''),
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.error,
+      ));
+    }
+  }
+
+  Future<void> _testarEnvioZApi() async {
+    final telefone = _testeWhatsPhoneCtrl.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (telefone.length < 10) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText('Informe um número válido com DDD (ex: 11999998888)',
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.warning,
+      ));
+      return;
+    }
+
+    setState(() => _testandoZApi = true);
+    try {
+      final service = OficinaWhatsAppService(token: safeToken);
+      final resp = await service.testarEnvio(telefone: telefone);
+      if (!mounted) return;
+      setState(() => _testandoZApi = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText(
+            resp['message'] ?? 'Mensagem de teste enviada com sucesso!',
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.success,
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _testandoZApi = false);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: UpperText(
+            e.toString().replaceFirst('Exception: ', ''),
+            style: GoogleFonts.inter()),
+        backgroundColor: AppColors.error,
+      ));
+    }
+  }
+
+  @override
+  void dispose() {
+    _cnpjCtrl.removeListener(_onCnpjChanged);
+    _cepCtrl.removeListener(_onCepChanged);
+    _nomeCtrl.dispose();
+    _telefoneCtrl.dispose();
+    _oficinaCtrl.dispose();
+    _cnpjCtrl.dispose();
+    _logradouroCtrl.dispose();
+    _numeroCtrl.dispose();
+    _complementoCtrl.dispose();
+    _bairroCtrl.dispose();
+    _cidadeCtrl.dispose();
+    _estadoCtrl.dispose();
+    _cepCtrl.dispose();
+    _siteCtrl.dispose();
+    _senhaAtualCtrl.dispose();
+    _novaSenhaCtrl.dispose();
+    _confirmaSenhaCtrl.dispose();
+    _zapiInstanceIdCtrl.dispose();
+    _zapiTokenCtrl.dispose();
+    _zapiClientTokenCtrl.dispose();
+    _testeWhatsPhoneCtrl.dispose();
+    super.dispose();
   }
 
   /// Carrega a lista de sessões ativas (segurança da conta).
@@ -156,27 +290,6 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
     return digits[12] == d1.toString() && digits[13] == d2.toString();
   }
 
-  @override
-  void dispose() {
-    _cnpjCtrl.removeListener(_onCnpjChanged);
-    _cepCtrl.removeListener(_onCepChanged);
-    _nomeCtrl.dispose();
-    _telefoneCtrl.dispose();
-    _oficinaCtrl.dispose();
-    _cnpjCtrl.dispose();
-    _logradouroCtrl.dispose();
-    _numeroCtrl.dispose();
-    _complementoCtrl.dispose();
-    _bairroCtrl.dispose();
-    _cidadeCtrl.dispose();
-    _estadoCtrl.dispose();
-    _cepCtrl.dispose();
-    _siteCtrl.dispose();
-    _senhaAtualCtrl.dispose();
-    _novaSenhaCtrl.dispose();
-    _confirmaSenhaCtrl.dispose();
-    super.dispose();
-  }
 
   Future<void> _loadProfile() async {
     try {
@@ -619,6 +732,188 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                         ),
                       ),
                     ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Card: WhatsApp / Z-API (Configuração por Oficina)
+                _buildCard(
+                  title: 'WhatsApp (Z-API)',
+                  icon: Icons.chat_rounded,
+                  children: [
+                    Text(
+                      'Configure a integração com a Z-API (z-api.io) para enviar orçamentos e recibos pelo WhatsApp da sua oficina.',
+                      style: GoogleFonts.inter(
+                          fontSize: 13, color: AppColors.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_carregandoZApi)
+                      const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(16.0),
+                          child: CircularProgressIndicator(),
+                        ),
+                      )
+                    else ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              _whatsAppAtivo
+                                  ? Icons.check_circle_rounded
+                                  : Icons.pause_circle_outline_rounded,
+                              color: _whatsAppAtivo
+                                  ? AppColors.success
+                                  : AppColors.textSecondary,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    _whatsAppAtivo
+                                        ? 'ENVIO DE WHATSAPP ATIVADO'
+                                        : 'ENVIO DE WHATSAPP DESATIVADO',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700),
+                                  ),
+                                  if (_zapiConectado != null) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: _zapiConectado == true
+                                                ? AppColors.success
+                                                : AppColors.error,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          _zapiConectado == true
+                                              ? 'Instância Conectada no WhatsApp'
+                                              : 'Instância Desconectada no Z-API',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: _zapiConectado == true
+                                                ? AppColors.success
+                                                : AppColors.error,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                            Switch(
+                              value: _whatsAppAtivo,
+                              onChanged: (v) =>
+                                  setState(() => _whatsAppAtivo = v),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _inputField(
+                        'ID da Instância (Instance ID)',
+                        _zapiInstanceIdCtrl,
+                        hint: 'Ex: 3B4567...',
+                      ),
+                      const SizedBox(height: 16),
+                      _inputField(
+                        'Token da Instância',
+                        _zapiTokenCtrl,
+                        hint: 'Ex: D39981...',
+                      ),
+                      const SizedBox(height: 16),
+                      _inputField(
+                        'Client-Token (Segurança da Conta)',
+                        _zapiClientTokenCtrl,
+                        hint: 'Ex: F77123...',
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton.icon(
+                            onPressed: _carregarZApiConfig,
+                            icon: const Icon(Icons.refresh_rounded, size: 16),
+                            label: const Text('Atualizar Status'),
+                          ),
+                          FilledButton.icon(
+                            onPressed:
+                                _salvandoZApi ? null : _salvarZApiConfig,
+                            icon: _salvandoZApi
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: Colors.white))
+                                : const Icon(Icons.save_rounded, size: 18),
+                            label: UpperText(_salvandoZApi
+                                ? 'Salvando...'
+                                : 'Salvar WhatsApp'),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 36),
+                      UpperText(
+                        'Testar Disparo de Mensagem',
+                        style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Envie uma mensagem de teste para o seu próprio WhatsApp para validar a conexão.',
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _inputField(
+                              'Telefone para Teste (com DDD)',
+                              _testeWhatsPhoneCtrl,
+                              hint: 'Ex: 11999998888',
+                              keyboardType: TextInputType.phone,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 24),
+                            child: OutlinedButton.icon(
+                              onPressed: _testandoZApi ? null : _testarEnvioZApi,
+                              icon: _testandoZApi
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2))
+                                  : const Icon(Icons.send_rounded, size: 16),
+                              label: UpperText(
+                                  _testandoZApi ? 'Enviando...' : 'Testar'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ],
                 ),
 

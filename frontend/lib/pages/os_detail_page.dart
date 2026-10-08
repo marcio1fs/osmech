@@ -520,7 +520,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
           onPressed: () => Navigator.pop(context, _os),
         ),
         title: UpperText(
-          'OS #${_os['id']}',
+          formatOsNumber(_os['numero'] ?? _os['id']),
           style: GoogleFonts.inter(
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary,
@@ -688,7 +688,8 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                                     : (_os['valor'] ?? 0).toDouble();
                                 _logoUrl ??= await _buscarLogoUrl();
                                 if (!mounted) return;
-                                _mostrarRecibo('Orçamento da OS #${_os['id']}\n\nCliente: ${_os['clienteNome']}\nValor: ${formatCurrency(finalValue)}', false, logoUrl: _logoUrl);
+                                final osNum = _os['numero'] ?? _os['id'];
+                                _mostrarRecibo('Orçamento da ${formatOsNumber(osNum)}\n\nCliente: ${_os['clienteNome']}\nValor: ${formatCurrency(finalValue)}', false, logoUrl: _logoUrl);
                               }
                             },
                             icon: const Icon(Icons.receipt_long),
@@ -701,7 +702,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
 
                   if (status == 'CONCLUIDA') ...[
                     Row(
-                      children: [
+                       children: [
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: () async {
@@ -722,7 +723,8 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
                                     : (_os['valor'] ?? 0).toDouble();
                                 _logoUrl ??= await _buscarLogoUrl();
                                 if (!mounted) return;
-                                _mostrarRecibo('Recibo da OS #${_os['id']}\n\nCliente: ${_os['clienteNome']}\nValor: ${formatCurrency(finalValue)}', false, logoUrl: _logoUrl);
+                                final osNum = _os['numero'] ?? _os['id'];
+                                _mostrarRecibo('Recibo da ${formatOsNumber(osNum)}\n\nCliente: ${_os['clienteNome']}\nValor: ${formatCurrency(finalValue)}', false, logoUrl: _logoUrl);
                               }
                             },
                             icon: const Icon(Icons.receipt_long),
@@ -764,7 +766,7 @@ class _OsDetailPageState extends State<OsDetailPage> with AuthErrorMixin {
               children: [
                 UpperText(_statusLabel(status),
                     style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700, color: color)),
-                UpperText('OS #${_os['id']}  •  ${_os['clienteNome'] ?? '-'}  •  ${_os['placa'] ?? '-'}',
+                UpperText('${formatOsNumber(_os['numero'] ?? _os['id'])}  •  ${_os['clienteNome'] ?? '-'}  •  ${_os['placa'] ?? '-'}',
                     style: GoogleFonts.inter(fontSize: 12, color: AppColors.textSecondary)),
               ],
             ),

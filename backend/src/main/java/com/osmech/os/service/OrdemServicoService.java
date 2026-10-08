@@ -98,8 +98,13 @@ public class OrdemServicoService {
             descricao = "Serviço";
         }
 
+        // Garante sequência única e concorrente por oficina
+        oficinaRepository.findByIdForUpdate(usuario.getOficinaId());
+        Long proximoNumero = osRepository.findMaxNumeroByUsuarioId(usuario.getOficinaId()) + 1L;
+
         OrdemServico os = OrdemServico.builder()
                 .usuarioId(usuario.getOficinaId())
+                .numero(proximoNumero)
                 .clienteNome(request.getClienteNome())
                 .clienteCpf(clienteCpf)
                 .clienteCnpj(clienteCnpj)
@@ -333,10 +338,15 @@ public class OrdemServicoService {
         boolean jaTemTransacaoOs = transacaoFinanceiraRepository
                 .existsByUsuarioIdAndReferenciaTipoAndReferenciaIdAndEstornoFalse(usuario.getOficinaId(), "OS", os.getId());
 
+        Long numRaw = os.getNumero() != null ? os.getNumero() : os.getId();
+        String numFormatado = (numRaw != null && numRaw >= 0 && numRaw < 10)
+                ? String.format("os%02d", numRaw)
+                : (numRaw != null ? "os" + numRaw : "os--");
+
         if (!jaTemTransacaoOs && valorFinal.signum() > 0) {
             TransacaoRequest transacaoRequest = new TransacaoRequest();
             transacaoRequest.setTipo("ENTRADA");
-            String descricao = "Recebimento OS #" + os.getId() + " - " + os.getClienteNome();
+            String descricao = "Recebimento " + numFormatado + " - " + os.getClienteNome();
             if (descontoPerc.signum() > 0) {
                 descricao += " (desconto " + descontoPerc.stripTrailingZeros().toPlainString() + "%)";
             }
@@ -354,7 +364,7 @@ public class OrdemServicoService {
                 if (!Boolean.TRUE.equals(tf.getEstorno())) {
                     tf.setValor(valorFinal);
                     tf.setMetodoPagamento(metodoPagamento);
-                    String descricao = "Recebimento OS #" + os.getId() + " - " + os.getClienteNome();
+                    String descricao = "Recebimento " + numFormatado + " - " + os.getClienteNome();
                     if (descontoPerc.signum() > 0) {
                         descricao += " (desconto " + descontoPerc.stripTrailingZeros().toPlainString() + "%)";
                     }
@@ -383,7 +393,10 @@ public class OrdemServicoService {
             if (whatsappDestino == null || whatsappDestino.isBlank()) {
                 whatsappDetalhe = "Telefone do cliente nao informado";
             } else {
-                WhatsAppService.ResultadoEnvio resultado = whatsAppService.enviarMensagem(whatsappDestino, recibo);
+                com.osmech.oficina.entity.Oficina oficina = usuario.getOficinaId() != null
+                        ? oficinaRepository.findById(usuario.getOficinaId()).orElse(null)
+                        : null;
+                WhatsAppService.ResultadoEnvio resultado = whatsAppService.enviarMensagem(oficina, whatsappDestino, recibo);
                 whatsappEnviado = resultado.enviado();
                 whatsappDestino = resultado.destino();
                 whatsappDetalhe = resultado.detalhe();
@@ -571,6 +584,7 @@ public class OrdemServicoService {
 
         return OrdemServicoResponse.builder()
                 .id(os.getId())
+                .numero(os.getNumero() != null ? os.getNumero() : os.getId())
                 .clienteNome(os.getClienteNome())
                 .clienteCpf(os.getClienteCpf())
                 .clienteCnpj(os.getClienteCnpj())
@@ -679,7 +693,11 @@ public class OrdemServicoService {
             sb.append("TOTAL RECEBIDO: ").append(moeda.format(valorTotal)).append("\n");
         }
         sb.append("MÉTODO: ").append(defaultText(metodoPagamento)).append("\n");
-        sb.append("OS: #").append(os.getId()).append("\n");
+        Long osNumVal = os.getNumero() != null ? os.getNumero() : os.getId();
+        String osNumStr = (osNumVal != null && osNumVal >= 0 && osNumVal < 10)
+                ? String.format("os%02d", osNumVal)
+                : (osNumVal != null ? "os" + osNumVal : "os--");
+        sb.append("OS: ").append(osNumStr).append("\n");
         if (transacao != null) {
             sb.append("TRANSAÇÃO: #").append(transacao.getId()).append("\n");
         }

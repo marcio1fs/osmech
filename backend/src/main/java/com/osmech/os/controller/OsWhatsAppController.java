@@ -40,6 +40,9 @@ public class OsWhatsAppController {
     private UsuarioRepository usuarioRepository;
 
     @Autowired
+    private com.osmech.oficina.repository.OficinaRepository oficinaRepository;
+
+    @Autowired
     private WhatsAppService whatsAppService;
 
     /**
@@ -77,7 +80,10 @@ public class OsWhatsAppController {
         List<ItemOS> itens = itemOSRepository.findByOrdemServicoId(os.getId());
 
         String recibo = montarReciboExtrato(usuario, os, servicos, itens);
-        WhatsAppService.ResultadoEnvio resultado = whatsAppService.enviarMensagem(telefoneWhatsapp, recibo);
+        com.osmech.oficina.entity.Oficina oficina = usuario.getOficinaId() != null
+                ? oficinaRepository.findById(usuario.getOficinaId()).orElse(null)
+                : null;
+        WhatsAppService.ResultadoEnvio resultado = whatsAppService.enviarMensagem(oficina, telefoneWhatsapp, recibo);
 
         return ResponseEntity.ok(java.util.Map.of(
                 "enviado", resultado.enviado(),
@@ -134,7 +140,11 @@ public class OsWhatsAppController {
         sb.append("----------------------------------------\n");
         sb.append("DADOS DA OS\n");
         sb.append("----------------------------------------\n");
-        sb.append("OS: #").append(os.getId()).append("\n");
+        Long osNumVal = os.getNumero() != null ? os.getNumero() : os.getId();
+        String osNumStr = (osNumVal != null && osNumVal >= 0 && osNumVal < 10)
+                ? String.format("os%02d", osNumVal)
+                : (osNumVal != null ? "os" + osNumVal : "os--");
+        sb.append("OS: ").append(osNumStr).append("\n");
         sb.append("DATA: ").append(os.getCriadoEm() != null ? os.getCriadoEm().toLocalDate() : "-").append("\n");
         if (os.getConcluidoEm() != null) {
             sb.append("CONCLUIDO: ").append(os.getConcluidoEm().toLocalDate()).append("\n");

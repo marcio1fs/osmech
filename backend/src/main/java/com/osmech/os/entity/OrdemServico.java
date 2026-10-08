@@ -11,7 +11,9 @@ import java.util.List;
  * Entidade que representa uma Ordem de Serviço.
  */
 @Entity
-@Table(name = "ordens_servico")
+@Table(name = "ordens_servico", uniqueConstraints = {
+    @UniqueConstraint(name = "uq_ordens_servico_usuario_numero", columnNames = {"usuario_id", "numero"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,6 +28,10 @@ public class OrdemServico {
     /** ID do usuário (oficina) dono desta OS */
     @Column(name = "usuario_id", nullable = false)
     private Long usuarioId;
+
+    /** Número sequencial da OS exclusivo da oficina */
+    @Column(name = "numero", nullable = false)
+    private Long numero;
 
     /** Nome do cliente da OS */
     @Column(name = "cliente_nome", nullable = false)

@@ -18,6 +18,7 @@ import java.util.List;
 public class OrdemServicoResponse {
 
     private Long id;
+    private Long numero;
     private String clienteNome;
     private String clienteCpf;
     private String clienteCnpj;

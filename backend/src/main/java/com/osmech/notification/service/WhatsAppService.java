@@ -44,6 +44,77 @@ public class WhatsAppService {
     @Value("${whatsapp.meta.access-token:}")
     private String metaAccessToken;
 
+    /**
+     * Envia mensagem usando as configurações específicas da Oficina (Z-API prioritário).
+     * Se a oficina não tiver Z-API configurado, faz fallback para as configurações globais do sistema.
+     */
+    public ResultadoEnvio enviarMensagem(com.osmech.oficina.entity.Oficina oficina, String telefone, String mensagem) {
+        String destino = normalizarTelefone(telefone);
+        if (destino == null) {
+            throw new IllegalArgumentException("Telefone do cliente inválido para envio WhatsApp");
+        }
+
+        if (oficina != null && Boolean.TRUE.equals(oficina.getWhatsappAtivo())) {
+            String prov = oficina.getWhatsappProvider() != null ? oficina.getWhatsappProvider().trim().toUpperCase() : "ZAPI";
+            if ("ZAPI".equals(prov)) {
+                return enviarViaZApi(oficina.getZapiInstanceId(), oficina.getZapiToken(), oficina.getZapiClientToken(), destino, mensagem);
+            }
+        }
+
+        // Fallback para envio global (Twilio / Meta configurado no application.yml)
+        return enviarMensagem(telefone, mensagem);
+    }
+
+    public ResultadoEnvio enviarViaZApi(String instanceId, String token, String clientToken, String destino, String mensagem) {
+        if (isBlank(instanceId) || isBlank(token) || isBlank(clientToken)) {
+            return new ResultadoEnvio(false, destino, "Credenciais Z-API incompletas para esta oficina");
+        }
+
+        String url = "https://api.z-api.io/instances/" + instanceId.trim() + "/token/" + token.trim() + "/send-text";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Client-Token", clientToken.trim());
+
+        Map<String, Object> body = Map.of(
+                "phone", destino,
+                "message", mensagem
+        );
+
+        try {
+            ResponseEntity<String> response = restTemplate.postForEntity(url, new HttpEntity<>(body, headers), String.class);
+            boolean ok = response.getStatusCode().is2xxSuccessful();
+            return new ResultadoEnvio(ok, destino, ok ? "Mensagem enviada com sucesso via Z-API" : "Falha Z-API: " + response.getStatusCode());
+        } catch (Exception e) {
+            log.warn("Falha no envio via Z-API (instance={}): {}", instanceId, e.getMessage());
+            return new ResultadoEnvio(false, destino, "Falha Z-API: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Consulta se a instância da Z-API está conectada ao WhatsApp
+     */
+    public Map<String, Object> consultarStatusZApi(String instanceId, String token, String clientToken) {
+        if (isBlank(instanceId) || isBlank(token) || isBlank(clientToken)) {
+            return Map.of("connected", false, "error", "Credenciais Z-API incompletas");
+        }
+
+        String url = "https://api.z-api.io/instances/" + instanceId.trim() + "/token/" + token.trim() + "/status";
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Client-Token", clientToken.trim());
+
+        try {
+            org.springframework.http.HttpEntity<Void> entity = new org.springframework.http.HttpEntity<>(headers);
+            ResponseEntity<Map> response = restTemplate.exchange(url, org.springframework.http.HttpMethod.GET, entity, Map.class);
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+            return Map.of("connected", false, "status", response.getStatusCode().toString());
+        } catch (Exception e) {
+            log.warn("Falha ao checar status Z-API (instance={}): {}", instanceId, e.getMessage());
+            return Map.of("connected", false, "error", e.getMessage());
+        }
+    }
+
     public ResultadoEnvio enviarMensagem(String telefone, String mensagem) {
         String destino = normalizarTelefone(telefone);
         if (destino == null) {

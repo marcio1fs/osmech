@@ -78,6 +78,28 @@ public class Oficina {
     @Builder.Default
     private String plano = "FREE";
 
+    /** Provedor de WhatsApp da oficina (padrão ZAPI) */
+    @Column(name = "whatsapp_provider", length = 50)
+    @Builder.Default
+    private String whatsappProvider = "ZAPI";
+
+    /** ID da instância no Z-API */
+    @Column(name = "zapi_instance_id", length = 100)
+    private String zapiInstanceId;
+
+    /** Token da instância no Z-API */
+    @Column(name = "zapi_token", length = 100)
+    private String zapiToken;
+
+    /** Client-Token (chave de segurança) no Z-API */
+    @Column(name = "zapi_client_token", length = 100)
+    private String zapiClientToken;
+
+    /** Se o envio de WhatsApp está ativo para esta oficina */
+    @Column(name = "whatsapp_ativo")
+    @Builder.Default
+    private Boolean whatsappAtivo = false;
+
     @Column(name = "criado_em", nullable = false, updatable = false)
     @Builder.Default
     private LocalDateTime criadoEm = LocalDateTime.now();

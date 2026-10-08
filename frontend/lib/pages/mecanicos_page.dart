@@ -702,7 +702,7 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                 ...servicosRealizados.map((s) {
                                   return TableRow(
                                     children: [
-                                      _dialogTableCell('#${s['osId']}'),
+                                      _dialogTableCell(formatOsNumber(s['osId'])),
                                       _dialogTableCell(formatDateBR(s['concluidoEm'])),
                                       _dialogTableCell(
                                         '${s['descricao']}\n(${s['clienteNome']} • ${s['placa']})',
