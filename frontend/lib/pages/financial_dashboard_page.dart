@@ -133,6 +133,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
   Future<void> _selecionarPeriodo() async {
     final picked = await showDateRangePicker(
       context: context,
+      locale: const Locale('pt', 'BR'),
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: _dataInicio != null && _dataFim != null
@@ -177,8 +178,7 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
         children: [
           // Header
           Container(
-            height: 72,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
             decoration: const BoxDecoration(
               color: AppColors.surface,
               border: Border(bottom: BorderSide(color: AppColors.border)),
@@ -191,85 +191,27 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                     ? '${formatDateBR(_dataInicio)} − ${formatDateBR(_dataFim)}'
                     : 'Período';
 
-                if (isCompact) {
-                  return Wrap(
-                    spacing: 12,
-                    runSpacing: 8,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    alignment: WrapAlignment.start,
-                    children: [
-                      SizedBox(
-                        width: (constraints.maxWidth - 64).clamp(0, double.infinity),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            UpperText('Dashboard Financeiro',
-                                style: GoogleFonts.inter(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.textPrimary)),
-                            UpperText('Visão geral das finanças da oficina',
-                                style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    color: AppColors.textSecondary)),
-                          ],
-                        ),
-                      ),
-                      FilledButton.icon(
-                        onPressed: widget.onNavigateNovaTransacao,
-                        icon: const Icon(Icons.add_rounded, size: 18),
-                        label: const UpperText('Novo Lançamento'),
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.accent,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10)),
-                        ),
-                      ),
-                      OutlinedButton.icon(
-                        onPressed: _selecionarPeriodo,
-                        icon: const Icon(Icons.date_range_rounded, size: 18),
-                        label: UpperText(periodBtnText),
-                      ),
-                      if (_dataInicio != null || _dataFim != null)
-                        IconButton(
-                          onPressed: _limparFiltros,
-                          icon: const Icon(Icons.clear_rounded, size: 20, color: AppColors.error),
-                          tooltip: 'Limpar filtros',
-                        ),
-                      OutlinedButton.icon(
-                        onPressed: _loadData,
-                        icon: const Icon(Icons.refresh_rounded, size: 18),
-                        label: const UpperText('Atualizar'),
-                      ),
-                    ],
-                  );
-                }
-
-                // Sem Row no header: usar Wrap sempre evita RenderFlex overflow no Web.
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  alignment: WrapAlignment.start,
+                final titleWidget = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    SizedBox(
-                      width: (constraints.maxWidth - 64).clamp(0, double.infinity),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          UpperText('Dashboard Financeiro',
-                              style: GoogleFonts.inter(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary)),
-                          UpperText('Visão geral das finanças da oficina',
-                              style: GoogleFonts.inter(
-                                  fontSize: 13, color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    ),
+                    UpperText('Dashboard Financeiro',
+                        style: GoogleFonts.inter(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textPrimary)),
+                    UpperText('Visão geral das finanças da oficina',
+                        style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: AppColors.textSecondary)),
+                  ],
+                );
+
+                final actionsWidget = Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
                     FilledButton.icon(
                       onPressed: widget.onNavigateNovaTransacao,
                       icon: const Icon(Icons.add_rounded, size: 18),
@@ -296,6 +238,25 @@ class _FinancialDashboardPageState extends State<FinancialDashboardPage>
                       icon: const Icon(Icons.refresh_rounded, size: 18),
                       label: const UpperText('Atualizar'),
                     ),
+                  ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      titleWidget,
+                      const SizedBox(height: 12),
+                      actionsWidget,
+                    ],
+                  );
+                }
+
+                return Row(
+                  children: [
+                    Expanded(child: titleWidget),
+                    const SizedBox(width: 16),
+                    actionsWidget,
                   ],
                 );
               },

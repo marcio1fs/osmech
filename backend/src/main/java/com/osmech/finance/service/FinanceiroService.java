@@ -1,5 +1,7 @@
 package com.osmech.finance.service;
 
+import com.osmech.auditoria.entity.LogAuditoria;
+import com.osmech.auditoria.service.AuditoriaService;
 import com.osmech.config.ResourceNotFoundException;
 import com.osmech.finance.dto.*;
 import com.osmech.finance.entity.CategoriaFinanceira;
@@ -33,6 +35,7 @@ public class FinanceiroService {
     private final CategoriaFinanceiraRepository categoriaRepository;
     private final FluxoCaixaRepository fluxoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
 
     // ==========================================
     // TRANSAÇÕES
@@ -70,6 +73,10 @@ public class FinanceiroService {
 
         // Atualizar fluxo de caixa do dia
         atualizarFluxoCaixa(usuario.getOficinaId(), tx.getDataMovimentacao().toLocalDate());
+
+        auditoriaService.registrar(usuario, LogAuditoria.TRANSACAO_CRIADA,
+                String.format("Lançamento #%d (%s): R$ %s - %s",
+                        tx.getId(), tx.getTipo(), tx.getValor(), tx.getDescricao()));
 
         return toResponse(tx);
     }
@@ -136,6 +143,11 @@ public class FinanceiroService {
 
         estorno = transacaoRepository.save(estorno);
         atualizarFluxoCaixa(usuario.getOficinaId(), estorno.getDataMovimentacao().toLocalDate());
+
+        auditoriaService.registrar(usuario, LogAuditoria.TRANSACAO_ESTORNADA,
+                String.format("Estorno da transação #%d (R$ %s - %s). Novo estorno #%d.",
+                        original.getId(), original.getValor(), original.getDescricao(), estorno.getId()));
+
         return toResponse(estorno);
     }
 

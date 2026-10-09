@@ -1,5 +1,7 @@
 package com.osmech.os.service;
 
+import com.osmech.auditoria.entity.LogAuditoria;
+import com.osmech.auditoria.service.AuditoriaService;
 import com.osmech.config.ResourceNotFoundException;
 import com.osmech.finance.dto.TransacaoRequest;
 import com.osmech.finance.dto.TransacaoResponse;
@@ -66,6 +68,7 @@ public class OrdemServicoService {
     private final TransacaoFinanceiraRepository transacaoFinanceiraRepository;
     private final WhatsAppService whatsAppService;
     private final SecurityContextHelper securityContextHelper;
+    private final AuditoriaService auditoriaService;
 
     /**
      * Cria uma nova Ordem de Serviço.
@@ -136,6 +139,11 @@ public class OrdemServicoService {
 
         // Recalcular valor total se tem serviços ou itens
         recalcularValorTotal(os, servicos, itens);
+
+        Long numOS = os.getNumero() != null ? os.getNumero() : os.getId();
+        auditoriaService.registrar(usuario, LogAuditoria.OS_CRIADA,
+                String.format("OS os%02d criada para %s (Placa: %s, Total: R$ %s)",
+                        numOS, os.getClienteNome(), os.getPlaca(), os.getValorFinal()));
 
         return toResponse(os, servicos, itens);
     }
@@ -403,6 +411,10 @@ public class OrdemServicoService {
             }
         }
 
+        auditoriaService.registrar(usuario, LogAuditoria.OS_ENCERRADA,
+                String.format("OS %s encerrada. Valor final: R$ %s, Pagamento: %s",
+                        numFormatado, valorFinal, metodoPagamento));
+
         return EncerrarOsResponse.builder()
                 .os(toResponse(os, servicos, itens))
                 .metodoPagamento(metodoPagamento)
@@ -439,6 +451,11 @@ public class OrdemServicoService {
         servicoOSRepository.deleteByOrdemServicoId(osId);
         itemOSRepository.deleteByOrdemServicoId(osId);
 
+        Long numOS = os.getNumero() != null ? os.getNumero() : os.getId();
+        auditoriaService.registrar(usuario, LogAuditoria.OS_EXCLUIDA,
+                String.format("OS os%02d de %s (Placa %s, Valor R$ %s) foi excluída do sistema",
+                        numOS, os.getClienteNome(), os.getPlaca(), os.getValorFinal()));
+
         osRepository.delete(os);
     }
 
@@ -465,10 +482,15 @@ public class OrdemServicoService {
                     ". Transições permitidas: " + getTransicoesPermitidas(statusAtual));
         }
         
+        String statusAntigo = os.getStatus();
         os.setStatus(novoStatusEnum.name());
         os.setAtualizadoEm(LocalDateTime.now());
         
         osRepository.save(os);
+
+        Long numOS = os.getNumero() != null ? os.getNumero() : os.getId();
+        auditoriaService.registrar(usuario, LogAuditoria.OS_STATUS_ALTERADO,
+                String.format("OS os%02d: status alterado de %s para %s", numOS, statusAntigo, novoStatusEnum.name()));
         
         return toResponse(os, 
                 servicoOSRepository.findByOrdemServicoId(osId),

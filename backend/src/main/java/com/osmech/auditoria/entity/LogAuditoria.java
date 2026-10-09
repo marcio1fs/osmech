@@ -41,6 +41,22 @@ public class LogAuditoria {
     public static final String MEMBRO_DESATIVADO = "MEMBRO_DESATIVADO";
     public static final String MEMBRO_ATIVADO = "MEMBRO_ATIVADO";
 
+    // Ações de Ordens de Serviço
+    public static final String OS_CRIADA = "OS_CRIADA";
+    public static final String OS_ATUALIZADA = "OS_ATUALIZADA";
+    public static final String OS_STATUS_ALTERADO = "OS_STATUS_ALTERADO";
+    public static final String OS_ENCERRADA = "OS_ENCERRADA";
+    public static final String OS_EXCLUIDA = "OS_EXCLUIDA";
+
+    // Ações do Financeiro
+    public static final String TRANSACAO_CRIADA = "TRANSACAO_CRIADA";
+    public static final String TRANSACAO_ESTORNADA = "TRANSACAO_ESTORNADA";
+
+    // Ações de Estoque
+    public static final String ESTOQUE_ITEM_CRIADO = "ESTOQUE_ITEM_CRIADO";
+    public static final String ESTOQUE_MOVIMENTACAO = "ESTOQUE_MOVIMENTACAO";
+    public static final String ESTOQUE_ITEM_EXCLUIDO = "ESTOQUE_ITEM_EXCLUIDO";
+
     // Ações administrativas da plataforma (AdminController)
     public static final String ADMIN_USUARIO_ATIVADO = "ADMIN_USUARIO_ATIVADO";
     public static final String ADMIN_USUARIO_DESATIVADO = "ADMIN_USUARIO_DESATIVADO";

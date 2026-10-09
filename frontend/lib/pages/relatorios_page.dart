@@ -222,6 +222,7 @@ class _RelatoriosPageState extends State<RelatoriosPage>
     final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
+      locale: const Locale('pt', 'BR'),
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 5, 12, 31),
       initialDateRange: DateTimeRange(

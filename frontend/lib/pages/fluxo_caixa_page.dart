@@ -60,6 +60,7 @@ class _FluxoCaixaPageState extends State<FluxoCaixaPage> with AuthErrorMixin {
   Future<void> _selecionarPeriodo() async {
     final picked = await showDateRangePicker(
       context: context,
+      locale: const Locale('pt', 'BR'),
       firstDate: DateTime(2020),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       initialDateRange: DateTimeRange(start: _inicio, end: _fim),
