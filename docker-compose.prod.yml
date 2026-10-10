@@ -29,6 +29,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    env_file:
+      - .env.prod
     environment:
       SPRING_PROFILES_ACTIVE: prod
       PORT: 8080
@@ -37,6 +39,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-marciofs426@gmail.com}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-}
       CORS_ORIGINS: ${CORS_ORIGINS}
       FLYWAY_ENABLED: "true"
       FLYWAY_BASELINE_ON_MIGRATE: "true"
@@ -60,6 +64,8 @@ services:
       WHATSAPP_TWILIO_FROM_NUMBER: ${WHATSAPP_TWILIO_FROM_NUMBER:-}
       WHATSAPP_META_PHONE_NUMBER_ID: ${WHATSAPP_META_PHONE_NUMBER_ID:-}
       WHATSAPP_META_ACCESS_TOKEN: ${WHATSAPP_META_ACCESS_TOKEN:-}
+    volumes:
+      - ./uploads:/app/uploads
     networks:
       - osmech-net
     healthcheck:
