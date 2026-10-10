@@ -252,58 +252,130 @@ class _EquipePageState extends State<EquipePage> {
     }.toList();
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: cor.withValues(alpha: 0.15),
-          child: Icon(Icons.person_rounded, color: cor),
-        ),
-        title: Text(
-          '${m['nome']}${eEu ? ' (você)' : ''}',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w600),
-        ),
-        subtitle: Text(m['email'] ?? '',
-            style: GoogleFonts.inter(
-                fontSize: 13, color: AppColors.textSecondary)),
-        trailing: Wrap(
-          spacing: 8,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            DropdownButton<String>(
-              value: papel.isEmpty ? null : papel,
-              underline: const SizedBox.shrink(),
-              onChanged: bloqueado
-                  ? null
-                  : (novo) {
-                      if (novo == null || novo == papel) return;
-                      _executar(
-                        () => _service.alterarPapel(m['id'], novo),
-                        'Papel alterado para ${_papelLabel[novo]}',
-                      );
-                    },
-              items: papeisDropdown
-                  .map((p) => DropdownMenuItem(
-                        value: p,
-                        child: Text(_papelLabel[p] ?? p),
-                      ))
-                  .toList(),
-            ),
-            Switch(
-              value: ativo,
-              onChanged: bloqueado
-                  ? null
-                  : (v) => _executar(
-                        () => _service.alterarStatus(m['id'], v),
-                        v ? 'Membro reativado' : 'Membro desativado',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 420;
+
+          final avatarAndInfo = Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: cor.withValues(alpha: 0.15),
+                child: Icon(Icons.person_rounded, color: cor, size: 22),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${m['nome']}${eEu ? ' (você)' : ''}',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
                       ),
-            ),
-          ],
-        ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      m['email'] ?? '',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          );
+
+          final actions = Row(
+            mainAxisSize: isNarrow ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisAlignment:
+                isNarrow ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<String>(
+                    value: papel.isEmpty ? null : papel,
+                    isDense: true,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: cor,
+                    ),
+                    icon: Icon(Icons.arrow_drop_down_rounded, color: cor),
+                    onChanged: bloqueado
+                        ? null
+                        : (novo) {
+                            if (novo == null || novo == papel) return;
+                            _executar(
+                              () => _service.alterarPapel(m['id'], novo),
+                              'Papel alterado para ${_papelLabel[novo]}',
+                            );
+                          },
+                    items: papeisDropdown
+                        .map((p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(_papelLabel[p] ?? p),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Switch(
+                value: ativo,
+                onChanged: bloqueado
+                    ? null
+                    : (v) => _executar(
+                          () => _service.alterarStatus(m['id'], v),
+                          v ? 'Membro reativado' : 'Membro desativado',
+                        ),
+              ),
+            ],
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                avatarAndInfo,
+                const SizedBox(height: 12),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 10),
+                actions,
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: avatarAndInfo),
+              const SizedBox(width: 12),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }
@@ -311,47 +383,104 @@ class _EquipePageState extends State<EquipePage> {
   Widget _tileConvite(Map<String, dynamic> c) {
     final id = c['id'] as int;
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
       ),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: AppColors.warning.withValues(alpha: 0.15),
-          child:
-              const Icon(Icons.mail_outline_rounded, color: AppColors.warning),
-        ),
-        title: Text(c['email'] ?? '',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
-        subtitle: Text(
-          '${_papelLabel[c['papel']] ?? c['papel']} • convite pendente',
-          style:
-              GoogleFonts.inter(fontSize: 13, color: AppColors.textSecondary),
-        ),
-        trailing: Wrap(
-          spacing: 4,
-          children: [
-            IconButton(
-              tooltip: 'Reenviar convite (novo link)',
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: () => _executar(
-                () => _service.reenviarConvite(id).then((_) {}),
-                'Convite reenviado!',
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 420;
+
+          final avatarAndInfo = Row(
+            children: [
+              CircleAvatar(
+                radius: 20,
+                backgroundColor: AppColors.warning.withValues(alpha: 0.15),
+                child: const Icon(Icons.mail_outline_rounded,
+                    color: AppColors.warning, size: 22),
               ),
-            ),
-            IconButton(
-              tooltip: 'Revogar convite',
-              icon: const Icon(Icons.delete_outline_rounded,
-                  color: AppColors.error),
-              onPressed: () => _executar(
-                () => _service.revogarConvite(id),
-                'Convite revogado',
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      c['email'] ?? '',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${_papelLabel[c['papel']] ?? c['papel']} • convite pendente',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          );
+
+          final actions = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Reenviar convite (novo link)',
+                icon: const Icon(Icons.refresh_rounded),
+                onPressed: () => _executar(
+                  () => _service.reenviarConvite(id).then((_) {}),
+                  'Convite reenviado!',
+                ),
+              ),
+              IconButton(
+                tooltip: 'Revogar convite',
+                icon: const Icon(Icons.delete_outline_rounded,
+                    color: AppColors.error),
+                onPressed: () => _executar(
+                  () => _service.revogarConvite(id),
+                  'Convite revogado',
+                ),
+              ),
+            ],
+          );
+
+          if (isNarrow) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                avatarAndInfo,
+                const SizedBox(height: 10),
+                const Divider(height: 1, color: AppColors.border),
+                const SizedBox(height: 6),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: actions,
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: avatarAndInfo),
+              const SizedBox(width: 12),
+              actions,
+            ],
+          );
+        },
       ),
     );
   }

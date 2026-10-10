@@ -331,29 +331,32 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        UpperText(
-                          'Módulo de Histórico & Rastreabilidade',
-                          style: GoogleFonts.inter(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          UpperText(
+                            'Módulo de Histórico & Rastreabilidade',
+                            style: GoogleFonts.inter(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 2),
-                        UpperText(
-                          'Controle de movimentações financeiras e trilha completa de eventos do sistema',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: AppColors.textSecondary,
+                          const SizedBox(height: 2),
+                          UpperText(
+                            'Controle de movimentações financeiras e trilha completa de eventos do sistema',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     IconButton(
                       onPressed: () {
                         if (_tabController.index == 0) {
@@ -616,44 +619,56 @@ class _TransacoesHistoricoPageState extends State<TransacoesHistoricoPage>
               const SizedBox(height: 12),
 
               // Cards de Resumo Rápido dos Resultados Filtrados
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildResumoCard(
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 650;
+                  final cards = [
+                    _buildResumoCard(
                       label: 'Entradas Filtradas',
                       valor: '+ ${formatCurrency(totalEntradas)}',
                       cor: AppColors.success,
                       icon: Icons.arrow_downward_rounded,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildResumoCard(
+                    _buildResumoCard(
                       label: 'Saídas Filtradas',
                       valor: '- ${formatCurrency(totalSaidas)}',
                       cor: AppColors.error,
                       icon: Icons.arrow_upward_rounded,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildResumoCard(
+                    _buildResumoCard(
                       label: 'Saldo no Filtro',
                       valor: formatCurrency(saldoPeriodo),
                       cor: saldoPeriodo >= 0 ? AppColors.primary : AppColors.warning,
                       icon: Icons.account_balance_wallet_rounded,
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildResumoCard(
+                    _buildResumoCard(
                       label: 'Total de Registros',
                       valor: '${filtradas.length} mov. ${totalEstornos > 0 ? "($totalEstornos estornos)" : ""}',
                       cor: AppColors.textSecondary,
                       icon: Icons.receipt_long_rounded,
                     ),
-                  ),
-                ],
+                  ];
+
+                  if (isCompact) {
+                    final itemWidth = (constraints.maxWidth - 10) / 2;
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: cards
+                          .map((c) => SizedBox(width: itemWidth > 140 ? itemWidth : constraints.maxWidth, child: c))
+                          .toList(),
+                    );
+                  }
+
+                  return Row(
+                    children: [
+                      for (int i = 0; i < cards.length; i++) ...[
+                        if (i > 0) const SizedBox(width: 10),
+                        Expanded(child: cards[i]),
+                      ],
+                    ],
+                  );
+                },
               ),
             ],
           ),
@@ -1015,8 +1030,11 @@ class _AuditoriaCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -1034,6 +1052,7 @@ class _AuditoriaCard extends StatelessWidget {
                       ),
                     ),
                     Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         const Icon(Icons.access_time_rounded, size: 12, color: AppColors.textMuted),
                         const SizedBox(width: 4),
@@ -1059,9 +1078,13 @@ class _AuditoriaCard extends StatelessWidget {
                   children: [
                     const Icon(Icons.person_outline_rounded, size: 13, color: AppColors.textMuted),
                     const SizedBox(width: 4),
-                    UpperText(
-                      'Operado por: $usuario',
-                      style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary),
+                    Flexible(
+                      child: UpperText(
+                        'Operado por: $usuario',
+                        style: GoogleFonts.inter(fontSize: 11, color: AppColors.textSecondary),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                      ),
                     ),
                   ],
                 ),
@@ -1139,18 +1162,18 @@ class _TransacaoCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
                   children: [
-                    Expanded(
-                      child: UpperText(
-                        tx['descricao'] ?? '',
-                        style: GoogleFonts.inter(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary),
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    UpperText(
+                      tx['descricao'] ?? '',
+                      style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary),
                     ),
                     UpperText(
                       '${isEntrada ? '+' : '-'} ${formatCurrency(tx['valor'])}',
@@ -1233,9 +1256,15 @@ class _InfoChip extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: color ?? AppColors.textMuted),
         const SizedBox(width: 4),
-        UpperText(text,
+        Flexible(
+          child: UpperText(
+            text,
             style: GoogleFonts.inter(
-                fontSize: 12, color: color ?? AppColors.textSecondary)),
+                fontSize: 12, color: color ?? AppColors.textSecondary),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
       ],
     );
   }

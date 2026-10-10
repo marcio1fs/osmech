@@ -29,12 +29,15 @@ class PaymentService {
     throw Exception('Falha ao iniciar o processo de assinatura.');
   }
 
-  /// Busca assinatura ativa do usuário.
-  Future<Map<String, dynamic>> getAssinaturaAtiva() async {
+  /// Busca assinatura ativa do usuário (retorna null se não houver assinatura / 404).
+  Future<Map<String, dynamic>?> getAssinaturaAtiva() async {
     final response = await _api.get('/api/v1/assinaturas/ativa');
 
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
+    }
+    if (response.statusCode == 404) {
+      return null;
     }
     throw Exception('Erro ao buscar assinatura');
   }

@@ -369,8 +369,11 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
     });
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        spacing: 8,
+        runSpacing: 4,
         children: [
           _sectionTitle('Receita vs Despesa — Últimos 7 dias'),
           UpperText(
@@ -393,17 +396,27 @@ class _DashboardPageState extends State<DashboardPage> with AuthErrorMixin {
         ),
         child: Column(children: [
           // Legenda com totais da semana
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            UpperText(
-              'Passe o mouse/toque na barra para ver os valores',
-              style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
-            ),
-            Row(children: [
-              _LegendaDot(color: AppColors.success, label: 'Receita (${formatCurrency(totalEntradasSemana)})'),
-              const SizedBox(width: 16),
-              _LegendaDot(color: AppColors.error, label: 'Despesa (${formatCurrency(totalSaidasSemana)})'),
-            ]),
-          ]),
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 12,
+            runSpacing: 8,
+            children: [
+              UpperText(
+                'Passe o mouse/toque na barra para ver os valores',
+                style: GoogleFonts.inter(fontSize: 11, color: AppColors.textMuted),
+              ),
+              Wrap(
+                spacing: 16,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _LegendaDot(color: AppColors.success, label: 'Receita (${formatCurrency(totalEntradasSemana)})'),
+                  _LegendaDot(color: AppColors.error, label: 'Despesa (${formatCurrency(totalSaidasSemana)})'),
+                ],
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           // Barras interativas com Tooltip
           SizedBox(

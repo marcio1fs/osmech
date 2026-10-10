@@ -39,3 +39,8 @@ mercadopago:
     failure: ${MERCADOPAGO_FAILURE_URL}
   notification-url: ${MERCADOPAGO_NOTIFICATION_URL}
   webhook-secret: ${MERCADOPAGO_WEBHOOK_SECRET}
+
+logging:
+  level:
+    root: INFO
+    com.osmech: INFO

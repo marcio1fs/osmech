@@ -40,9 +40,10 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
         _loading = false;
       });
     } catch (e) {
+      debugPrint('[MecanicosPage] Erro ao carregar mecânicos: $e');
       if (!handleAuthError(e)) {
         setState(() {
-          _error = 'Erro ao carregar mecânicos';
+          _error = 'Erro ao carregar mecânicos: $e';
           _loading = false;
         });
       }
@@ -475,11 +476,12 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                             borderRadius: BorderRadius.circular(6),
                                             child: Padding(
                                               padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
+                                              child: Wrap(
+                                                crossAxisAlignment: WrapCrossAlignment.center,
+                                                spacing: 4,
+                                                runSpacing: 2,
                                                 children: [
                                                   const Icon(Icons.monetization_on_outlined, size: 14, color: AppColors.success),
-                                                  const SizedBox(width: 4),
                                                   UpperText(
                                                     'Comissões Acumuladas: ${formatCurrency(m['totalComissoes'] ?? 0)}',
                                                     style: GoogleFonts.inter(
@@ -489,7 +491,6 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                                       decoration: TextDecoration.underline,
                                                     ),
                                                   ),
-                                                  const SizedBox(width: 6),
                                                   const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.success),
                                                 ],
                                               ),
@@ -501,8 +502,11 @@ class _MecanicosPageState extends State<MecanicosPage> with AuthErrorMixin {
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                Wrap(
+                                  alignment: WrapAlignment.spaceBetween,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 8,
                                   children: [
                                     Row(
                                       mainAxisSize: MainAxisSize.min,

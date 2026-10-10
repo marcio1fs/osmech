@@ -39,7 +39,7 @@ class _CheckoutReturnPageState extends State<CheckoutReturnPage>
       final service = PaymentService(token: auth.token!);
       for (var i = 0; i < 3; i++) {
         final assinatura = await service.getAssinaturaAtiva();
-        _assinaturaStatus = assinatura['status']?.toString();
+        _assinaturaStatus = assinatura?['status']?.toString();
         if (_assinaturaStatus == 'ACTIVE') {
           break;
         }

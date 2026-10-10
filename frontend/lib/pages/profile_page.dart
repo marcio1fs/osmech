@@ -763,68 +763,104 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.border),
                         ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              _whatsAppAtivo
-                                  ? Icons.check_circle_rounded
-                                  : Icons.pause_circle_outline_rounded,
-                              color: _whatsAppAtivo
-                                  ? AppColors.success
-                                  : AppColors.textSecondary,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _whatsAppAtivo
-                                        ? 'ENVIO DE WHATSAPP ATIVADO'
-                                        : 'ENVIO DE WHATSAPP DESATIVADO',
-                                    style: GoogleFonts.inter(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w700),
-                                  ),
-                                  if (_zapiConectado != null) ...[
-                                    const SizedBox(height: 4),
-                                    Row(
-                                      children: [
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: _zapiConectado == true
-                                                ? AppColors.success
-                                                : AppColors.error,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          _zapiConectado == true
-                                              ? 'Instância Conectada no WhatsApp'
-                                              : 'Instância Desconectada no Z-API',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            color: _zapiConectado == true
-                                                ? AppColors.success
-                                                : AppColors.error,
-                                            fontWeight: FontWeight.w500,
-                                          ),
+                        child: LayoutBuilder(
+                          builder: (context, constraints) {
+                            final isCompact = constraints.maxWidth < 420;
+                            final statusInfo = Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  _whatsAppAtivo
+                                      ? Icons.check_circle_rounded
+                                      : Icons.pause_circle_outline_rounded,
+                                  color: _whatsAppAtivo
+                                      ? AppColors.success
+                                      : AppColors.textSecondary,
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        _whatsAppAtivo
+                                            ? 'ENVIO DE WHATSAPP ATIVADO'
+                                            : 'ENVIO DE WHATSAPP DESATIVADO',
+                                        style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      if (_zapiConectado != null) ...[
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 8,
+                                              height: 8,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                color: _zapiConectado == true
+                                                    ? AppColors.success
+                                                    : AppColors.error,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Flexible(
+                                              child: Text(
+                                                _zapiConectado == true
+                                                    ? 'Instância Conectada no WhatsApp'
+                                                    : 'Instância Desconectada no Z-API',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 12,
+                                                  color: _zapiConectado == true
+                                                      ? AppColors.success
+                                                      : AppColors.error,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                            Switch(
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+
+                            final switchWidget = Switch(
                               value: _whatsAppAtivo,
                               onChanged: (v) =>
                                   setState(() => _whatsAppAtivo = v),
-                            ),
-                          ],
+                            );
+
+                            if (isCompact) {
+                              return Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(child: statusInfo),
+                                      switchWidget,
+                                    ],
+                                  ),
+                                ],
+                              );
+                            }
+
+                            return Row(
+                              children: [
+                                Expanded(child: statusInfo),
+                                const SizedBox(width: 12),
+                                switchWidget,
+                              ],
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -846,8 +882,11 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                         hint: 'Ex: F77123...',
                       ),
                       const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
                           TextButton.icon(
                             onPressed: _carregarZApiConfig,
@@ -885,9 +924,13 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                             fontSize: 12, color: AppColors.textSecondary),
                       ),
                       const SizedBox(height: 12),
-                      Row(
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        crossAxisAlignment: WrapCrossAlignment.end,
                         children: [
-                          Expanded(
+                          ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 220, maxWidth: 350),
                             child: _inputField(
                               'Telefone para Teste (com DDD)',
                               _testeWhatsPhoneCtrl,
@@ -895,9 +938,8 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
                               keyboardType: TextInputType.phone,
                             ),
                           ),
-                          const SizedBox(width: 12),
                           Padding(
-                            padding: const EdgeInsets.only(top: 24),
+                            padding: const EdgeInsets.only(bottom: 2),
                             child: OutlinedButton.icon(
                               onPressed: _testandoZApi ? null : _testarEnvioZApi,
                               icon: _testandoZApi
@@ -1206,11 +1248,13 @@ class _ProfilePageState extends State<ProfilePage> with AuthErrorMixin {
           children: [
             Icon(icon, size: 20, color: AppColors.accent),
             const SizedBox(width: 8),
-            UpperText(title,
-                style: GoogleFonts.inter(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary)),
+            Expanded(
+              child: UpperText(title,
+                  style: GoogleFonts.inter(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary)),
+            ),
           ],
         ),
         const SizedBox(height: 20),

@@ -410,33 +410,48 @@ class _UsuariosPageState extends State<UsuariosPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── Cabeçalho ────────────────────────────────────────────────
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 16,
+              runSpacing: 16,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: AppColors.accent.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(Icons.manage_accounts_rounded,
-                      color: AppColors.accent, size: 28),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Gerenciamento de Usuários',
-                          style: GoogleFonts.inter(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white)),
-                      Text(
-                          'Crie, edite e gerencie os membros da sua oficina',
-                          style: GoogleFonts.inter(
-                              color: Colors.white54, fontSize: 13)),
-                    ],
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.accent.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.manage_accounts_rounded,
+                          color: AppColors.accent, size: 28),
+                    ),
+                    const SizedBox(width: 14),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Gerenciamento de Usuários',
+                            style: GoogleFonts.inter(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            'Crie, edite e gerencie os membros da sua oficina',
+                            style: GoogleFonts.inter(
+                                color: Colors.white54, fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 if (podecriar)
                   ElevatedButton.icon(
@@ -457,15 +472,24 @@ class _UsuariosPageState extends State<UsuariosPage> {
             const SizedBox(height: 24),
 
             // ─── Filtros ──────────────────────────────────────────────────
-            Row(
+            Wrap(
+              spacing: 16,
+              runSpacing: 12,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              alignment: WrapAlignment.spaceBetween,
               children: [
-                _filtroChip('Perfil:', _filtroRole, _roles,
-                    (v) => setState(() => _filtroRole = v)),
-                const SizedBox(width: 16),
-                _filtroChip('Status:', _filtroStatus,
-                    ['TODOS', 'ATIVO', 'BLOQUEADO'],
-                    (v) => setState(() => _filtroStatus = v)),
-                const Spacer(),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _filtroChip('Perfil:', _filtroRole, _roles,
+                        (v) => setState(() => _filtroRole = v)),
+                    _filtroChip('Status:', _filtroStatus,
+                        ['TODOS', 'ATIVO', 'BLOQUEADO'],
+                        (v) => setState(() => _filtroStatus = v)),
+                  ],
+                ),
                 IconButton(
                   onPressed: _carregarUsuarios,
                   icon: const Icon(Icons.refresh_rounded),
